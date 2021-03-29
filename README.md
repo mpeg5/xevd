@@ -54,10 +54,10 @@ XEVD supports baseline profiles of EVC.
 | -m, --parallel_task   | 1         | mumber of threads to be created                |  
 
 
->More optins can be found when type **xevd_app** only.   
+>More optins can be found when type **xevdb_app** only.   
  
 ### Example
-	$xevd_app -i xevd.bin -o xevd.yuv
+	$xevdb_app -i xevd.bin -o xevd.yuv
 
 
 ## License

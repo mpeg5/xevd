@@ -1,18 +1,32 @@
 include_directories (${PROJECT_SOURCE_DIR}/app)
 
-set( EXE_NAME xevd_app )
+if(("${SET_PROF}" STREQUAL "MAIN"))
+  set( EXE_NAME xevd_app )
+  set( LIB_NAME xevd )
+  set( INC_PATH . .. ../inc ../src_base ../src_main )
+elseif(("${SET_PROF}" STREQUAL "BASE"))
+  set( EXE_NAME xevdb_app )
+  set( LIB_NAME xevdb )
+  set( INC_PATH . .. ../inc ../src_base )
+endif()
 
 file (GLOB DEC_SRC "*.c" )
 file (GLOB DEC_INC "*.h" )
 
 add_executable (${EXE_NAME} ${DEC_SRC} ${DEC_INC} )
-include_directories( ${EXE_NAME} PUBLIC . .. ../inc ../src)
-target_link_libraries (${EXE_NAME} xevd)
+include_directories( ${EXE_NAME} PUBLIC ${INC_PATH} )
+
+if(XEVD_APP_STATIC_BUILD)
+target_link_libraries (${EXE_NAME} ${LIB_NAME})
+else()
+target_link_libraries (${EXE_NAME} ${LIB_NAME}_dynamic)
+endif()
+
 set_property(TARGET ${EXE_NAME} PROPERTY FOLDER "app")
 set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 if( MSVC )
-    target_compile_definitions( ${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS ANY )
+  target_compile_definitions( ${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS ANY )
 elseif( UNIX OR MINGW )
-    target_compile_definitions( ${EXE_NAME} PUBLIC LINUX ANY )
+  target_compile_definitions( ${EXE_NAME} PUBLIC LINUX ANY )
+  target_link_libraries (${EXE_NAME} m)
 endif()
