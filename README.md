@@ -51,7 +51,7 @@ XEVD supports mainline and baseline profiles of EVC.
 |-----------------------|-----------|------------------------------------------------|
 | -i, --input           | -         | file name of input bitstream                   |
 | -o, --output          | -         | file name of output video                      |
-| -m, --parallel_task   | 1         | mumber of threads to be created                |  
+| -m, --threads         | 1         | mumber of threads to be created                |  
 
 
 >More optins can be found when type **xevd_app** only.   
