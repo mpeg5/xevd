@@ -47,5 +47,15 @@ void xevd_eco_sbac_reset(XEVD_BSR * bs, u8 slice_type, u8 slice_qp);
 int  xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core);
 s8   xevd_eco_split_mode(XEVD_BSR *bs, XEVD_SBAC * sbac, int cuw, int cuh);
 u32  xevd_eco_tile_end_flag(XEVD_BSR * bs, XEVD_SBAC * sbac);
-
+int  xevd_eco_bi_idx(XEVD_BSR * bs, XEVD_SBAC * sbac);
+void xevd_eco_cu_skip_flag(XEVD_CTX * ctx, XEVD_CORE * core);
+int  xevd_eco_mvp_idx(XEVD_BSR * bs, XEVD_SBAC * sbac);
+void xevd_eco_direct_mode_flag(XEVD_CTX * ctx, XEVD_CORE * core);
+int xevd_eco_refi(XEVD_BSR * bs, XEVD_SBAC * sbac, int num_refp);
+int xevd_eco_get_mvd(XEVD_BSR * bs, XEVD_SBAC * sbac, s16 mvd[MV_D]);
+int xevd_eco_intra_dir(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT]);
+int xevd_eco_intra_dir_c(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 ipm_l);
+int xevd_eco_intra_dir_b(XEVD_BSR * bs, XEVD_SBAC * sbac, u8  * mpm, u8 mpm_ext[8], u8 pims[IPD_CNT]);
+int xevd_eco_vui(XEVD_BSR * bs, XEVD_VUI * vui);
+int xevd_eco_dqp(XEVD_BSR * bs);
 #endif /* _XEVD_ECO_H_ */

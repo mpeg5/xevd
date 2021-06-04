@@ -327,3 +327,4 @@ void xevd_bsr_read_se(XEVD_BSR * bs, s32 * val)
     *val = ((*val & 0x01) ? ((*val + 1) >> 1) : -(*val >> 1));
 }
 #endif
+

@@ -87,10 +87,9 @@ XEVD_PIC* xevd_picbuf_lc_alloc(int w, int h, int pad_l, int pad_c, int *err, int
 void xevd_picbuf_lc_free(XEVD_PIC *pic);
 void xevd_picbuf_lc_expand(XEVD_PIC *pic, int exp_l, int exp_c);
 void xevd_poc_derivation(XEVD_SPS sps, int tid, XEVD_POC *poc);
-void xevd_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D]
-                   , XEVD_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
-void xevd_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D]
-                                 , XEVD_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr);
+void xevd_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
+void xevd_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, 
+    s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr);
 
 enum
 {
@@ -127,11 +126,12 @@ int xevd_split_is_horizontal(SPLIT_MODE mode);
 
 void xevd_get_mv_dir(XEVD_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16 w_scu, u16 h_scu, s16 mvp[REFP_NUM][MV_D]);
 int  xevd_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu, u8 * map_tidx);
-int  xevd_scan_tbl_init();
-int  xevd_scan_tbl_delete();
+int  xevd_scan_tbl_init(XEVD_CTX * ctx);
+int  xevd_scan_tbl_delete(XEVD_CTX * ctx);
 int  xevd_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+
 void xevd_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
-u16  xevd_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu, u8* map_tidx);
+u16 xevd_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu, u8* map_tidx);
 
 /* MD5 structure */
 typedef struct _XEVD_MD5
@@ -146,29 +146,28 @@ void xevd_md5_init(XEVD_MD5 * md5);
 void xevd_md5_update(XEVD_MD5 * md5, void * buf, u32 len);
 void xevd_md5_update_16(XEVD_MD5 * md5, void * buf, u32 len);
 void xevd_md5_finish(XEVD_MD5 * md5, u8 digest[16]);
-int  xevd_md5_imgb(XEVD_IMGB * imgb, u8 digest[N_C][16]);
+int xevd_md5_imgb(XEVD_IMGB * imgb, u8 digest[N_C][16]);
 
-int  xevd_picbuf_signature(XEVD_PIC * pic, u8 md5_out[N_C][16]);
-int  xevd_atomic_inc(volatile int * pcnt);
-int  xevd_atomic_dec(volatile int * pcnt);
+int xevd_picbuf_signature(XEVD_PIC * pic, u8 md5_out[N_C][16]);
+
+int xevd_atomic_inc(volatile int * pcnt);
+int xevd_atomic_dec(volatile int * pcnt);
+
 void xevd_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type);
+void xevd_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y);
 void xevd_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp);
+
 BOOL xevd_check_bi_applicability(int slice_type, int cuw, int cuh);
 void xevd_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
-int  xevd_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
+int xevd_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
+
 void xevd_picbuf_expand(XEVD_CTX * ctx, XEVD_PIC * pic);
 XEVD_PIC * xevd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret, int bit_depth);
 void xevd_picbuf_free(PICBUF_ALLOCATOR * pa, XEVD_PIC * pic);
-int  xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16], int bit_depth);
-void xevd_derived_chroma_qp_mapping_tables(XEVD_CHROMA_TABLE *struct_chroma_qp, int bit_depth);
-void xevd_set_chroma_qp_tbl_loc(int codec_bit_depth);
+int xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16], int bit_depth);
 
 /* set decoded information, such as MVs, inter_dir, etc. */
-void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
-#if ENC_DEC_TRACE
-                       , u8 write_trace
-#endif
-);
+void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core);
 
 #define XEVD_CPU_INFO_SSE2     0x7A // ((3 << 5) | 26)
 #define XEVD_CPU_INFO_SSE3     0x40 // ((2 << 5) |  0)

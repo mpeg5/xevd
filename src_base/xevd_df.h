@@ -30,15 +30,16 @@
 
 #ifndef _XEVD_DF_H_
 #define _XEVD_DF_H_
-
-enum DF_DIR
-{
-    DF_HOR,
-    DF_VER
-};
-
- void xevd_deblock_cu_hor(XEVD_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, XEVD_REFP(*refp)[REFP_NUM]
-                        , u8* map_tidx, int boundary_filtering, int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc);
+void deblock_scu_hor(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp_to_st
+                   , int bit_depth_minus8, int chroma_format_idc);
+void deblock_scu_hor_chroma(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp_to_st
+                          , int bit_depth_minus8, int chroma_format_idc);
+void deblock_scu_ver(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp_to_st
+                   , int bit_depth_minus8, int chroma_format_idc);
+void deblock_scu_ver_chroma(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp_to_st
+                          , int bit_depth_minus8, int chroma_format_idc);
+void xevd_deblock_cu_hor(XEVD_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh, XEVD_REFP(*refp)[REFP_NUM]
+                       , u8* map_tidx, int boundary_filtering, int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc);
 void xevd_deblock_cu_ver(XEVD_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, u32 *map_scu, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int log2_max_cuwh
                        , u32  *map_cu, XEVD_REFP(*refp)[REFP_NUM], u8 *map_tidx, int boundary_filtering, int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc);
 

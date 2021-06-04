@@ -28,27 +28,27 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _XEVDA_UTIL_H_
-#define _XEVDA_UTIL_H_
+#ifndef _XEVD_APP_UTIL_H_
+#define _XEVD_APP_UTIL_H_
+
 
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-
 #include <stdlib.h>
-#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
+#include <math.h>
 #include <stdarg.h>
+#include <ctype.h>
 
-#define USE_CPU_TIME_CLOCK         0
-
-/* logging function ************************************************************/
-void log_msg(char * filename, int line, const char *fmt, ...)
+/* logging functions */
+static void log_msg(char * filename, int line, const char *fmt, ...)
 {
-    char str[1024] = { '\0', };
-    if (filename != NULL && line >= 0) sprintf(str, "[%s:%d] ", filename, line);
+    char str[1024]={'\0',};
+    if(filename != NULL && line >= 0) sprintf(str, "[%s:%d] ", filename, line);
     va_list args;
     va_start(args, fmt);
     vsprintf(str + strlen(str), fmt, args);
@@ -56,25 +56,21 @@ void log_msg(char * filename, int line, const char *fmt, ...)
     printf("%s", str);
 }
 
-void log_line(char * pre)
+static void log_line(char * pre)
 {
-    char str[128] = { '\0', };
+    char str[128]={'\0',};
     const int chars = 80;
-    int len = (pre == NULL) ? 0 : (int)strlen(pre);
-    if (len > 0)
+    int len = (pre == NULL)? 0: (int)strlen(pre);
+    if(len > 0)
     {
         sprintf(str, "%s ", pre);
         len = (int)strlen(str);
     }
-    for (int i = len; i < chars; i++) { str[i] = '='; }
+    for(int i = len ; i< chars; i++) {str[i] = '=';}
     str[chars] = '\0';
     printf("%s\n", str);
 }
 
-#define VERBOSE_0                  0
-#define VERBOSE_1                  1
-#define VERBOSE_2                  2
-static int op_verbose = VERBOSE_1;
 
 #if defined(__GNUC__)
 #define __FILENAME__ \
@@ -98,20 +94,23 @@ static int op_verbose = VERBOSE_1;
 #define logv1_line(pre) {if(op_verbose >= VERBOSE_1) {log_line(pre);}}
 #define logv2_line(pre) {if(op_verbose >= VERBOSE_2) {log_line(pre);}}
 
-/****************************************************************************/
-#if _WIN32
+
+#define VERBOSE_0                  0
+#define VERBOSE_1                  1
+#define VERBOSE_2                  2
+
+static int op_verbose = VERBOSE_1;
+
+/* Clocks */
+#if defined(_WIN64) || defined(_WIN32)
 #include <windows.h>
 
 #define XEVD_CLK             DWORD
 #define XEVD_CLK_PER_SEC     (1000)
 #define XEVD_CLK_PER_MSEC    (1)
 #define XEVD_CLK_MAX         ((XEVD_CLK)(-1))
-#if USE_CPU_TIME_CLOCK
-#define xevd_clk_get()       clock()
-#else
 #define xevd_clk_get()       GetTickCount()
-#endif
-/****************************************************************************/
+
 #elif __linux__ || __CYGWIN__
 #include <time.h>
 #include <sys/time.h>
@@ -122,16 +121,12 @@ static int op_verbose = VERBOSE_1;
 static XEVD_CLK xevd_clk_get(void)
 {
     XEVD_CLK clk;
-#if USE_CPU_TIME_CLOCK
-    clk = (XEVD_CLK)(clock()) * 10000L / CLOCKS_PER_SEC;
-#else
     struct timeval t;
     gettimeofday(&t, NULL);
     clk = t.tv_sec*10000L + t.tv_usec/100L;
-#endif
     return clk;
 }
-/* The others ***************************************************************/
+
 #else
 #error THIS PLATFORM CANNOT SUPPORT CLOCK
 #endif
@@ -139,9 +134,9 @@ static XEVD_CLK xevd_clk_get(void)
 #define xevd_clk_diff(t1, t2) \
     (((t2) >= (t1)) ? ((t2) - (t1)) : ((XEVD_CLK_MAX - (t1)) + (t2)))
 
-XEVD_CLK xevd_clk_from(XEVD_CLK from) \
+static XEVD_CLK xevd_clk_from(XEVD_CLK from) \
 {
-  XEVD_CLK now = xevd_clk_get(); \
+    XEVD_CLK now = xevd_clk_get(); \
     return xevd_clk_diff(from, now); \
 }
 
@@ -150,154 +145,359 @@ XEVD_CLK xevd_clk_from(XEVD_CLK from) \
 #define xevd_clk_sec(clk)  \
     ((int)((clk + (XEVD_CLK_PER_SEC/2))/XEVD_CLK_PER_SEC))
 
-static int imgb_write(char * fname, XEVD_IMGB * imgb)
+#define XEVDA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+
+static int imgb_read(FILE * fp, XEVD_IMGB * img)
+{
+    int f_w, f_h;
+    int y_size, u_size, v_size;
+
+    f_w = img->w[0];
+    f_h = img->h[0];
+    int idc = XEVD_CS_GET_FORMAT(img->cs);
+    if((XEVD_CS_GET_BIT_DEPTH(img->cs)) == 8)
+    {
+        y_size = f_w * f_h;
+        u_size = v_size = (f_w >> 1) * (f_h >> 1);
+
+        if(fread(img->a[0], 1, y_size, fp) != (unsigned)y_size)
+        {
+            return -1;
+        }
+        u_size = v_size = (f_w >> (XEVD_GET_CHROMA_W_SHIFT(idc-10))) * (f_h >> (XEVD_GET_CHROMA_H_SHIFT(idc-10)));
+        if(idc)
+        {
+            if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+            {
+                return -1;
+            }
+            if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
+            {
+                return -1;
+            }
+        }
+    }
+    else if(((XEVD_CS_GET_BIT_DEPTH(img->cs)) >= 10))
+    {
+
+        y_size = f_w * f_h * sizeof(short);
+        u_size = v_size = (f_w >> 1) * (f_h >> 1) * sizeof(short);
+        if(fread(img->a[0], 1, y_size, fp) != (unsigned)y_size)
+        {
+            return -1;
+        }
+        u_size = v_size = (f_w >> (XEVD_GET_CHROMA_W_SHIFT(idc-10))) * (f_h >> (XEVD_GET_CHROMA_H_SHIFT(idc-10))) * sizeof(short);
+        if(idc)
+        {
+            if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+            {
+                return -1;
+            }
+            if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
+            {
+                return -1;
+            }
+        }
+    }
+    else
+    {
+        logv0("not supported color space\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int imgb_write(char * fname, XEVD_IMGB * img)
 {
     unsigned char * p8;
     int             i, j, bd;
     int             cs_w_off, cs_h_off;
     FILE          * fp;
 
-    int chroma_format = XEVD_CS_GET_FORMAT(imgb->cs);
-    int bit_depth = XEVD_CS_GET_BIT_DEPTH(imgb->cs);
     fp = fopen(fname, "ab");
-    if (fp == NULL)
+    if(fp == NULL)
     {
         logv0("cannot open file = %s\n", fname);
         return -1;
     }
-    if (bit_depth == 8 && (chroma_format == XEVD_CF_YCBCR400 || chroma_format == XEVD_CF_YCBCR420 || chroma_format == XEVD_CF_YCBCR422 || chroma_format == XEVD_CF_YCBCR444))
-    {
+    cs_w_off = 2;
+    cs_h_off = 2;
+    if((XEVD_CS_GET_BIT_DEPTH(img->cs)) == 8)
         bd = 1;
-        cs_w_off = 2;
-        cs_h_off = 2;
-    }
-    else if (bit_depth >= 10 && bit_depth <= 14 && (chroma_format == XEVD_CF_YCBCR400 || chroma_format == XEVD_CF_YCBCR420 || chroma_format == XEVD_CF_YCBCR422 || chroma_format == XEVD_CF_YCBCR444))
-    {
+    else if((XEVD_CS_GET_BIT_DEPTH(img->cs)) >= 10)
         bd = 2;
-        cs_w_off = 2;
-        cs_h_off = 2;
-    }
     else
     {
         logv0("cannot support the color space\n");
         return -1;
     }
-
-    for (i = 0; i < imgb->np; i++)
+    for(i = 0; i < img->np; i++)
     {
-        p8 = (unsigned char *)imgb->a[i] + (imgb->s[i] * imgb->y[i]) + (imgb->x[i] * bd);
-        for (j = 0; j < imgb->h[i]; j++)
+        p8 = (unsigned char *)img->a[i] + (img->s[i] * img->y[i]) + (img->x[i] * bd);
+        int tw, th, tcl, tcr, tct, tcb;
+        tw = img->w[i];
+        th = img->h[i];
+        tcl = tcr = tct = tcb = 0;
+
+        if (!i)
         {
-            fwrite(p8, imgb->w[i] * bd, 1, fp);
-            p8 += imgb->s[i];
+            tw = img->w[i] - (cs_w_off * (img->crop_l + img->crop_r));
+            th = img->h[i] - (cs_h_off * (img->crop_t + img->crop_b));
+            tcl = img->crop_l * cs_w_off;
+            tcr = img->crop_r * cs_w_off;
+            tct = img->crop_t * cs_h_off;
+            tcb = img->crop_b * cs_h_off;
+        }
+        else
+        {
+            tw = img->w[i] - (img->crop_l + img->crop_r);
+            th = img->h[i] - (img->crop_t + img->crop_b);
+            tcl = img->crop_l;
+            tcr = img->crop_r;
+            tct = img->crop_t;
+            tcb = img->crop_b;
+        }
+
+        for (j = 0; j < tct; j++)
+        {
+            p8 += img->s[i];
+        }
+
+        for(j = 0; j < th; j++)
+        {
+            fwrite(p8 + tcl * bd, tw * bd, 1, fp);
+            p8 += img->s[i];
         }
     }
-
     fclose(fp);
     return 0;
 }
 
-static void imgb_cpy_plane(XEVD_IMGB * dst, XEVD_IMGB * src)
+static void __imgb_cpy_plane(void *src, void *dst, int bw, int h, int s_src, int s_dst)
 {
-    int i, j;
+    int i;
     unsigned char *s, *d;
-    int numbyte = XEVD_CS_GET_BYTE_DEPTH(src->cs);
 
-    for (i = 0; i < src->np; i++)
+    s = (unsigned char*)src;
+    d = (unsigned char*)dst;
+
+    for(i = 0; i < h; i++)
     {
-        s = (unsigned char*)src->a[i];
-        d = (unsigned char*)dst->a[i];
-
-        for (j = 0; j < src->ah[i]; j++)
-        {
-            memcpy(d, s, numbyte * src->aw[i]);
-            s += src->s[i];
-            d += dst->s[i];
-        }
+        memcpy(d, s, bw);
+        s += s_src;
+        d += s_dst;
     }
 }
 
+static int write_data(char * fname, unsigned char * data, int size)
+{
+    FILE * fp;
 
-static void imgb_cpy_shift_left_8b(XEVD_IMGB * dst, XEVD_IMGB * src, int shift)
+    fp = fopen(fname, "ab");
+    if(fp == NULL)
+    {
+        logv0("cannot open an writing file=%s\n", fname);
+        return -1;
+    }
+    fwrite(data, 1, size, fp);
+    fclose(fp);
+    return 0;
+}
+
+static void imgb_conv_8b_to_16b(XEVD_IMGB * imgb_dst, XEVD_IMGB * imgb_src, int shift)
 {
     int i, j, k;
 
-    unsigned char *s;
-    short         *d;
+    unsigned char * s;
+    short         * d;
 
-    for (i = 0; i < dst->np; i++)
+    for(i = 0; i < 3; i++)
     {
-        s = src->a[i];
-        d = dst->a[i];
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
 
-        for (j = 0; j < src->ah[i]; j++)
+        for(j = 0; j < imgb_src->h[i]; j++)
         {
-            for (k = 0; k < src->aw[i]; k++)
+            for(k = 0; k < imgb_src->w[i]; k++)
             {
                 d[k] = (short)(s[k] << shift);
             }
-            s = s + src->s[i];
-            d = (short*)(((unsigned char *)d) + dst->s[i]);
+            s = s + imgb_src->s[i];
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
         }
+    }
+    if (imgb_src->crop_idx)
+    {
+        imgb_dst->crop_idx = imgb_src->crop_idx;
+        imgb_dst->crop_l = imgb_src->crop_l;
+        imgb_dst->crop_r = imgb_src->crop_r;
+        imgb_dst->crop_t = imgb_src->crop_t;
+        imgb_dst->crop_b = imgb_src->crop_b;
     }
 }
 
-static void imgb_cpy_shift_right_8b(XEVD_IMGB *dst, XEVD_IMGB *src, int shift)
+static void imgb_conv_16b_to_8b(XEVD_IMGB * imgb_dst, XEVD_IMGB * imgb_src, int shift)
 {
+
     int i, j, k, t0, add;
 
-    short         *s;
-    unsigned char *d;
+    short         * s;
+    unsigned char * d;
 
-    if (shift)
+    add = 1 << (shift - 1);
+
+    for(i = 0; i < 3; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+
+        for(j = 0; j < imgb_src->h[i]; j++)
+        {
+            for(k = 0; k < imgb_src->w[i]; k++)
+            {
+                t0 = ((s[k] + add) >> shift);
+                d[k] = (unsigned char)(XEVDA_CLIP(t0, 0, 255));
+
+            }
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = d + imgb_dst->s[i];
+        }
+    }
+    if (imgb_src->crop_idx)
+    {
+        imgb_dst->crop_idx = imgb_src->crop_idx;
+        imgb_dst->crop_l = imgb_src->crop_l;
+        imgb_dst->crop_r = imgb_src->crop_r;
+        imgb_dst->crop_t = imgb_src->crop_t;
+        imgb_dst->crop_b = imgb_src->crop_b;
+    }
+}
+
+static void imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
+{
+    int i, bd;
+
+    if(src->cs == dst->cs)
+    {
+        if(src->cs == XEVD_CS_YCBCR420_10LE) bd = 2;
+        else bd = 1;
+
+        for(i = 0; i < src->np; i++)
+        {
+            __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i],
+                             src->s[i], dst->s[i]);
+
+        }
+    }
+    else if(src->cs == XEVD_CS_YCBCR420 && dst->cs == XEVD_CS_YCBCR420_10LE)
+    {
+        imgb_conv_8b_to_16b(dst, src, 2);
+    }
+    else if(src->cs == XEVD_CS_YCBCR420_10LE && dst->cs == XEVD_CS_YCBCR420)
+    {
+        imgb_conv_16b_to_8b(dst, src, 2);
+    }
+    else
+    {
+        logv0("ERROR: unsupported image copy\n");
+        return;
+    }
+    for(i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+    if (src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+}
+
+static void imgb_conv_shift_left_8b(XEVD_IMGB * imgb_dst, XEVD_IMGB * imgb_src, int shift)
+{
+    int i, j, k;
+
+    unsigned char * s;
+    short         * d;
+
+    for(i = 0; i < imgb_dst->np; i++)
+    {
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
+
+        for(j = 0; j < imgb_src->h[i]; j++)
+        {
+            for(k = 0; k < imgb_src->w[i]; k++)
+            {
+                d[k] = (short)(s[k] << shift);
+            }
+            s = s + imgb_src->s[i];
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
+        }
+    }
+}
+static void imgb_conv_shift_right_8b(XEVD_IMGB * imgb_dst, XEVD_IMGB * imgb_src, int shift)
+{
+
+    int i, j, k, t0, add;
+
+    short         * s;
+    unsigned char * d;
+
+    if(shift)
         add = 1 << (shift - 1);
     else
         add = 0;
 
-    for (i = 0; i < dst->np; i++)
+    for(i = 0; i < imgb_dst->np; i++)
     {
-        s = src->a[i];
-        d = dst->a[i];
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
 
-        for (j = 0; j < src->ah[i]; j++)
+        for(j = 0; j < imgb_src->h[i]; j++)
         {
-            for (k = 0; k < src->aw[i]; k++)
+            for(k = 0; k < imgb_src->w[i]; k++)
             {
                 t0 = ((s[k] + add) >> shift);
-                d[k] = (unsigned char)(t0 < 0 ? 0 : (t0 > 255 ? 255 : t0));
-
+                d[k] = (unsigned char)(XEVDA_CLIP(t0, 0, 255));
             }
-            s = (short*)(((unsigned char *)s) + src->s[i]);
-            d = d + dst->s[i];
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = d + imgb_dst->s[i];
         }
     }
 }
 
-static void imgb_cpy_shift_left(XEVD_IMGB *dst, XEVD_IMGB *src, int shift)
+static void imgb_conv_shift_left(XEVD_IMGB * imgb_dst, XEVD_IMGB * imgb_src, int shift)
 {
     int i, j, k;
 
     unsigned short * s;
     unsigned short * d;
 
-    for (i = 0; i < dst->np; i++)
+    for(i = 0; i < imgb_dst->np; i++)
     {
-        s = src->a[i];
-        d = dst->a[i];
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
 
-        for (j = 0; j < src->h[i]; j++)
+        for(j = 0; j < imgb_src->h[i]; j++)
         {
-            for (k = 0; k < src->w[i]; k++)
+            for(k = 0; k < imgb_src->w[i]; k++)
             {
                 d[k] = (unsigned short)(s[k] << shift);
             }
-            s = (short*)(((unsigned char *)s) + src->s[i]);
-            d = (short*)(((unsigned char *)d) + dst->s[i]);
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
         }
     }
 }
 
-static void imgb_cpy_shift_right(XEVD_IMGB * dst, XEVD_IMGB * src, int shift)
+static void imgb_conv_shift_right(XEVD_IMGB * imgb_dst, XEVD_IMGB * imgb_src, int shift)
 {
 
     int i, j, k, t0, add;
@@ -305,70 +505,187 @@ static void imgb_cpy_shift_right(XEVD_IMGB * dst, XEVD_IMGB * src, int shift)
     int clip_min = 0;
     int clip_max = 0;
 
-    unsigned short         * s;
-    unsigned short         * d;
+    unsigned short * s;
+    unsigned short * d;
+    if(shift)
+        add = 1 << (shift - 1);
+    else
+        add = 0;
 
-    if (shift) add = 1 << (shift - 1);
-    else add = 0;
+    clip_max = (1 << (XEVD_CS_GET_BIT_DEPTH(imgb_dst->cs))) - 1;
 
-    clip_max = (1 << (XEVD_CS_GET_BIT_DEPTH(dst->cs))) - 1;
-
-    for (i = 0; i < dst->np; i++)
+    for(i = 0; i < imgb_dst->np; i++)
     {
-        s = src->a[i];
-        d = dst->a[i];
+        s = imgb_src->a[i];
+        d = imgb_dst->a[i];
 
-        for (j = 0; j < src->h[i]; j++)
+        for(j = 0; j < imgb_src->h[i]; j++)
         {
-            for (k = 0; k < src->w[i]; k++)
+            for(k = 0; k < imgb_src->w[i]; k++)
             {
                 t0 = ((s[k] + add) >> shift);
-                d[k] = (t0 < clip_min ? clip_min : (t0 > clip_max ? clip_max : t0));
+                d[k] = (XEVDA_CLIP(t0, clip_min, clip_max));
+
             }
-            s = (short*)(((unsigned char *)s) + src->s[i]);
-            d = (short*)(((unsigned char *)d) + dst->s[i]);
+            s = (short*)(((unsigned char *)s) + imgb_src->s[i]);
+            d = (short*)(((unsigned char *)d) + imgb_dst->s[i]);
         }
     }
 }
 
-void imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
+static void imgb_cpy_bd(XEVD_IMGB * dst, XEVD_IMGB * src)
 {
-    int i, bd_src, bd_dst;
-    bd_src = XEVD_CS_GET_BIT_DEPTH(src->cs);
-    bd_dst = XEVD_CS_GET_BIT_DEPTH(dst->cs);
-    if (src->cs == dst->cs)
+    int i, bd;
+    int bit_depth = XEVD_CS_GET_BIT_DEPTH(src->cs);
+    int idc = XEVD_CS_GET_FORMAT(src->cs);
+    if(src->cs == dst->cs)
     {
-        imgb_cpy_plane(dst, src);
+        if(bit_depth >= 10)
+            bd = 2;
+        else
+            bd = 1;
+        for(i = 0; i < src->np; i++)
+        {
+            __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i], src->s[i], dst->s[i]);
+        }
     }
-    else if (bd_src == 8 && bd_dst > 8)
+    else if(bit_depth == 8)
     {
-        imgb_cpy_shift_left_8b(dst, src, bd_dst - bd_src);
+        imgb_conv_shift_left_8b(dst, src, ((XEVD_CS_GET_BIT_DEPTH(dst->cs)) - XEVD_CS_GET_BIT_DEPTH(src->cs))); //complicated formula because of colour space macors
     }
-    else if (bd_src > 8 && bd_dst == 8)
+    else if(bit_depth == 10)
     {
-        imgb_cpy_shift_right_8b(dst, src, bd_src - bd_dst);
+        if((XEVD_CS_GET_BIT_DEPTH(dst->cs)) == 8)
+            imgb_conv_shift_right_8b(dst, src, 2);
+        else
+            imgb_conv_shift_left(dst, src, ((XEVD_CS_GET_BIT_DEPTH(dst->cs)) - XEVD_CS_GET_BIT_DEPTH(src->cs))); //complicated formula because of colour space macors
     }
-    else if (bd_src < bd_dst)
+    else if(bit_depth == 12)
     {
-        imgb_cpy_shift_left(dst, src, bd_dst - bd_src);
+        if((XEVD_CS_GET_BIT_DEPTH(dst->cs)) == 8)
+            imgb_conv_shift_right_8b(dst, src, 4);
+        else if((XEVD_CS_GET_BIT_DEPTH(dst->cs)) == 10)
+            imgb_conv_shift_right(dst, src, ((XEVD_CS_GET_BIT_DEPTH(src->cs)) - XEVD_CS_GET_BIT_DEPTH(dst->cs)));
+        else
+            imgb_conv_shift_left(dst, src, ((XEVD_CS_GET_BIT_DEPTH(dst->cs)) - XEVD_CS_GET_BIT_DEPTH(src->cs))); //complicated formula because of colour space macors
     }
-    else if (bd_src > bd_dst)
+    else if(bit_depth == 14)
     {
-        imgb_cpy_shift_right(dst, src, bd_src - bd_dst);
+        if((XEVD_CS_GET_BIT_DEPTH(dst->cs)) == 8)
+            imgb_conv_shift_right_8b(dst, src, 6);
+        else if(((XEVD_CS_GET_BIT_DEPTH(dst->cs)) == 10) || ((XEVD_CS_GET_BIT_DEPTH(dst->cs)) == 12))
+            imgb_conv_shift_right(dst, src, ((XEVD_CS_GET_BIT_DEPTH(src->cs)) - XEVD_CS_GET_BIT_DEPTH(dst->cs)));
+        else
+            imgb_conv_shift_left(dst, src, ((XEVD_CS_GET_BIT_DEPTH(dst->cs)) - XEVD_CS_GET_BIT_DEPTH(src->cs))); //complicated formula because of colour space macors
     }
     else
     {
         logv0("ERROR: unsupported image copy\n");
         return;
     }
-    for (i = 0; i < XEVD_IMGB_MAX_PLANE; i++)
+    for(i = 0; i < 4; i++)
     {
-        dst->x[i] = src->x[i];
-        dst->y[i] = src->y[i];
-        dst->w[i] = src->w[i];
-        dst->h[i] = src->h[i];
         dst->ts[i] = src->ts[i];
     }
+    if(src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+}
+static void imgb_cpy_inp_to_codec(XEVD_IMGB * dst, XEVD_IMGB * src)
+{
+    int i, bd;
+    int src_bd, dst_bd;
+    src_bd = XEVD_CS_GET_BIT_DEPTH(src->cs);
+    dst_bd = XEVD_CS_GET_BIT_DEPTH(dst->cs);
+    if(src_bd == 8)
+    {
+        imgb_conv_shift_left_8b(dst, src, dst_bd - src_bd);
+    }
+    else
+    {
+        if(src->cs == dst->cs)
+        {
+            bd = 2;
+            for(i = 0; i < src->np; i++)
+            {
+                __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i], src->s[i], dst->s[i]);
+            }
+        }
+        else if(src->cs > dst->cs)
+        {
+            imgb_conv_shift_right(dst, src, src_bd - dst_bd);
+        }
+        else
+        {
+            imgb_conv_shift_left(dst, src, dst_bd - src_bd);
+        }
+    }
+    for(i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+    if(src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
+}
+
+static void imgb_cpy_codec_to_out(XEVD_IMGB * dst, XEVD_IMGB * src)
+{
+    int i, bd;
+    int src_bd, dst_bd;
+    src_bd = XEVD_CS_GET_BIT_DEPTH(src->cs);
+    dst_bd = XEVD_CS_GET_BIT_DEPTH(dst->cs);
+    if(dst_bd == 8)
+    {
+        imgb_conv_shift_right_8b(dst, src, src_bd - dst_bd);
+    }
+    else
+    {
+        if(src->cs == dst->cs)
+        {
+            bd = 2;
+            for(i = 0; i < src->np; i++)
+            {
+                __imgb_cpy_plane(src->a[i], dst->a[i], bd*src->w[i], src->h[i], src->s[i], dst->s[i]);
+            }
+        }
+        else if(src->cs > dst->cs)
+        {
+            imgb_conv_shift_right(dst, src, src_bd - dst_bd);
+        }
+        else
+        {
+            imgb_conv_shift_left(dst, src, dst_bd - src_bd);
+        }
+    }
+    for(i = 0; i < 4; i++)
+    {
+        dst->ts[i] = src->ts[i];
+    }
+    if(src->crop_idx)
+    {
+        dst->crop_idx = src->crop_idx;
+        dst->crop_l = src->crop_l;
+        dst->crop_r = src->crop_r;
+        dst->crop_t = src->crop_t;
+        dst->crop_b = src->crop_b;
+    }
+    dst->imgb_active_pps_id = src->imgb_active_pps_id;
+    dst->imgb_active_aps_id = src->imgb_active_aps_id;
 }
 
 static void imgb_free(XEVD_IMGB * imgb)
@@ -392,10 +709,9 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
         logv0("cannot create image buffer\n");
         return NULL;
     }
-
     memset(imgb, 0, sizeof(XEVD_IMGB));
     int idc = XEVD_CS_GET_FORMAT(cs);
-    int np =  idc == XEVD_CF_YCBCR400 ? 1 : 3;
+    int np =  idc == 0 ? 1 : 3;
 
     if(XEVD_CS_GET_BIT_DEPTH(cs)==8)
     {
@@ -420,11 +736,9 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
                     h = (h + 1) >> (XEVD_GET_CHROMA_H_SHIFT(idc-10));
             }
         }
-
         imgb->np = np;
-
     }
-    else if(cs == XEVD_CS_YCBCR420_10LE
+     else if(cs == XEVD_CS_YCBCR420_10LE
          || cs == XEVD_CS_YCBCR420_12LE || cs == XEVD_CS_YCBCR420_14LE
          || cs == XEVD_CS_YCBCR400_10LE || cs == XEVD_CS_YCBCR400_12LE || cs == XEVD_CS_YCBCR400_14LE
          || cs == XEVD_CS_YCBCR422_10LE || cs == XEVD_CS_YCBCR444_10LE  )
@@ -435,6 +749,7 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
             imgb->s[i] = w * sizeof(short);
             imgb->h[i] = imgb->ah[i] = imgb->e[i] = h;
             imgb->bsize[i] = imgb->s[i] * imgb->e[i];
+
             imgb->a[i] = imgb->baddr[i] = malloc(imgb->bsize[i]);
             if(imgb->a[i] == NULL)
             {
@@ -463,4 +778,5 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
     return imgb;
 }
 
-#endif /* _XEVDA_UTIL_H_ */
+
+#endif /* _XEVD_APP_UTIL_H_ */

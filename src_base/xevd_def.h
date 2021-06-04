@@ -34,20 +34,20 @@
 #include "xevd.h"
 #include "xevd_bsr.h"
 #include "xevd_port.h"
-#include "xevd_thread_pool.h"
-
+#include "xevd_tp.h"
 
 /* xevd decoder magic code */
-#define XEVD_MAGIC_CODE                    0x45565944 
-#define XEVD_MAX_TASK_CNT                  8
+#define XEVD_MAGIC_CODE                              0x45565944 
 
 /* Profiles definitions */
-#define PROFILE_BASELINE                   0
-#define PROFILE_STILL_PIC_BASELINE         2
+#define PROFILE_BASELINE                             0
+#define PROFILE_STILL_PIC_BASELINE                   2
+#define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
+#define GET_LUMA_QP(qp, qp_bd_offset)                (qp + 6 * qp_bd_offset)
 
-#define GET_QP(qp,dqp)                     ((qp + dqp + 52) % 52)
-#define GET_LUMA_QP(qp, qp_bd_offset)      (qp + 6 * qp_bd_offset)
-#define MC_PRECISION                       4
+
+
+#define MC_PRECISION                                 4
 
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
@@ -55,11 +55,11 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 #if X86_SSE
-#define OPT_SIMD_MC_L                      1
-#define OPT_SIMD_MC_C                      1
+#define OPT_SIMD_MC_L                                1
+#define OPT_SIMD_MC_C                                1
 #else
-#define OPT_SIMD_MC_L                      0
-#define OPT_SIMD_MC_C                      0 
+#define OPT_SIMD_MC_L                                0
+#define OPT_SIMD_MC_C                                0 
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@
 //                         Certain Tools Parameters                           //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-  
+
 #define MAX_NUM_PPS                        64
 
 /* Partitioning (START) */
@@ -108,9 +108,10 @@
 /* CABAC ZERO WORD (END) */
 
 /* Common routines (START) */
+
 typedef int BOOL;
-#define TRUE                               1
-#define FALSE                              0
+#define TRUE  1
+#define FALSE 0
 /* Common stuff (END) */
 
 /* For debugging (START) */
@@ -124,10 +125,10 @@ typedef int BOOL;
 #define TRACE_COEFFS                       0 ///< Trace coefficients
 #define TRACE_RDO                          0 //!< Trace only encode stream (0), only RDO (1) or all of them (2)
 #define TRACE_BIN                          0 //!< trace each bin
-#define TRACE_START_POC                    0 //!< POC of frame from which we start to write output tracing information 
+#define TRACE_START_POC                    0 //!< POC of frame from which we start to write output tracing information
 #define TRACE_COSTS                        0 //!< Trace cost information
 #define TRACE_REMOVE_COUNTER               0 //!< Remove trace counter
-#define TRACE_ADDITIONAL_FLAGS             0 
+#define TRACE_ADDITIONAL_FLAGS             0
 #define TRACE_DBF                          0 //!< Trace only DBF
 #define TRACE_HLS                          0 //!< Trace SPS, PPS, APS, Slice Header, etc.
 #if TRACE_RDO
@@ -151,7 +152,7 @@ extern int fp_trace_started;
 #define XEVD_TRACE_INT(INT) if(fp_trace_print) { fprintf(fp_trace, "%d ", INT); fflush(fp_trace); }
 #define XEVD_TRACE_INT_HEX(INT) if(fp_trace_print) { fprintf(fp_trace, "0x%x ", INT); fflush(fp_trace); }
 #if TRACE_REMOVE_COUNTER
-#define XEVD_TRACE_COUNTER 
+#define XEVD_TRACE_COUNTER
 #else
 #define XEVD_TRACE_COUNTER  XEVD_TRACE_INT(fp_trace_counter++); XEVD_TRACE_STR("\t")
 #endif
@@ -163,13 +164,13 @@ extern int fp_trace_started;
 #define XEVD_TRACE_DOUBLE(DOU)
 #define XEVD_TRACE_INT(INT)
 #define XEVD_TRACE_INT_HEX(INT)
-#define XEVD_TRACE_COUNTER 
+#define XEVD_TRACE_COUNTER
 #define XEVD_TRACE_MV(X, Y)
 #define XEVD_TRACE_FLUSH
 #endif
 /* For debugging (END) */
 
-#define PEL2BYTE(pel,cs)                      ((pel)*(((BD_FROM_CS(cs)) + 7)>>3))
+#define PEL2BYTE(pel,cs)                      ((pel)*(((XEVD_CS_GET_BIT_DEPTH(cs)) + 7)>>3))
 #define STRIDE_IMGB2PIC(s_imgb)            ((s_imgb)>>1)
 
 #define Y_C                                0  /* Y luma */
@@ -201,21 +202,23 @@ extern int fp_trace_started;
 #define MIN_CU_DIM                        (MIN_CU_SIZE * MIN_CU_SIZE)
 #define MAX_CU_DEPTH                       10  /* 128x128 ~ 4x4 */
 #define NUM_CU_DEPTH                      (MAX_CU_DEPTH + 1)
+
 #define MAX_TR_LOG2                        6  /* 64x64 */
 #define MIN_TR_LOG2                        1  /* 2x2 */
 #define MAX_TR_SIZE                       (1 << MAX_TR_LOG2)
 #define MIN_TR_SIZE                       (1 << MIN_TR_LOG2)
 #define MAX_TR_DIM                        (MAX_TR_SIZE * MAX_TR_SIZE)
 #define MIN_TR_DIM                        (MIN_TR_SIZE * MIN_TR_SIZE)
+
 #define MAX_BEF_DATA_NUM                  (NUM_NEIB << 1)
 
 /* maximum CB count in a LCB */
-#define MAX_CU_CNT_IN_LCU                 (MAX_CU_DIM/MIN_CU_DIM)
+#define MAX_CU_CNT_IN_LCU                  (MAX_CU_DIM/MIN_CU_DIM)
 /* pixel position to SCB position */
-#define PEL2SCU(pel)                      ((pel) >> MIN_CU_LOG2)
+#define PEL2SCU(pel)                       ((pel) >> MIN_CU_LOG2)
 
-#define PIC_PAD_SIZE_L                    (MAX_CU_SIZE + 16)
-#define PIC_PAD_SIZE_C                    (PIC_PAD_SIZE_L >> 1)
+#define PIC_PAD_SIZE_L                     (MAX_CU_SIZE + 16)
+#define PIC_PAD_SIZE_C                     (PIC_PAD_SIZE_L >> 1)
 
 /* number of MVP candidates */
 #if INCREASE_MVP_NUM
@@ -236,7 +239,9 @@ extern int fp_trace_started;
 #define EXTRA_FRAME                        XEVD_MAX_NUM_ACTIVE_REF_FRAME
 
 /* maximum picture buffer size */
+
 #define MAX_PB_SIZE                       (XEVD_MAX_NUM_REF_PICS + EXTRA_FRAME)
+
 
 #define MAX_NUM_TILES_ROW                  22
 #define MAX_NUM_TILES_COL                  20
@@ -328,8 +333,8 @@ extern int fp_trace_started;
 #define IPD_BI                             2  /* Luma, Bilinear */
 #define IPD_HOR                            24 /* Luma, Horizontal */
 #define IPD_VER                            12 /* Luma, Vertical */
-
 #define IPD_DM_C                           0  /* Chroma, DM */
+
 #define IPD_BI_C                           1  /* Chroma, Bilinear */
 #define IPD_DC_C                           2  /* Chroma, DC */
 #define IPD_HOR_C                          3  /* Chroma, Horizontal*/
@@ -346,8 +351,8 @@ extern int fp_trace_started;
 #define IPD_DC_C_B                         0  /* Chroma, DC */
 #define IPD_HOR_C_B                        1  /* Chroma, Horizontal*/
 #define IPD_VER_C_B                        2  /* Chroma, Vertical */
-#define IPD_UL_C_B                         3 
-#define IPD_UR_C_B                         4 
+#define IPD_UL_C_B                         3
+#define IPD_UR_C_B                         4
 
 #define IPD_CNT_B                          5
 #define IPD_CNT                            33
@@ -365,6 +370,7 @@ extern int fp_trace_started;
 /*****************************************************************************
 * Transform
 *****************************************************************************/
+
 #define PI                                (3.14159265358979323846)
 
 /*****************************************************************************
@@ -440,6 +446,18 @@ extern int fp_trace_started;
 #define MCU_GET_LOGH(m)          (int)(((m)>>28)&0x0F)
 
 typedef u16 SBAC_CTX_MODEL;
+//ADDED
+#define NUM_CTX_LAST_SIG_COEFF_LUMA        18
+#define NUM_CTX_LAST_SIG_COEFF_CHROMA      3
+#define NUM_CTX_LAST_SIG_COEFF             (NUM_CTX_LAST_SIG_COEFF_LUMA + NUM_CTX_LAST_SIG_COEFF_CHROMA)
+
+#define NUM_CTX_SIG_COEFF_LUMA             39  /* number of context models for luma sig coeff flag */
+#define NUM_CTX_SIG_COEFF_CHROMA           8   /* number of context models for chroma sig coeff flag */
+#define NUM_CTX_SIG_COEFF_LUMA_TU          13  /* number of context models for luma sig coeff flag per TU */
+#define NUM_CTX_SIG_COEFF_FLAG             (NUM_CTX_SIG_COEFF_LUMA + NUM_CTX_SIG_COEFF_CHROMA)  /* number of context models for sig coeff flag */
+#define NUM_CTX_GTX_LUMA                   13
+#define NUM_CTX_GTX_CHROMA                 5     
+#define NUM_CTX_GTX                        (NUM_CTX_GTX_LUMA + NUM_CTX_GTX_CHROMA)  /* number of context models for gtA/B flag */
 
 #define NUM_CTX_SKIP_FLAG                  2
 #define NUM_CTX_CBF_LUMA                   1
@@ -465,34 +483,94 @@ typedef u16 SBAC_CTX_MODEL;
 #define NUM_CTX_SPLIT_CU_FLAG              1
 #define NUM_CTX_DELTA_QP                   1
 
+
+#define NUM_CTX_MMVD_FLAG                  1
+#define NUM_CTX_MMVD_GROUP_IDX            (3 - 1)
+#define NUM_CTX_MMVD_MERGE_IDX            (4 - 1)
+#define NUM_CTX_MMVD_DIST_IDX             (8 - 1)
+#define NUM_CTX_MMVD_DIRECTION_IDX         2
+#define NUM_CTX_AFFINE_MVD_FLAG            2       /* number of context models for affine_mvd_flag_l0 and affine_mvd_flag_l1 (1st one is for affine_mvd_flag_l0 and 2nd one if for affine_mvd_flag_l1) */
+
+#define NUM_CTX_IBC_FLAG                   2
+#define NUM_CTX_BTT_SPLIT_FLAG             15
+#define NUM_CTX_BTT_SPLIT_DIR              5
+#define NUM_CTX_BTT_SPLIT_TYPE             1
+#define NUM_CTX_SUCO_FLAG                  14
+
+#define NUM_CTX_MODE_CONS                  3
+
+#define NUM_CTX_AMVR_IDX                   4
+
+#define NUM_CTX_AFFINE_FLAG                2
+#define NUM_CTX_AFFINE_MODE                1
+#define NUM_CTX_AFFINE_MRG                 5
+#define NUM_CTX_AFFINE_MVP_IDX            (2 - 1)
+
+#define NUM_CTX_ALF_CTB_FLAG               1
+
+#define NUM_CTX_ATS_INTRA_CU_FLAG          1
+#define NUM_CTX_ATS_MODE_FLAG              1
+#define NUM_CTX_ATS_INTER_FLAG             2
+#define NUM_CTX_ATS_INTER_QUAD_FLAG        1
+#define NUM_CTX_ATS_INTER_HOR_FLAG         3
+#define NUM_CTX_ATS_INTER_POS_FLAG         1
+
 /* context models for arithemetic coding */
 typedef struct _XEVD_SBAC_CTX
 {
-    SBAC_CTX_MODEL   skip_flag                     [NUM_CTX_SKIP_FLAG];
-    SBAC_CTX_MODEL   direct_mode_flag              [NUM_CTX_DIRECT_MODE_FLAG];
-    SBAC_CTX_MODEL   merge_mode_flag               [NUM_CTX_MERGE_MODE_FLAG];
-    SBAC_CTX_MODEL   inter_dir                     [NUM_CTX_INTER_PRED_IDC];
-    SBAC_CTX_MODEL   intra_dir                     [NUM_CTX_INTRA_PRED_MODE];
-    SBAC_CTX_MODEL   intra_luma_pred_mpm_flag      [NUM_CTX_INTRA_LUMA_PRED_MPM_FLAG];
-    SBAC_CTX_MODEL   intra_luma_pred_mpm_idx       [NUM_CTX_INTRA_LUMA_PRED_MPM_IDX];
-    SBAC_CTX_MODEL   intra_chroma_pred_mode        [NUM_CTX_INTRA_CHROMA_PRED_MODE];
-    SBAC_CTX_MODEL   pred_mode                     [NUM_CTX_PRED_MODE];
-    SBAC_CTX_MODEL   refi                          [NUM_CTX_REF_IDX];
-    SBAC_CTX_MODEL   merge_idx                     [NUM_CTX_MERGE_IDX];
-    SBAC_CTX_MODEL   mvp_idx                       [NUM_CTX_MVP_IDX];
-    SBAC_CTX_MODEL   bi_idx                        [NUM_CTX_BI_PRED_IDX];
-    SBAC_CTX_MODEL   mvd                           [NUM_CTX_MVD];
-    SBAC_CTX_MODEL   cbf_all                       [NUM_CTX_CBF_ALL];
-    SBAC_CTX_MODEL   cbf_luma                      [NUM_CTX_CBF_LUMA];
-    SBAC_CTX_MODEL   cbf_cb                        [NUM_CTX_CBF_CB];
-    SBAC_CTX_MODEL   cbf_cr                        [NUM_CTX_CBF_CR];
-    SBAC_CTX_MODEL   run                           [NUM_CTX_CC_RUN];
-    SBAC_CTX_MODEL   last                          [NUM_CTX_CC_LAST];
-    SBAC_CTX_MODEL   level                         [NUM_CTX_CC_LEVEL];
-    SBAC_CTX_MODEL   split_cu_flag                 [NUM_CTX_SPLIT_CU_FLAG];
-    SBAC_CTX_MODEL   delta_qp                      [NUM_CTX_DELTA_QP];
+    SBAC_CTX_MODEL   skip_flag[NUM_CTX_SKIP_FLAG];
+    SBAC_CTX_MODEL   ibc_flag[NUM_CTX_IBC_FLAG];
+    SBAC_CTX_MODEL   mmvd_flag[NUM_CTX_MMVD_FLAG];
+    SBAC_CTX_MODEL   mmvd_merge_idx[NUM_CTX_MMVD_MERGE_IDX];
+    SBAC_CTX_MODEL   mmvd_distance_idx[NUM_CTX_MMVD_DIST_IDX];
+    SBAC_CTX_MODEL   mmvd_direction_idx[NUM_CTX_MMVD_DIRECTION_IDX];
+    SBAC_CTX_MODEL   mmvd_group_idx[NUM_CTX_MMVD_GROUP_IDX];
+    SBAC_CTX_MODEL   direct_mode_flag[NUM_CTX_DIRECT_MODE_FLAG];
+    SBAC_CTX_MODEL   merge_mode_flag[NUM_CTX_MERGE_MODE_FLAG];
+    SBAC_CTX_MODEL   inter_dir[NUM_CTX_INTER_PRED_IDC];
+    SBAC_CTX_MODEL   intra_dir[NUM_CTX_INTRA_PRED_MODE];
+    SBAC_CTX_MODEL   intra_luma_pred_mpm_flag[NUM_CTX_INTRA_LUMA_PRED_MPM_FLAG];
+    SBAC_CTX_MODEL   intra_luma_pred_mpm_idx[NUM_CTX_INTRA_LUMA_PRED_MPM_IDX];
+    SBAC_CTX_MODEL   intra_chroma_pred_mode[NUM_CTX_INTRA_CHROMA_PRED_MODE];
+    SBAC_CTX_MODEL   pred_mode[NUM_CTX_PRED_MODE];
+    SBAC_CTX_MODEL   mode_cons[NUM_CTX_MODE_CONS];
+    SBAC_CTX_MODEL   refi[NUM_CTX_REF_IDX];
+    SBAC_CTX_MODEL   merge_idx[NUM_CTX_MERGE_IDX];
+    SBAC_CTX_MODEL   mvp_idx[NUM_CTX_MVP_IDX];
+    SBAC_CTX_MODEL   affine_mvp_idx[NUM_CTX_AFFINE_MVP_IDX];
+    SBAC_CTX_MODEL   mvr_idx[NUM_CTX_AMVR_IDX];
+    SBAC_CTX_MODEL   bi_idx[NUM_CTX_BI_PRED_IDX];
+    SBAC_CTX_MODEL   mvd[NUM_CTX_MVD];
+    SBAC_CTX_MODEL   cbf_all[NUM_CTX_CBF_ALL];
+    SBAC_CTX_MODEL   cbf_luma[NUM_CTX_CBF_LUMA];
+    SBAC_CTX_MODEL   cbf_cb[NUM_CTX_CBF_CB];
+    SBAC_CTX_MODEL   cbf_cr[NUM_CTX_CBF_CR];
+    SBAC_CTX_MODEL   run[NUM_CTX_CC_RUN];
+    SBAC_CTX_MODEL   last[NUM_CTX_CC_LAST];
+    SBAC_CTX_MODEL   level[NUM_CTX_CC_LEVEL];
+    SBAC_CTX_MODEL   sig_coeff_flag[NUM_CTX_SIG_COEFF_FLAG];
+    SBAC_CTX_MODEL   coeff_abs_level_greaterAB_flag[NUM_CTX_GTX];
+    SBAC_CTX_MODEL   last_sig_coeff_x_prefix[NUM_CTX_LAST_SIG_COEFF];
+    SBAC_CTX_MODEL   last_sig_coeff_y_prefix[NUM_CTX_LAST_SIG_COEFF];
+    SBAC_CTX_MODEL   btt_split_flag[NUM_CTX_BTT_SPLIT_FLAG];
+    SBAC_CTX_MODEL   btt_split_dir[NUM_CTX_BTT_SPLIT_DIR];
+    SBAC_CTX_MODEL   btt_split_type[NUM_CTX_BTT_SPLIT_TYPE];
+    SBAC_CTX_MODEL   affine_flag[NUM_CTX_AFFINE_FLAG];
+    SBAC_CTX_MODEL   affine_mode[NUM_CTX_AFFINE_MODE];
+    SBAC_CTX_MODEL   affine_mrg[NUM_CTX_AFFINE_MRG];
+    SBAC_CTX_MODEL   affine_mvd_flag[NUM_CTX_AFFINE_MVD_FLAG];
+    SBAC_CTX_MODEL   suco_flag[NUM_CTX_SUCO_FLAG];
+    SBAC_CTX_MODEL   alf_ctb_flag[NUM_CTX_ALF_CTB_FLAG];
+    SBAC_CTX_MODEL   split_cu_flag[NUM_CTX_SPLIT_CU_FLAG];
 
-    
+    SBAC_CTX_MODEL   delta_qp[NUM_CTX_DELTA_QP];
+
+    SBAC_CTX_MODEL   ats_mode[NUM_CTX_ATS_MODE_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_flag[NUM_CTX_ATS_INTER_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_quad_flag[NUM_CTX_ATS_INTER_QUAD_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_hor_flag[NUM_CTX_ATS_INTER_HOR_FLAG];
+    SBAC_CTX_MODEL   ats_cu_inter_pos_flag[NUM_CTX_ATS_INTER_POS_FLAG];
+    int              sps_cm_init_flag;
 } XEVD_SBAC_CTX;
 
 /* Maximum transform dynamic range (excluding sign bit) */
@@ -522,11 +600,11 @@ typedef struct _XEVD_SBAC_CTX
 #define NEB_F                              5  /* co-located of low-right */
 #define NEB_G                              6  /* co-located of X */
 #define NEB_X                              7  /* center (current block) */
-#define NEB_H                              8  /* right */  
-#define NEB_I                              9  /* low-right */  
+#define NEB_H                              8  /* right */
+#define NEB_I                              9  /* low-right */
 #define MAX_NEB2                           10
 
-#define XEVD_MAX_QP_TABLE_SIZE                  58 
+#define XEVD_MAX_QP_TABLE_SIZE                  58
 #define XEVD_MAX_QP_TABLE_SIZE_EXT              94
 #define XEVD_MAX_NUM_REF_PICS                   21
 #define XEVD_MAX_NUM_ACTIVE_REF_FRAME           5
@@ -596,7 +674,7 @@ typedef struct _XEVD_PIC
     /* scalable layer id */
     u8               temporal_id;
     s16            (*map_mv)[REFP_NUM][MV_D];
-
+    s16            (*map_unrefined_mv)[REFP_NUM][MV_D];
     s8             (*map_refi)[REFP_NUM];
     u32              list_poc[XEVD_MAX_NUM_REF_PICS];
     int              pic_deblock_alpha_offset;
@@ -668,9 +746,9 @@ typedef struct _XEVD_REFP
     XEVD_PIC        * pic;
     /* POC of reference picture */
     u32              poc;
-    s16            (*map_mv)[REFP_NUM][MV_D];
+    s16(*map_mv)[REFP_NUM][MV_D];
 
-    s8             (*map_refi)[REFP_NUM];
+    s8(*map_refi)[REFP_NUM];
     u32             *list_poc;
 } XEVD_REFP;
 
@@ -713,7 +791,6 @@ typedef struct _XEVD_HRD
 *****************************************************************************/
 typedef struct _XEVD_VUI
 {
-
     int aspect_ratio_info_present_flag;
     int aspect_ratio_idc;
     int sar_width;
@@ -752,10 +829,9 @@ typedef struct _XEVD_VUI
     XEVD_HRD hrd_parameters;
 } XEVD_VUI;
 
-
 /*****************************************************************************
- * sequence parameter set
- *****************************************************************************/
+* sequence parameter set
+*****************************************************************************/
 typedef struct _XEVD_SPS
 {
     int              sps_seq_parameter_set_id;
@@ -764,12 +840,19 @@ typedef struct _XEVD_SPS
     int              toolset_idc_h;
     int              toolset_idc_l;
     int              chroma_format_idc;
-    u32              pic_width_in_luma_samples;  
-    u32              pic_height_in_luma_samples; 
+    u32              pic_width_in_luma_samples;
+    u32              pic_height_in_luma_samples;
     int              bit_depth_luma_minus8;
     int              bit_depth_chroma_minus8;
     int              sps_btt_flag;
     int              sps_suco_flag;
+    int              log2_ctu_size_minus5;
+    int              log2_min_cb_size_minus2;
+    int              log2_diff_ctu_max_14_cb_size;
+    int              log2_diff_ctu_max_tt_cb_size;
+    int              log2_diff_min_cb_min_tt_cb_size_minus2;
+    int              log2_diff_ctu_size_max_suco_cb_size;
+    int              log2_diff_max_suco_min_suco_cb_size;
     int              tool_amvr;
     int              tool_mmvd;
     int              tool_affine;
@@ -778,7 +861,9 @@ typedef struct _XEVD_SPS
     int              tool_alf;
     int              tool_htdf;
     int              tool_admvp;
+
     int              tool_hmvp;
+
     int              tool_eipd;
     int              tool_iqt;
     int              tool_cm_init;
@@ -795,21 +880,27 @@ typedef struct _XEVD_SPS
     /* HLS_RPL  */
     int              rpl1_same_as_rpl0_flag;
     int              num_ref_pic_lists_in_sps0;
-    XEVD_RPL          rpls_l0[XEVD_MAX_NUM_RPLS];
+    XEVD_RPL          rpls_l0[MAX_NUM_RPLS];
     int              num_ref_pic_lists_in_sps1;
-    XEVD_RPL          rpls_l1[XEVD_MAX_NUM_RPLS];
+    XEVD_RPL          rpls_l1[MAX_NUM_RPLS];
 
     int              picture_cropping_flag;
     int              picture_crop_left_offset;
     int              picture_crop_right_offset;
     int              picture_crop_top_offset;
     int              picture_crop_bottom_offset;
+
     int              dquant_flag;              /*1 specifies the improved delta qp signaling processes is used*/
 
     XEVD_CHROMA_TABLE chroma_qp_table_struct;
+    u32              ibc_flag;                   /* 1 bit : flag of enabling IBC or not */
+    int              ibc_log_max_size;           /* log2 max ibc size */
     int              vui_parameters_present_flag;
+
     int tool_dra;
+
     XEVD_VUI vui_parameters;
+
 } XEVD_SPS;
 
 /*****************************************************************************
@@ -832,13 +923,13 @@ typedef struct _XEVD_PPS
     int tile_offset_lens_minus1;
     int tile_id_len_minus1;
     int explicit_tile_id_flag;
+  int pic_dra_enabled_flag;
     int tile_id_val[MAX_NUM_TILES_ROW][MAX_NUM_TILES_COL];
     int arbitrary_slice_present_flag;
     int constrained_intra_pred_flag;
     int cu_qp_delta_enabled_flag;
     int cu_qp_delta_area;
-
-
+    int pic_dra_aps_id;
 } XEVD_PPS;
 
 /*****************************************************************************
@@ -859,7 +950,7 @@ typedef struct _XEVD_SH
     int              temporal_mvp_asigned_flag;
     int              collocated_from_list_idx;        // Specifies source (List ID) of the collocated picture, equialent of the collocated_from_l0_flag
     int              collocated_from_ref_idx;         // Specifies source (RefID_ of the collocated picture, equialent of the collocated_ref_idx
-    int              collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information 
+    int              collocated_mvp_source_list_idx;  // Specifies source (List ID) in collocated pic that provides MV information
     s32              poc_lsb;
 
     /*   HLS_RPL */
@@ -968,12 +1059,25 @@ typedef enum _BLOCK_PARAMETER_IDX
     NUM_BLOCK_IDX,
 } BLOCK_PARAMETER_IDX;
 
+/*****************************************************************************
+* history-based MV prediction buffer (slice level)
+*****************************************************************************/
+typedef struct _XEVD_HISTORY_BUFFER
+{
+    s16 history_mv_table[ALLOWED_CHECKED_NUM][REFP_NUM][MV_D];
+    s8  history_refi_table[ALLOWED_CHECKED_NUM][REFP_NUM];
+    int currCnt;
+    int m_maxCnt;
+} XEVD_HISTORY_BUFFER;
+
 typedef enum _CTX_NEV_IDX
 {
     CNID_SKIP_FLAG,
     CNID_PRED_MODE,
+    CNID_MODE_CONS,
+    CNID_AFFN_FLAG,
+    CNID_IBC_FLAG,
     NUM_CNID,
-
 } CTX_NEV_IDX;
 
 typedef enum _MSL_IDX
@@ -1019,6 +1123,7 @@ typedef struct _XEVD_SBAC
 typedef struct _XEVD_CU_DATA
 {
     s8  split_mode[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8  suco_flag[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
     u8  *qp_y;
     u8  *qp_u;
     u8  *qp_v;
@@ -1028,11 +1133,20 @@ typedef struct _XEVD_CU_DATA
     u8  **mpm_ext;
     s8  **ipm;
     u8  *skip_flag;
-    s8  **refi;    
-    u8  **mvp_idx; 
+    u8  *ibc_flag;
+
+    u8  *dmvr_flag;
+
+    s8  **refi;
+    u8  **mvp_idx;
     u8  *mvr_idx;
     u8  *bi_idx;
     u8  *inter_dir;
+    s16 *mmvd_idx;
+    u8  *mmvd_flag;
+    s32 affine_bzero[MAX_CU_CNT_IN_LCU][REFP_NUM];
+    s16 affine_mvd[MAX_CU_CNT_IN_LCU][REFP_NUM][3][MV_D];
+    s16 bv_chroma[MAX_CU_CNT_IN_LCU][MV_D];
     s16 mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
 
     s16 unrefined_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D];
@@ -1041,13 +1155,16 @@ typedef struct _XEVD_CU_DATA
     int *nnz[N_C];
     int *nnz_sub[N_C][4];
     u32 *map_scu;
+    u8  *affine_flag;
+    u32 *map_affine;
+    u8* ats_intra_cu;
+    u8* ats_mode_h;
+    u8* ats_mode_v;
+    u8  *ats_inter_info;
     u32 *map_cu_mode;
     s8  *depth;
-    s16 *coef[N_C]; 
-    pel *reco[N_C]; 
-#if TRACE_ENC_CU_DATA
-    u64  trace_idx[MAX_CU_CNT_IN_LCU];
-#endif
+    s16 *coef[N_C];
+    pel *reco[N_C];
 } XEVD_CU_DATA;
 
 typedef struct _XEVD_CORE
@@ -1074,7 +1191,7 @@ typedef struct _XEVD_CORE
     /* neighbor CUs availability of current CU */
     u16            avail_cu;
     /* Left, right availability of current CU */
-    u16            avail_lr; 
+    u16            avail_lr;
     /* intra prediction direction of current CU */
     u8             ipm[2];
     /* most probable mode for intra prediction */
@@ -1102,7 +1219,7 @@ typedef struct _XEVD_CORE
 
     /************** current LCU *************/
     /* address of current LCU,  */
-    s16            lcu_num;   
+    s16            lcu_num;
     /* X address of current LCU */
     u16            x_lcu;
     /* Y address of current LCU */
@@ -1114,7 +1231,7 @@ typedef struct _XEVD_CORE
 
     /* split mode map for current LCU */
     s8             split_mode[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
-    
+
     /* platform specific data, if needed */
     void          *pf;
 
@@ -1122,14 +1239,13 @@ typedef struct _XEVD_CORE
     pel            eif_tmp_buffer[ (MAX_CU_SIZE + 2) * (MAX_CU_SIZE + 2) ];
     u8             mvr_idx;
     /* history-based motion vector prediction candidate list */
-#if TRACE_ENC_CU_DATA
-    u64            trace_idx;
-#endif
+    XEVD_HISTORY_BUFFER     history_buffer;
+
     int            mvp_idx[REFP_NUM];
     s16            mvd[REFP_NUM][MV_D];
     int            inter_dir;
     int            bi_idx;
-   
+
     int            tile_num;
     int            filter_across_boundary;
 
@@ -1142,9 +1258,11 @@ typedef struct _XEVD_CORE
     u16            y;
     u16            thread_idx;
     u8             ctx_flags[NUM_CNID];
-    
+
 
 } XEVD_CORE;
+
+typedef struct _XEVD_SCAN_TABLES XEVD_SCAN_TABLES;
 
 /******************************************************************************
  * CONTEXT used for decoding process.
@@ -1177,7 +1295,7 @@ struct _XEVD_CTX
     XEVD_PPS                 pps;
 
     XEVD_PPS                 pps_array[64];
-    
+
     /* current decoded (decoding) picture buffer */
     XEVD_PIC               * pic;
     /* SBAC */
@@ -1303,7 +1421,10 @@ struct _XEVD_CTX
     /* platform specific data, if needed */
     void                  * pf;
 
+    XEVD_SCAN_TABLES      * scan_tables;
 };
+
+
 
 /* prototypes of internal functions */
 int  xevd_platform_init(XEVD_CTX * ctx);
@@ -1311,18 +1432,24 @@ void xevd_platform_deinit(XEVD_CTX * ctx);
 int  xevd_ready(XEVD_CTX * ctx);
 void xevd_flush(XEVD_CTX * ctx);
 int  xevd_deblock(void * args);
+
 int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
 
-#include "xevd_df.h"
+#include "xevd_util.h"
 #include "xevd_eco.h"
-#include "xevd_ipred.h"
-#include "xevd_itdq.h"
-#include "xevd_mc.h"
-#include "xevd_mc_sse.h"
-#include "xevd_mc_avx.h"
 #include "xevd_picman.h"
-#include "xevd_recon.h"
+
 #include "xevd_tbl.h"
 #include "xevd_util.h"
+#include "xevd_recon.h"
+#include "xevd_ipred.h"
+#include "xevd_tbl.h"
+#include "xevd_itdq.h"
+#include "xevd_picman.h"
+#include "xevd_mc.h"
+#include "xevd_eco.h"
+#include "xevd_df.h"
+#include "xevd_mc_sse.h"
+#include "xevd_mc_avx.h"
 
 #endif /* _XEVD_DEF_H_ */

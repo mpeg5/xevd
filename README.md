@@ -1,7 +1,7 @@
 # eXtra-fast Essential Video Decoder (XEVD)
 The **eXtra-fast Essential Video Decoder** (XEVD) is an opensource and fast MPEG-5 EVC decoder. 
 
-**MPEG-5 Essential Video Coding** (EVC) is a future video compression standard of ISO/IEC Moving Picture Experts Grop (MPEG). The main goal of the EVC is to provide a significantly improved compression capability over existing video coding standards with timely publication of terms. 
+**MPEG-5 Essential Video Coding** (EVC) is a future video compression standard of ISO/IEC Moving Picture Experts Group (MPEG). The main goal of the EVC is to provide a significantly improved compression capability over existing video coding standards with timely publication of terms. 
 The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profile**". The "Baseline profile" contains only technologies that are older than 20 years or otherwise freely available for use in the standard. In addition, the "Main profile" adds a small number of additional tools, each of which can be either cleanly disabled or switched to the corresponding baseline tool on an individual basis.
 
 ## How to build
@@ -45,7 +45,7 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
     You can change '-G' option with proper version of Visual Studio.
     
 ## How to use
-XEVD supports baseline profiles of EVC.
+XEVD supports mainline and baseline profiles of EVC.
 
 | OPTION                | DEFAULT   | DESCRIPTION                                    |
 |-----------------------|-----------|------------------------------------------------|
@@ -54,11 +54,10 @@ XEVD supports baseline profiles of EVC.
 | -m, --parallel_task   | 1         | mumber of threads to be created                |  
 
 
->More optins can be found when type **xevdb_app** only.   
+>More optins can be found when type **xevd_app** only.   
  
 ### Example
-	$xevdb_app -i xevd.bin -o xevd.yuv
-
+	$xevd_app -i input_bitstream.evc -o output_video.yuv
 
 ## License
 See [COPYING](COPYING) file for details.

@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "xevd_thread_pool.h"
+#include "xevd_tp.h"
 #if defined(WIN32) || defined(WIN64)
 #include <Windows.h>
 #include <process.h>
