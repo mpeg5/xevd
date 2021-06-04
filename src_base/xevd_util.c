@@ -49,9 +49,6 @@ int fp_trace_print = 0;
 #endif
 int fp_trace_counter = 0;
 #endif
-#if TRACE_START_POC
-int fp_trace_started = 0;
-#endif
 
 #if X86_SSE
 #if (defined(_WIN64) || defined(_WIN32)) && !defined(__GNUC__)
@@ -154,6 +151,9 @@ XEVD_IMGB * xevd_imgb_create(int w, int h, int cs, int opt, int pad[XEVD_IMGB_MA
     imgb = (XEVD_IMGB *)xevd_malloc(sizeof(XEVD_IMGB));
     xevd_assert_rv(imgb, NULL);
     xevd_mset(imgb, 0, sizeof(XEVD_IMGB));
+    imgb->imgb_active_pps_id = -1;
+    imgb->imgb_active_aps_id = -1;
+
 
     int bit_depth = (XEVD_CS_GET_BIT_DEPTH(cs));
     int idc = XEVD_CS_GET_FORMAT(cs);
@@ -188,8 +188,8 @@ XEVD_IMGB * xevd_imgb_create(int w, int h, int cs, int opt, int pad[XEVD_IMGB_MA
             imgb->a[i] = ((u8*)imgb->baddr[i]) + imgb->padu[i]*imgb->s[i] +
                 imgb->padl[i]*bd;
 
-            if(i == 0) 
-            { 
+            if(i == 0)
+            {
 
                 if((XEVD_GET_CHROMA_W_SHIFT(idc-10)))
                     w = (w + 1) >> (XEVD_GET_CHROMA_W_SHIFT(idc-10));
@@ -257,8 +257,11 @@ XEVD_PIC * xevd_picbuf_lc_alloc(int w, int h, int pad_l, int pad_c, int *err, in
     pad[1] = pad_c;
     pad[2] = pad_c;
 
+
+   
     int cs = idc == 0 ? XEVD_CS_YCBCR400_10LE : (idc == 1 ? XEVD_CS_YCBCR420_10LE : (idc == 2 ? XEVD_CS_YCBCR422_10LE : XEVD_CS_YCBCR444_10LE));
     imgb = xevd_imgb_create(w, h, cs, opt, pad, align);
+    
 
     xevd_assert_gv(imgb != NULL, ret, XEVD_ERR_OUT_OF_MEMORY, ERR);
 
@@ -339,6 +342,7 @@ void xevd_picbuf_lc_free(XEVD_PIC *pic)
             pic->s_c = 0;
         }
         xevd_mfree(pic->map_mv);
+
         xevd_mfree(pic->map_refi);
         xevd_mfree(pic);
     }
@@ -413,7 +417,7 @@ void xevd_poc_derivation(XEVD_SPS sps, int tid, XEVD_POC *poc)
     int sub_gop_length = (int)pow(2.0, sps.log2_sub_gop_length);
     int expected_tid = 0;
     int doc_offset, poc_offset;
-    
+
     if (tid == 0)
     {
         poc->poc_val = poc->prev_poc_val + sub_gop_length;
@@ -447,20 +451,10 @@ void xevd_poc_derivation(XEVD_SPS sps, int tid, XEVD_POC *poc)
     poc->prev_doc_offset = doc_offset;
 }
 
-void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
-{
-    int tmp_mv;
-    tmp_mv = mvp[MV_X] * ratio;
-    tmp_mv = tmp_mv == 0 ? 0 : tmp_mv > 0 ? (tmp_mv + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION : -((-tmp_mv + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
-    mv[MV_X] = XEVD_CLIP3(-(1 << 15), (1 << 15) - 1, tmp_mv);
 
-    tmp_mv = mvp[MV_Y] * ratio;
-    tmp_mv = tmp_mv == 0 ? 0 : tmp_mv > 0 ? (tmp_mv + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION : -((-tmp_mv + (1 << (MVP_SCALING_PRECISION - 1))) >> MVP_SCALING_PRECISION);
-    mv[MV_Y] = XEVD_CLIP3(-(1 << 15), (1 << 15) - 1, tmp_mv);
-}
-
-void xevd_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],XEVD_REFP(*refp)[REFP_NUM]
-                   , int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D])
+void xevd_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D],
+                    XEVD_REFP(*refp)[REFP_NUM],
+                    int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D])
 {
 
     if (IS_AVAIL(avail, AVAIL_LE))
@@ -516,7 +510,7 @@ void xevd_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_
         xevd_get_motion(scup, REFP_1, map_refi, map_mv, (XEVD_REFP(*)[2])refp, cuw, cuh, w_scu, avail_lr, refi[REFP_1], mvp[REFP_1]);
     }
 }
-    
+
 BOOL xevd_check_bi_applicability(int slice_type, int cuw, int cuh)
 {
     BOOL is_applicable = FALSE;
@@ -978,17 +972,17 @@ int xevd_md5_imgb(XEVD_IMGB *imgb, u8 digest[N_C][16])
 {
     XEVD_MD5 md5[N_C];
     int i, j;
-    for (i = 0; i < imgb->np; i++)
+    for(i = 0; i < imgb->np; i++)
     {
         xevd_md5_init(&md5[i]);
-
-        for (j = 0; j < imgb->ah[i]; j++)
+        
+        for(j = imgb->y[i]; j < imgb->h[i]; j++)
         {
-            xevd_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j * imgb->s[i], imgb->aw[i] * 2);
+            xevd_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j*imgb->s[i] + imgb->x[i] , imgb->w[i] * 2);
         }
 
         xevd_md5_finish(&md5[i], digest[i]);
-    } 
+    }
 
     return XEVD_OK;
 }
@@ -1038,10 +1032,14 @@ void init_scan(u16 *scan, int size_x, int size_y, int scan_type)
     }
 }
 
-int xevd_scan_tbl_init()
+int xevd_scan_tbl_init(XEVD_CTX * ctx)
 {
     int x, y, scan_type;
     int size_y, size_x;
+
+    ctx->scan_tables = (XEVD_SCAN_TABLES*) malloc(sizeof(XEVD_SCAN_TABLES));
+    memset(ctx->scan_tables->xevd_scan_tbl, 0, COEF_SCAN_ZIGZAG * MAX_CU_LOG2 * MAX_CU_LOG2 * sizeof(u16*));
+    memset(ctx->scan_tables->xevd_inv_scan_tbl, 0, COEF_SCAN_ZIGZAG * MAX_CU_LOG2 * MAX_CU_LOG2 * sizeof(u16*));
 
     for(scan_type = 0; scan_type < COEF_SCAN_TYPE_NUM; scan_type++)
     {
@@ -1053,38 +1051,48 @@ int xevd_scan_tbl_init()
             for(x = 0; x < MAX_CU_LOG2 - 1; x++)
             {
                 size_x = 1 << (x + 1);
-                xevd_scan_tbl[scan_type][x][y] = (u16*)xevd_malloc_fast(size_y * size_x * sizeof(u16));
-                init_scan(xevd_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
-                xevd_inv_scan_tbl[scan_type][x][y] = (u16*)xevd_malloc_fast(size_y * size_x * sizeof(u16));
-                xevd_init_inverse_scan_sr(xevd_inv_scan_tbl[scan_type][x][y], xevd_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
+
+                ctx->scan_tables->xevd_scan_tbl[scan_type][x][y] = (u16*)xevd_malloc_fast(size_y * size_x * sizeof(u16));
+                init_scan(ctx->scan_tables->xevd_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
+                ctx->scan_tables->xevd_inv_scan_tbl[scan_type][x][y] = (u16*)xevd_malloc_fast(size_y * size_x * sizeof(u16));
+                xevd_init_inverse_scan_sr(ctx->scan_tables->xevd_inv_scan_tbl[scan_type][x][y], ctx->scan_tables->xevd_scan_tbl[scan_type][x][y], size_x, size_y, scan_type);
             }
         }
     }
     return XEVD_OK;
 }
 
-int xevd_scan_tbl_delete()
+int xevd_scan_tbl_delete(XEVD_CTX * ctx)
 {
+    if(!ctx) return XEVD_OK;
+
     int x, y, scan_type;
 
     for(scan_type = 0; scan_type < COEF_SCAN_TYPE_NUM; scan_type++)
     {
+        if (scan_type != COEF_SCAN_ZIGZAG)
+            continue;
         for(y = 0; y < MAX_CU_LOG2 - 1; y++)
         {
             for(x = 0; x < MAX_CU_LOG2 - 1; x++)
             {
-                if(xevd_scan_tbl[scan_type][x][y] != NULL)
+                if(ctx->scan_tables->xevd_scan_tbl[scan_type][x][y] != NULL)
                 {
-                    free(xevd_scan_tbl[scan_type][x][y]);
+                    free(ctx->scan_tables->xevd_scan_tbl[scan_type][x][y]);
+                    ctx->scan_tables->xevd_scan_tbl[scan_type][x][y] = NULL;
                 }
 
-                if (xevd_inv_scan_tbl[scan_type][x][y] != NULL)
+                if (ctx->scan_tables->xevd_inv_scan_tbl[scan_type][x][y] != NULL)
                 {
-                    free(xevd_inv_scan_tbl[scan_type][x][y]);
+                    free(ctx->scan_tables->xevd_inv_scan_tbl[scan_type][x][y]);
+                    ctx->scan_tables->xevd_inv_scan_tbl[scan_type][x][y] = NULL;
                 }
             }
         }
     }
+    free(ctx->scan_tables);
+    ctx->scan_tables = NULL;
+
     return XEVD_OK;
 }
 
@@ -1153,6 +1161,33 @@ u16 xevd_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int 
 #define SAME_MV(MV0, MV1) ((MV0[MV_X] == MV1[MV_X]) && (MV0[MV_Y] == MV1[MV_Y]))
 #define SAME_MVF(refi0, vx0, vy0, refi1, vx1, vy1)   ((refi0 == refi1) && (vx0 == vx1) && (vy0 == vy1))
 
+void xevd_get_ctx_last_pos_xy_para(int ch_type, int width, int height, int *result_offset_x, int *result_offset_y, int *result_shift_x, int *result_shift_y)
+{
+    int convertedWidth = XEVD_CONV_LOG2(width) - 2;
+    int convertedHeight = XEVD_CONV_LOG2(height) - 2;
+    convertedWidth = (convertedWidth < 0) ? 0 : convertedWidth;
+    convertedHeight = (convertedHeight < 0) ? 0 : convertedHeight;
+
+    *result_offset_x = (ch_type != Y_C) ? 0 : ((convertedWidth * 3) + ((convertedWidth + 1) >> 2));
+    *result_offset_y = (ch_type != Y_C) ? 0 : ((convertedHeight * 3) + ((convertedHeight + 1) >> 2));
+    *result_shift_x = (ch_type != Y_C) ? convertedWidth - XEVD_CONV_LOG2(width >> 4) : ((convertedWidth + 3) >> 2);
+    *result_shift_y = (ch_type != Y_C) ? convertedHeight - XEVD_CONV_LOG2(height >> 4) : ((convertedHeight + 3) >> 2);
+
+    if (ch_type == Y_C)
+    {
+        if (convertedWidth >= 4)
+        {
+            *result_offset_x += ((width >> 6) << 1) + (width >> 7);
+            *result_shift_x = 2;
+        }
+        if (convertedHeight >= 4)
+        {
+            *result_offset_y += ((height >> 6) << 1) + (height >> 7);
+            *result_shift_y = 2;
+        }
+    }
+}
+
 void xevd_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int height, int scan_type)
 {
     int x, num_line;
@@ -1176,7 +1211,7 @@ void xevd_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int hei
 
 
 void xevd_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *model, s16 *ctx_init_model, u16 num_ctx, u8 slice_type, u8 slice_qp)
-{    
+{
     s32 i, slope, offset;
     u16 mps, state;
     const int qp = XEVD_CLIP3(0, 51, slice_qp);
@@ -1268,7 +1303,6 @@ int xevd_split_get_part_size_idx(int split_mode, int part_num, int length_idx)
     }
     return ans;
 }
-
 SPLIT_DIR xevd_split_get_direction(SPLIT_MODE mode)
 {
     switch (mode)
@@ -1401,7 +1435,6 @@ void xevd_split_get_part_structure(int split_mode, int x0, int y0, int cuw, int 
     break;
     }
 }
-
 void xevd_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h)
 {
     int h;
@@ -1410,7 +1443,7 @@ void xevd_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int l
     s16 *tmp_dst = dst;
     for (h = 0; h < (1<< log2_copy_h); h++)
     {
-        memcpy(tmp_dst, tmp_src, copy_size);
+        xevd_mcpy(tmp_dst, tmp_src, copy_size);
         tmp_dst += dst_stride;
         tmp_src += src_stride;
     }
@@ -1420,6 +1453,7 @@ int xevd_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_sc
 {
     return (y_scu + (cu_h_scu >> 1)) * w_scu + x_scu + (cu_w_scu >> 1);
 }
+
 
 void xevd_picbuf_expand(XEVD_CTX * ctx, XEVD_PIC * pic)
 {
@@ -1436,7 +1470,8 @@ void xevd_picbuf_free(PICBUF_ALLOCATOR * pa, XEVD_PIC * pic)
     xevd_picbuf_lc_free(pic);
 }
 
-int xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16], int bit_depth)
+int xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16]
+,int bit_depth)
 {
     u8 pic_sign[N_C][16] = { {0} };
     int ret;
@@ -1452,14 +1487,11 @@ int xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16], int bit_d
     return XEVD_OK;
 }
 
-void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
-#if ENC_DEC_TRACE
-                       , u8 write_trace
-#endif
-)
+void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
 {
     s8  (*map_refi)[REFP_NUM];
     s16 (*map_mv)[REFP_NUM][MV_D];
+
     u32  *map_scu;
     s8   *map_ipm;
     int   w_cu;
@@ -1468,6 +1500,7 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
     int   w_scu;
     int   i, j;
     int   flag;
+
     u32  *map_cu_mode;
 
     scup = core->scup;
@@ -1477,11 +1510,15 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
     map_refi = ctx->map_refi + scup;
     map_scu  = ctx->map_scu + scup;
     map_mv   = ctx->map_mv + scup;
+
     map_ipm  = ctx->map_ipm + scup;
 
     flag = (core->pred_mode == MODE_INTRA) ? 1 : 0;
     map_cu_mode = ctx->map_cu_mode + scup;
 
+
+
+    
     for(i = 0; i < h_cu; i++)
     {
         for(j = 0; j < w_cu; j++)
@@ -1505,15 +1542,15 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
                 MCU_CLR_CBFL(map_scu[j]);
             }
 
-            
+
             MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
             MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
-            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
+            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
 
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
             map_refi[j][REFP_1] = core->refi[REFP_1];
-            
+
             map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
             map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
             map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
@@ -1530,7 +1567,7 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
         map_cu_mode += w_scu;
     }
 
-    
+
     map_refi = ctx->map_refi + scup;
     map_mv = ctx->map_mv + scup;
 
@@ -1539,9 +1576,6 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
 
 #if MVF_TRACE
     // Trace MVF in decoder
-#if ENC_DEC_TRACE
-    if (write_trace)
-#endif
     {
         map_refi = ctx->map_refi + scup;
         map_scu = ctx->map_scu + scup;
@@ -1576,3 +1610,4 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core
     }
 #endif
 }
+

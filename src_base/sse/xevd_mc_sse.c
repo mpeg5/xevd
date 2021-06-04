@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2020, Samsung Electronics Co., Ltd.
+/* Copyright (c) 2020, Samsung Electronics Co., Ltd.
    All Rights Reserved. */
 /*
    Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@
 
 #if X86_SSE
 
-extern int g_mc_ftr;
 XEVD_MC_L (*xevd_func_mc_l)[2];
 XEVD_MC_C (*xevd_func_mc_c)[2];
 XEVD_AVG_NO_CLIP xevd_func_average_no_clip;
@@ -329,7 +328,7 @@ void xevd_average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s
     }
 }
 
-static void mc_filter_l_8pel_horz_clip_sse(s16 *ref,
+void mc_filter_l_8pel_horz_clip_sse(s16 *ref,
     int src_stride,
     s16 *pred,
     int dst_stride,
@@ -854,7 +853,7 @@ static void mc_filter_l_8pel_horz_clip_sse(s16 *ref,
     }
 }
 
-static void mc_filter_l_8pel_horz_no_clip_sse(s16 *ref,
+void mc_filter_l_8pel_horz_no_clip_sse(s16 *ref,
     int src_stride,
     s16 *pred,
     int dst_stride,
@@ -1330,7 +1329,7 @@ static void mc_filter_l_8pel_horz_no_clip_sse(s16 *ref,
     }
 }
 
-static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
+void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
     int src_stride,
     s16 *pred,
     int dst_stride,
@@ -1439,10 +1438,10 @@ static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
                 /* i2_tmp = CLIP_U8(i2_tmp);*/
                 r9_8x16b = _mm_packs_epi32(r7_8x16b, r8_8x16b);
 
-                
+
                 r9_8x16b = _mm_min_epi16(r9_8x16b, mm_max);
                 r9_8x16b = _mm_max_epi16(r9_8x16b, mm_min);
-                
+
 
                 _mm_storeu_si128((__m128i*)(dst_copy + cnt), r9_8x16b);
 
@@ -1467,7 +1466,7 @@ static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
 
             /*load 4 pixel values */
             r2_2r_16x8b = _mm_loadl_epi64((__m128i*)(inp_copy + (src_stride)));
-            
+
             /*load 4 pixel values*/
             r2_3r_16x8b = _mm_loadl_epi64((__m128i*)(inp_copy + (src_stride << 1)));
 
@@ -1475,7 +1474,7 @@ static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
             r3_1r_16x8b = _mm_unpacklo_epi16(r2_1r_16x8b, r2_2r_16x8b);
 
             r0_8x16b = _mm_madd_epi16(r3_1r_16x8b, coeff0_1_8x16b);
-            
+
             /*load 4 pixel values*/
             r2_4r_16x8b = _mm_loadl_epi64((__m128i*)(inp_copy + (3 * src_stride)));
 
@@ -1513,10 +1512,10 @@ static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
             /* i2_tmp = CLIP_U8(i2_tmp);*/
             r9_8x16b = _mm_packs_epi32(r8_8x16b, r8_8x16b);
 
-            
+
             r9_8x16b = _mm_min_epi16(r9_8x16b, mm_max);
             r9_8x16b = _mm_max_epi16(r9_8x16b, mm_min);
-           
+
             _mm_storel_epi64((__m128i*)(dst_copy), r9_8x16b);
 
             inp_copy += (src_stride);
@@ -1549,7 +1548,7 @@ static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
 
                 val = (sum + offset) >> shift;
                 val = XEVD_CLIP3(min_val, max_val, val);
-                
+
                 dst_copy[col] = val;
             }
 
@@ -1564,7 +1563,7 @@ static void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
 
 
 
-static void mc_filter_c_4pel_horz_sse(s16 *ref,
+void mc_filter_c_4pel_horz_sse(s16 *ref,
     int src_stride,
     s16 *pred,
     int dst_stride,
@@ -1935,7 +1934,7 @@ static void mc_filter_c_4pel_horz_sse(s16 *ref,
     }
 }
 
-static void mc_filter_c_4pel_vert_sse(s16 *ref,
+void mc_filter_c_4pel_vert_sse(s16 *ref,
     int src_stride,
     s16 *pred,
     int dst_stride,
@@ -2172,11 +2171,11 @@ void xevd_mc_l_n0_sse(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 ,int bit_depth)
 {
     int dx;
-    
+
     dx = gmv_x & 15;
     ref += (gmv_y >> MC_PRECISION) * s_ref + (gmv_x >> MC_PRECISION) - 3;
 
-  
+
     int max = ((1 << bit_depth) - 1);
 
     int min = 0;
@@ -2190,12 +2189,12 @@ void xevd_mc_l_0n_sse(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel
 ,int bit_depth)
 {
     int  dy;
-    
+
 
 
     dy = gmv_y & 15;
     ref += ((gmv_y >> MC_PRECISION) - 3) * s_ref + (gmv_x >> MC_PRECISION);
-   
+
     int max = ((1 << bit_depth) - 1);
 
     int min = 0;
@@ -2210,7 +2209,7 @@ void xevd_mc_l_nn_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_L)*(MAX_CU_SIZE + MC_IBUF_PAD_L)];
     int         dx, dy;
-    
+
     dx = gmv_x & 15;
     dy = gmv_y & 15;
     ref += ((gmv_y >> MC_PRECISION) - 3) * s_ref + (gmv_x >> MC_PRECISION) - 3;
@@ -2220,7 +2219,7 @@ void xevd_mc_l_nn_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int shift2 = XEVD_MAX(8, 20 - bit_depth);
     int offset1 = 0;
     int offset2 = (1 << (shift2 - 1));
-    
+
     int max = ((1 << bit_depth) - 1);
     int min = 0;
     mc_filter_l_8pel_horz_no_clip_sse(ref, s_ref, buf, w, tbl_mc_l_coeff[dx], w, (h + 7), offset1, shift1);
@@ -2288,7 +2287,7 @@ void xevd_mc_c_00_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 void xevd_mc_c_n0_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth)
 {
     int       dx;
-   
+
 
     dx = gmv_x & 31;
     ref += (gmv_y >> (MC_PRECISION + 1)) * s_ref + (gmv_x >> (MC_PRECISION + 1)) - 1;
@@ -2304,7 +2303,7 @@ void xevd_mc_c_n0_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 void xevd_mc_c_0n_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth)
 {
     int  dy;
-   
+
 
     dy = gmv_y & 31;
     ref += ((gmv_y >> (MC_PRECISION + 1)) - 1) * s_ref + (gmv_x >> (MC_PRECISION + 1));
@@ -2318,7 +2317,7 @@ void xevd_mc_c_0n_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 void xevd_mc_c_nn_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth)
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_C)*MAX_CU_SIZE];
-    
+
     int         dx, dy;
 
     dx = gmv_x & 31;

@@ -30,9 +30,10 @@
 
 #include "xevd_def.h"
 #include "xevd_recon.h"
+
 #include <math.h>
 
-void xevd_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, int bit_depth)
+void xevd_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec,int bit_depth)
 {
     int i, j;
     s16 t0;
@@ -46,10 +47,12 @@ void xevd_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, 
                 rec[i * s_rec + j] = XEVD_CLIP3(0, (1 << bit_depth) - 1, pred[i * cuw + j]);
             }
         }
+#if SIMD_CLIP
+        clip_simd(rec, s_rec, rec, s_rec, cuw, cuh, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
+#endif
     }
     else  /* add b/w pred and coef and copy it into rec */
     {
-        
         for(i = 0; i < cuh; i++)
         {
             for(j = 0; j < cuw; j++)
@@ -58,11 +61,13 @@ void xevd_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, 
                 rec[i * s_rec + j] = XEVD_CLIP3(0, (1 << bit_depth) - 1, t0);
             }
         }
+#if SIMD_CLIP
+        clip_simd(rec, s_rec, rec, s_rec, cuw, cuh, adapt_clip_min[adapt_clip_comp], adapt_clip_max[adapt_clip_comp]);
+#endif
     }
 }
 
-void xevd_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], XEVD_PIC *pic
-                  , int bit_depth, int chroma_format_idc)
+void xevd_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], XEVD_PIC *pic, int bit_depth, int chroma_format_idc)
 {
     pel * rec;
     int s_rec, off;
@@ -71,8 +76,8 @@ void xevd_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], p
     s_rec = pic->s_l;
     rec = pic->y + (y * s_rec) + x;
     xevd_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, bit_depth);
-
-    if (chroma_format_idc != 0)
+    
+    if (chroma_format_idc != 0)   
     {
         /* chroma */
         cuw >>= (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc));

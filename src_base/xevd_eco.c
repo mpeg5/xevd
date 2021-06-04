@@ -41,7 +41,7 @@ u32 xevd_sbac_decode_bin(XEVD_BSR * bs, XEVD_SBAC * sbac, SBAC_CTX_MODEL * model
     mps = (*model) & 1;
 
     lps = (state * (sbac->range)) >> 9;
-    lps = lps < 437 ? 437 : lps;    
+    lps = lps < 437 ? 437 : lps;
 
     bin = mps;
 
@@ -105,7 +105,7 @@ static u32 sbac_decode_bin_ep(XEVD_BSR * bs, XEVD_SBAC * sbac)
         sbac->value -= sbac->range;
     }
     else
-    {        
+    {
         bin = 0;
     }
 
@@ -274,7 +274,7 @@ static int eco_cbf(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], i
                 XEVD_TRACE_INT(0);
                 XEVD_TRACE_STR("\n");
 
-                return XEVD_OK;
+                return 1;
             }
             else
             {
@@ -339,18 +339,19 @@ static int eco_cbf(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], i
         {
             cbf[U_C] = cbf[V_C] = 0;
         }
-
+        
         cbf[Y_C] = xevd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_luma);
         XEVD_TRACE_COUNTER;
         XEVD_TRACE_STR("cbf Y ");
         XEVD_TRACE_INT(cbf[Y_C]);
         XEVD_TRACE_STR("\n");
+        
     }
 
-    return XEVD_OK;
+    return 0;
 }
 
-static int xevd_eco_run_length_cc(XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type)
+static int xevd_eco_run_length_cc(XEVD_CTX * ctx, XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type)
 {
     XEVD_SBAC_CTX *sbac_ctx;
     int            sign, level, prev_level, run, last_flag;
@@ -359,7 +360,7 @@ static int xevd_eco_run_length_cc(XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int 
     int            ctx_last = 0;
 
     sbac_ctx = &sbac->ctx;
-    scanp = xevd_scan_tbl[COEF_SCAN_ZIGZAG][log2_w - 1][log2_h - 1];
+    scanp = ctx->scan_tables->xevd_scan_tbl[COEF_SCAN_ZIGZAG][log2_w - 1][log2_h - 1];
     num_coeff = 1 << (log2_w + log2_h);
     scan_pos_offset = 0;
     prev_level = 6;
@@ -406,13 +407,12 @@ static int xevd_eco_run_length_cc(XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int 
     }
     XEVD_TRACE_STR("\n");
 #endif
-
     return XEVD_OK;
 }
 
-static int xevd_eco_xcoef(XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type, int is_intra)
+static int xevd_eco_xcoef(XEVD_CTX *ctx, XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int log2_w, int log2_h, int ch_type, int is_intra)
 {
-    xevd_eco_run_length_cc(bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
+    xevd_eco_run_length_cc(ctx, bs, sbac, coef, log2_w, log2_h, (ch_type == Y_C ? 0 : 1));
 
 #if TRACE_COEFFS
     int cuw = 1 << log2_w;
@@ -432,7 +432,7 @@ static int xevd_eco_xcoef(XEVD_BSR *bs, XEVD_SBAC *sbac, s16 *coef, int log2_w, 
     return XEVD_OK;
 }
 
-static int xevd_eco_refi(XEVD_BSR * bs, XEVD_SBAC * sbac, int num_refp)
+int xevd_eco_refi(XEVD_BSR * bs, XEVD_SBAC * sbac, int num_refp)
 {
     XEVD_SBAC_CTX * c = &sbac->ctx;
     int ref_num = 0;
@@ -459,22 +459,27 @@ static int xevd_eco_refi(XEVD_BSR * bs, XEVD_SBAC * sbac, int num_refp)
     return ref_num;
 }
 
-static int xevd_eco_mvp_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
+static int xevd_eco_merge_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
+{
+    int idx;
+    idx = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.merge_idx, NUM_CTX_MERGE_IDX, MAX_NUM_MVP);
+    return idx;
+}
+
+int xevd_eco_mvp_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
 {
     int idx;
     idx = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.mvp_idx, 3, 4);
-
 #if ENC_DEC_TRACE
     XEVD_TRACE_COUNTER;
     XEVD_TRACE_STR("mvp idx ");
     XEVD_TRACE_INT(idx);
     XEVD_TRACE_STR("\n");
 #endif
-
     return idx;
 }
 
-static int xevd_eco_bi_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
+int xevd_eco_bi_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
 {
     u32 t0;
 
@@ -497,7 +502,7 @@ static int xevd_eco_bi_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
     }
 }
 
-static int xevd_eco_dqp(XEVD_BSR * bs)
+int xevd_eco_dqp(XEVD_BSR * bs)
 {
     XEVD_SBAC    *sbac;
     XEVD_SBAC_CTX *sbac_ctx;
@@ -556,7 +561,7 @@ static u32 xevd_eco_abs_mvd(XEVD_BSR *bs, XEVD_SBAC *sbac, SBAC_CTX_MODEL *model
     return val;
 }
 
-static int xevd_eco_get_mvd(XEVD_BSR * bs, XEVD_SBAC * sbac, s16 mvd[MV_D])
+int xevd_eco_get_mvd(XEVD_BSR * bs, XEVD_SBAC * sbac, s16 mvd[MV_D])
 {
     u32 sign;
     s16 t16;
@@ -605,10 +610,10 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
     u8          cbf[N_C];
     XEVD_SBAC *sbac;
     XEVD_BSR   *bs;
-    int         ret;
     int         b_no_cbf = 0;
     int         log2_tuw = core->log2_cuw;
     int         log2_tuh = core->log2_cuh;
+
 
     b_no_cbf |= core->pred_mode == MODE_DIR;
     bs = core->bs;
@@ -629,6 +634,7 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
 
     u8 is_intra = (core->pred_mode == MODE_INTRA) ? 1 : 0;
 
+    xevd_mset(core->is_coef, 0, sizeof(int) * N_C);
     xevd_mset(core->is_coef_sub, 0, sizeof(int) * N_C * MAX_SUB_TB_NUM);
 
     for (j = 0; j < loop_h; j++)
@@ -637,21 +643,37 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
         {
             if (cbf_all)
             {
-                ret = eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all
-                            , ctx->sps.chroma_format_idc);
-                xevd_assert_rv(ret == XEVD_OK, ret);
+                int is_coded_cbf_zero = eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all
+                                              , ctx->sps.chroma_format_idc);
+                if (is_coded_cbf_zero)
+                {
+                    core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, 0);
+                    core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+                    return XEVD_OK;
+                }
             }
             else
             {
                 cbf[Y_C] = cbf[U_C] = cbf[V_C] = 0;
             }
-                       
+
             int dqp;
             int qp_i_cb, qp_i_cr;
-            
-            dqp = 0;
-            core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, dqp);
-            core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+
+            if (ctx->pps.cu_qp_delta_enabled_flag && (cbf[Y_C] || cbf[U_C] || cbf[V_C]))
+            {
+                dqp = xevd_eco_dqp(bs);
+                core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, dqp);
+                core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+                core->cu_qp_delta_is_coded = 1;
+                ctx->tile[core->tile_num].qp_prev_eco = core->qp;
+            }
+            else
+            {
+                dqp = 0;
+                core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, dqp);
+                core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+            }
 
             qp_i_cb = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
             qp_i_cr = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
@@ -686,15 +708,13 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
 
                     if (c == 0)
                     {
-                        xevd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub, log2_h_sub, c, core->pred_mode == MODE_INTRA);
+                        xevd_eco_xcoef(ctx, bs, sbac, coef_temp[c], log2_w_sub, log2_h_sub, c, core->pred_mode == MODE_INTRA);
                     }
                     else
                     {
-                        xevd_eco_xcoef(bs, sbac, coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))
+                        xevd_eco_xcoef(ctx, bs, sbac, coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))
                                      , c, core->pred_mode == MODE_INTRA);
                     }
-
-                    xevd_assert_rv(ret == XEVD_OK, ret);
 
                     core->is_coef_sub[c][(j << 1) | i] = 1;
                     tmp_coef[c] += 1;
@@ -776,7 +796,7 @@ void xevd_eco_sbac_reset(XEVD_BSR * bs, u8 slice_type, u8 slice_qp)
     for(i = 0; i < NUM_CTX_REF_IDX; i++) sbac_ctx->refi[i] = PROB_INIT;
     for(i = 0; i < NUM_CTX_DELTA_QP; i++) sbac_ctx->delta_qp[i] = PROB_INIT;
     for(i = 0; i < NUM_CTX_SKIP_FLAG; i++)  sbac_ctx->skip_flag[i] = PROB_INIT;
-    
+
 }
 
 static int intra_mode_read_trunc_binary(int max_symbol, XEVD_SBAC * sbac, XEVD_BSR *bs)
@@ -826,6 +846,76 @@ int xevd_eco_intra_dir_b(XEVD_BSR * bs, XEVD_SBAC * sbac,   u8  * mpm, u8 mpm_ex
     return ipm;
 }
 
+int xevd_eco_intra_dir(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 mpm[2], u8 mpm_ext[8], u8 pims[IPD_CNT])
+{
+    int ipm = 0;
+    int mpm_flag;
+    
+    mpm_flag = xevd_sbac_decode_bin(bs, sbac, sbac->ctx.intra_luma_pred_mpm_flag); /* intra_luma_pred_mpm_flag */
+
+    if(mpm_flag)
+    {
+        int mpm_idx;
+        mpm_idx = xevd_sbac_decode_bin(bs, sbac, sbac->ctx.intra_luma_pred_mpm_idx); /* intra_luma_pred_mpm_idx */
+        ipm = mpm[mpm_idx];
+    }
+    else
+    {
+        int pims_flag;
+        pims_flag = sbac_decode_bin_ep(bs, sbac); /* intra_luma_pred_pims_flag */
+        if(pims_flag)
+        {
+            int pims_idx;
+            pims_idx = sbac_decode_bins_ep(bs, sbac, 3); /* intra_luma_pred_pims_idx */
+            ipm = mpm_ext[pims_idx];
+        }
+        else
+        {
+            int rem_mode;
+            rem_mode = intra_mode_read_trunc_binary(IPD_CNT - (INTRA_MPM_NUM + INTRA_PIMS_NUM), sbac, bs); /* intra_luma_pred_rem_mode */
+            ipm = pims[(INTRA_MPM_NUM + INTRA_PIMS_NUM) + rem_mode];
+        }
+    }
+
+    XEVD_TRACE_COUNTER;
+    XEVD_TRACE_STR("ipm Y ");
+    XEVD_TRACE_INT(ipm);
+    XEVD_TRACE_STR("\n");
+
+    return ipm;
+}
+
+int xevd_eco_intra_dir_c(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 ipm_l)
+{
+    u32 t0;
+    int ipm = 0;
+    u8 chk_bypass;
+#if TRACE_ADDITIONAL_FLAGS
+    u8 ipm_l_saved = ipm_l;
+#endif
+
+    XEVD_IPRED_CONV_L2C_CHK(ipm_l, chk_bypass);
+
+    t0 = xevd_sbac_decode_bin(bs, sbac, sbac->ctx.intra_chroma_pred_mode);
+    if(t0 == 0)
+    {
+        ipm = sbac_read_unary_sym_ep(bs, sbac, IPD_CHROMA_CNT - 1);
+        ipm++;
+        if(chk_bypass &&  ipm >= ipm_l) ipm++;
+    }
+
+    XEVD_TRACE_COUNTER;
+    XEVD_TRACE_STR("ipm UV ");
+    XEVD_TRACE_INT(ipm);
+#if TRACE_ADDITIONAL_FLAGS
+    XEVD_TRACE_STR("ipm L ");
+    XEVD_TRACE_INT(ipm_l_saved);
+#endif
+    XEVD_TRACE_STR("\n");
+
+    return ipm;
+}
+
 void xevd_eco_direct_mode_flag(XEVD_CTX * ctx, XEVD_CORE * core)
 {
     XEVD_SBAC *sbac;
@@ -846,6 +936,28 @@ void xevd_eco_direct_mode_flag(XEVD_CTX * ctx, XEVD_CORE * core)
     XEVD_TRACE_INT(core->inter_dir);
     XEVD_TRACE_STR("\n");
 }
+
+void xevd_eco_merge_mode_flag(XEVD_CTX * ctx, XEVD_CORE * core)
+{
+    XEVD_SBAC *sbac;
+    XEVD_BSR   *bs;
+    int        merge_mode_flag = 0;
+
+    bs = core->bs;
+    sbac = GET_SBAC_DEC(bs);
+
+    merge_mode_flag = xevd_sbac_decode_bin(bs, sbac, sbac->ctx.merge_mode_flag);
+
+    if(merge_mode_flag)
+    {
+        core->inter_dir = PRED_DIR;
+    }
+    XEVD_TRACE_COUNTER;
+    XEVD_TRACE_STR("merge_mode_flag ");
+    XEVD_TRACE_INT(core->inter_dir == PRED_DIR ? PRED_DIR : 0);
+    XEVD_TRACE_STR("\n");
+}
+
 
 void xevd_eco_inter_pred_idc(XEVD_CTX * ctx, XEVD_CORE * core)
 {
@@ -891,6 +1003,7 @@ s8 xevd_eco_split_mode(XEVD_BSR *bs, XEVD_SBAC *sbac, int cuw, int cuh)
     split_mode = split_mode ? SPLIT_QUAD : NO_SPLIT;
     return split_mode;
 }
+
 
 void xevd_eco_pred_mode( XEVD_CTX * ctx, XEVD_CORE * core )
 {
@@ -947,7 +1060,7 @@ int xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
     int         direct_idx = -1;
     int         REF_SET[3][XEVD_MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
     u8          bi_idx = BI_NON;
-    
+
     core->pred_mode = MODE_INTRA;
     core->mvr_idx = 0;
     core->mvp_idx[REFP_0] = 0;
@@ -962,7 +1075,7 @@ int xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
     core->avail_lr = xevd_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
-  
+
     if (ctx->sh.slice_type != SLICE_I)
     {
         /* CU skip flag */
@@ -1101,10 +1214,29 @@ int xevd_eco_nalu(XEVD_BSR * bs, XEVD_NALU * nalu)
     return XEVD_OK;
 }
 
+
+int xevd_eco_hrd_parameters(XEVD_BSR * bs, XEVD_HRD * hrd) {
+    xevd_bsr_read_ue(bs, &hrd->cpb_cnt_minus1);
+    xevd_bsr_read(bs, &hrd->bit_rate_scale, 4);
+    xevd_bsr_read(bs, &hrd->cpb_size_scale, 4);
+    for (int SchedSelIdx = 0; SchedSelIdx <= hrd->cpb_cnt_minus1; SchedSelIdx++)
+    {
+        xevd_bsr_read_ue(bs, &hrd->bit_rate_value_minus1[SchedSelIdx]);
+        xevd_bsr_read_ue(bs, &hrd->cpb_size_value_minus1[SchedSelIdx]);
+        xevd_bsr_read1(bs, &hrd->cbr_flag[SchedSelIdx]);
+    }
+    xevd_bsr_read(bs, &hrd->initial_cpb_removal_delay_length_minus1, 5);
+    xevd_bsr_read(bs, &hrd->cpb_removal_delay_length_minus1, 5);
+    xevd_bsr_read(bs, &hrd->cpb_removal_delay_length_minus1, 5);
+    xevd_bsr_read(bs, &hrd->time_offset_length, 5);
+
+    return XEVD_OK;
+}
+
 int xevd_eco_vui(XEVD_BSR * bs, XEVD_VUI * vui)
 {
     xevd_bsr_read1(bs, &vui->aspect_ratio_info_present_flag);
-    if (vui->aspect_ratio_info_present_flag) 
+    if (vui->aspect_ratio_info_present_flag)
     {
         xevd_bsr_read(bs, &vui->aspect_ratio_idc, 8);
         if (vui->aspect_ratio_idc == EXTENDED_SAR)
@@ -1119,12 +1251,12 @@ int xevd_eco_vui(XEVD_BSR * bs, XEVD_VUI * vui)
         xevd_bsr_read1(bs, &vui->overscan_appropriate_flag);
     }
     xevd_bsr_read1(bs, &vui->video_signal_type_present_flag);
-    if (vui->video_signal_type_present_flag) 
+    if (vui->video_signal_type_present_flag)
     {
         xevd_bsr_read(bs, &vui->video_format, 3);
         xevd_bsr_read1(bs, &vui->video_full_range_flag);
         xevd_bsr_read1(bs, &vui->colour_description_present_flag);
-        if (vui->colour_description_present_flag) 
+        if (vui->colour_description_present_flag)
         {
             xevd_bsr_read(bs, &vui->colour_primaries, 8);
             xevd_bsr_read(bs, &vui->transfer_characteristics, 8);
@@ -1132,7 +1264,7 @@ int xevd_eco_vui(XEVD_BSR * bs, XEVD_VUI * vui)
         }
     }
     xevd_bsr_read1(bs, &vui->chroma_loc_info_present_flag);
-    if (vui->chroma_loc_info_present_flag) 
+    if (vui->chroma_loc_info_present_flag)
     {
         xevd_bsr_read_ue(bs, &vui->chroma_sample_loc_type_top_field);
         xevd_bsr_read_ue(bs, &vui->chroma_sample_loc_type_bottom_field);
@@ -1149,7 +1281,19 @@ int xevd_eco_vui(XEVD_BSR * bs, XEVD_VUI * vui)
         xevd_bsr_read1(bs, &vui->fixed_pic_rate_flag);
     }
     xevd_bsr_read1(bs, &vui->nal_hrd_parameters_present_flag);
+    if (vui->nal_hrd_parameters_present_flag)
+    {
+        xevd_eco_hrd_parameters(bs, &vui->hrd_parameters);
+    }
     xevd_bsr_read1(bs, &vui->vcl_hrd_parameters_present_flag);
+    if (vui->vcl_hrd_parameters_present_flag)
+    {
+        xevd_eco_hrd_parameters(bs, &vui->hrd_parameters);
+    }
+    if (vui->nal_hrd_parameters_present_flag || vui->vcl_hrd_parameters_present_flag)
+    {
+        xevd_bsr_read1(bs, &vui->low_delay_hrd_flag);
+    }
     xevd_bsr_read1(bs, &vui->pic_struct_present_flag);
     xevd_bsr_read1(bs, &vui->bitstream_restriction_flag);
     if (vui->bitstream_restriction_flag) {
@@ -1271,6 +1415,7 @@ int xevd_eco_pps(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps)
     xevd_bsr_read1(bs, &pps->single_tile_in_pic_flag);
     xevd_bsr_read_ue(bs, &pps->tile_id_len_minus1);
     xevd_bsr_read1(bs, &pps->explicit_tile_id_flag);
+    xevd_bsr_read1(bs, &pps->pic_dra_enabled_flag);
     xevd_bsr_read1(bs, &pps->arbitrary_slice_present_flag);
     xevd_bsr_read1(bs, &pps->constrained_intra_pred_flag);
     xevd_bsr_read1(bs, &pps->cu_qp_delta_enabled_flag);
@@ -1285,7 +1430,7 @@ int xevd_eco_pps(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps)
     {
         xevd_bsr_read1(bs, &t0);
     }
-#if TRACE_HLS    
+#if TRACE_HLS
     XEVD_TRACE_STR("************ PPS End   ************\n");
     XEVD_TRACE_STR("***********************************\n");
 #endif
@@ -1294,7 +1439,7 @@ int xevd_eco_pps(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps)
 
 int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int nut)
 {
-#if TRACE_HLS    
+#if TRACE_HLS
     XEVD_TRACE_STR("***********************************\n");
     XEVD_TRACE_STR("************ SH  Start ************\n");
 #endif
@@ -1346,7 +1491,7 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
 
         first_tile_in_slice = sh->first_tile_id;
         last_tile_in_slice = sh->last_tile_id;
-        
+
 
         first_tile_col_idx = first_tile_in_slice % w_tile;
         last_tile_col_idx = last_tile_in_slice % w_tile;
@@ -1425,7 +1570,7 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
             xevd_bsr_read(bs, &sh->entry_point_offset_minus1[i], pps->tile_offset_lens_minus1 + 1);
         }
     }
-    
+
     /* byte align */
     u32 t0;
     while(!XEVD_BSR_IS_BYTE_ALIGN(bs))
@@ -1433,7 +1578,7 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
         xevd_bsr_read1(bs, &t0);
         xevd_assert_rv(0 == t0, XEVD_ERR_MALFORMED_BITSTREAM);
     }
-#if TRACE_HLS    
+#if TRACE_HLS
     XEVD_TRACE_STR("************ SH  End   ************\n");
     XEVD_TRACE_STR("***********************************\n");
 #endif

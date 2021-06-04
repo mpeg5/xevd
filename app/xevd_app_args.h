@@ -28,8 +28,13 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _XEVD_ARGS_H_
-#define _XEVD_ARGS_H_
+
+
+#ifndef _XEVD_APP_ARGS_H_
+
+#define _XEVD_APP_ARGS_H_
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,14 +44,15 @@
 #define XEVD_ARGS_VAL_TYPE_NONE            (0<<1) /* no value */
 #define XEVD_ARGS_VAL_TYPE_INTEGER         (10<<1) /* integer type value */
 #define XEVD_ARGS_VAL_TYPE_STRING          (20<<1) /* string type value */
+
 #define XEVD_ARGS_GET_CMD_OPT_VAL_TYPE(x)  ((x) & ~XEVD_ARGS_VAL_TYPE_MANDATORY)
+
 #define XEVD_ARGS_NO_KEY                   (127)
 #define XEVD_ARGS_KEY_LONG_CONFIG          "config"
 
-#define QC_MULT_CONFIG 1
-#if QC_MULT_CONFIG
-   #define MAX_NUM_CONF_FILES 16
-#endif
+#define MAX_NUM_CONF_FILES 16
+
+
 
 typedef struct _XEVD_ARGS_OPTION
 {
@@ -57,6 +63,7 @@ typedef struct _XEVD_ARGS_OPTION
     void * val; /* actual value */
     char   desc[512]; /* description of option */
 } XEVD_ARGS_OPTION;
+
 
 static int xevd_args_search_long_arg(XEVD_ARGS_OPTION * opts, const char * argv)
 {
@@ -76,6 +83,7 @@ static int xevd_args_search_long_arg(XEVD_ARGS_OPTION * opts, const char * argv)
     }
     return -1;
 }
+
 
 static int xevd_args_search_short_arg(XEVD_ARGS_OPTION * ops, const char argv)
 {
@@ -216,8 +224,7 @@ static int xevd_parse_cmd(int argc, const char * argv[], XEVD_ARGS_OPTION * ops,
         goto ERR;
     }
 
-    if(XEVD_ARGS_GET_CMD_OPT_VAL_TYPE(ops[oidx].val_type) !=
-       XEVD_ARGS_VAL_TYPE_NONE)
+    if(XEVD_ARGS_GET_CMD_OPT_VAL_TYPE(ops[oidx].val_type) != XEVD_ARGS_VAL_TYPE_NONE)
     {
         if(aidx + 1 >= argc) goto ERR;
         if(xevd_args_read_value(ops + oidx, argv[aidx + 1])) goto ERR;
@@ -240,7 +247,8 @@ ERR:
     return -1;
 }
 
-int xevd_args_parse_all(int argc, const char * argv[], XEVD_ARGS_OPTION * ops)
+int xevd_args_parse_all(int argc, const char * argv[],
+                               XEVD_ARGS_OPTION * ops)
 {
     int i, ret = 0, idx = 0;
     XEVD_ARGS_OPTION *o;
@@ -248,8 +256,9 @@ int xevd_args_parse_all(int argc, const char * argv[], XEVD_ARGS_OPTION * ops)
     FILE *fp;
 
     int num_configs = 0;
-    int pos_conf_files[MAX_NUM_CONF_FILES];
-    memset(&pos_conf_files, -1, sizeof(int) * MAX_NUM_CONF_FILES);
+    int posConfFiles[MAX_NUM_CONF_FILES];
+    memset(&posConfFiles, -1, sizeof(int) * MAX_NUM_CONF_FILES);
+
     /* config file parsing */
     for(i = 1; i < argc; i++)
     {
@@ -258,14 +267,14 @@ int xevd_args_parse_all(int argc, const char * argv[], XEVD_ARGS_OPTION * ops)
             if(i + 1 < argc)
             {
                 num_configs++;
-                pos_conf_files[num_configs - 1] = i + 1;
+                posConfFiles[num_configs - 1] = i + 1;
             }
         }
     }
-
     for (int i = 0; i < num_configs; i++)
     {
-        fname_cfg = argv[pos_conf_files[i]];
+        fname_cfg = argv[posConfFiles[i]];
+
         if(fname_cfg)
         {
             fp = fopen(fname_cfg, "r");
@@ -305,22 +314,25 @@ int xevd_args_parse_all(int argc, const char * argv[], XEVD_ARGS_OPTION * ops)
     return ret;
 }
 
-/*
- * Define various command line options for application
- */
 
 static char op_fname_inp[256] = "\0";
 static char op_fname_out[256] = "\0";
 static char op_fname_opl[256] = "\0";
 static int  op_max_frm_num = 0;
-static int  op_parallel_task = 1; //Default value
+static int  op_threads = 1; /* Default value */
 static int  op_use_pic_signature = 0;
-static int  op_out_bit_depth = 0;
+static int  op_out_bit_depth = 8; /* default value */
 static int  op_out_chroma_format = 1;
 
+typedef enum _STATES
+{
+    STATE_DECODING,
+    STATE_BUMPING
+} STATES;
 
 typedef enum _OP_FLAGS
 {
+
     OP_FLAG_FNAME_INP,
     OP_FLAG_FNAME_OUT,
     OP_FLAG_FNAME_OPL,
@@ -328,14 +340,16 @@ typedef enum _OP_FLAGS
     OP_FLAG_USE_PIC_SIGN,
     OP_FLAG_OUT_BIT_DEPTH,
     OP_FLAG_VERBOSE,
-    OP_PARALLEL_TASK,
+    OP_THREADS,
     OP_FLAG_MAX
+
 } OP_FLAGS;
 
 static int op_flag[OP_FLAG_MAX] = { 0 };
 
 static XEVD_ARGS_OPTION options[] = \
 {
+
     {
         'i', "input", XEVD_ARGS_VAL_TYPE_STRING | XEVD_ARGS_VAL_TYPE_MANDATORY,
             &op_flag[OP_FLAG_FNAME_INP], op_fname_inp,
@@ -357,9 +371,9 @@ static XEVD_ARGS_OPTION options[] = \
         "maximum number of frames to be decoded"
     },
     {
-        'm',  "parallel_task", XEVD_ARGS_VAL_TYPE_INTEGER,
-        &op_flag[OP_PARALLEL_TASK], &op_parallel_task,
-        "Number of threads to be created"
+        'm',  "threads", XEVD_ARGS_VAL_TYPE_INTEGER,
+        &op_flag[OP_THREADS], &op_threads,
+        "Force to use a specific number of threads. default: 1"
     },
     {
         's',  "signature", XEVD_ARGS_VAL_TYPE_NONE,
@@ -375,13 +389,14 @@ static XEVD_ARGS_OPTION options[] = \
         "\t 2: frame-level messages\n"
     },
     {
-        XEVD_ARGS_NO_KEY,  "output_bit_depth", XEVD_ARGS_VAL_TYPE_INTEGER,
+        XEVD_ARGS_NO_KEY,  "output-bit-depth", XEVD_ARGS_VAL_TYPE_INTEGER,
         &op_flag[OP_FLAG_OUT_BIT_DEPTH], &op_out_bit_depth,
         "output bitdepth (8(default), 10) "
     },
-        { 0, "", XEVD_ARGS_VAL_TYPE_NONE, NULL, NULL, "" } /* termination */
+    { 0, "", XEVD_ARGS_VAL_TYPE_NONE, NULL, NULL, "" } /* termination */
+
 };
 
-#define XEVD_NUM_ARG_OPTION ((int)(sizeof(options)/sizeof(options[0]))-1)
+#define XEVD_NUM_ARG_OPTION   ((int)(sizeof(options)/sizeof(options[0]))-1)
 
-#endif /*_XEVD_ARGS_H_ */
+#endif /*_XEVD_APP_ARGS_H_ */

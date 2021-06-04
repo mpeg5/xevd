@@ -104,22 +104,9 @@ static __inline void xevd_mset_16b(s16 * dst, s16 v, int cnt)
 
 /* trace function */
 #if XEVD_TRACE
-#if defined(__GNUC__)
-#define __FILENAME__ \
-    (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define xevd_trace(args...) xevd_trace0(__FILENAME__, __LINE__, args)
+#define xevd_trace xevd_print("[%s:%d] ", __FILE__, __LINE__); xevd_print
 #else
-#define __FILENAME__ \
-    (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#define xevd_trace(args,...) xevd_trace0(__FILENAME__,__LINE__, args,__VA_ARGS__)
-#endif
-#else
-#define xevd_trace(args,...) {}
-#endif
-#if defined(__GNUC__)
-#define xevd_print(args...) xevd_trace0(NULL, -1, args)
-#else
-#define xevd_print(args,...) xevd_trace0(NULL, -1, args,__VA_ARGS__)
+#define xevd_trace(...) {}
 #endif
 
 /* assert function */

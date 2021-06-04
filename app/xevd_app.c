@@ -28,27 +28,12 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 #include "xevd.h"
 #include "xevd_app_util.h"
 #include "xevd_app_args.h"
 
-#if LINUX
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-#endif
-
-#define VERBOSE_NONE               VERBOSE_0
-#define VERBOSE_SIMPLE             VERBOSE_1
-#define VERBOSE_FRAME              VERBOSE_2
-
-#define MAX_BS_BUF                 (16*1024*1024) /* byte */
-
-typedef enum _STATES
-{
-    STATE_DECODING,
-    STATE_BUMPING
-} STATES;
+#define MAX_BS_BUF                 16*1024*1024 /* byte */
 
 static void print_usage(void)
 {
@@ -141,6 +126,10 @@ static void print_stat(XEVD_STAT * stat, int ret)
         {
             logv2("Picture Parameter Set (%d bytes)", stat->read);
         }
+        else if (stat->nalu_type == XEVD_APS_NUT)
+        {
+            logv2("Adaptation Parameter Set (%d bytes)", stat->read);
+        }
         else if (stat->nalu_type == XEVD_SEI_NUT)
         {
             logv2("SEI message: ");
@@ -148,24 +137,27 @@ static void print_stat(XEVD_STAT * stat, int ret)
             {
                 logv2("MD5 check OK");
             }
-            else if (ret == XEVD_ERR_BAD_CRC)
-            {
-                logv2("MD5 check mismatch!");
-            }
             else if (ret == XEVD_WARN_CRC_IGNORED)
             {
                 logv2("MD5 check ignored!");
+            }
+            else
+            {
+                logv2("Unknow SEI message");
             }
         }
         else
         {
             logv0("Unknown bitstream");
         }
-
         logv2("\n");
     }
     else
     {
+        if (ret == XEVD_ERR_BAD_CRC)
+        {
+            logv0("MD5 check mismatch!\n");
+        }
         logv0("Decoding error = %d\n", ret);
     }
 }
@@ -201,9 +193,84 @@ static int set_extra_config(XEVD id)
     return 0;
 }
 
-static int write_dec_img(XEVD id, char * fname, XEVD_IMGB * img, XEVD_IMGB * imgb_t)
+/* sequence level header */
+static int write_y4m_header(char * fname, XEVD_IMGB * img)
+{
+
+    int color_format = XEVD_CS_GET_FORMAT(img->cs);
+    int bit_depth  =   op_out_bit_depth;
+    int len = 80;
+    int buff_len = 0;
+    char buf[80] = { 0, };
+    char c_buf[16] = { 0, };
+    FILE          * fp;
+
+    if (color_format == XEVD_CF_YCBCR420)
+    {
+        if (bit_depth == 8) strcpy(c_buf, "420mpeg2");
+        else if (bit_depth == 10) strcpy(c_buf, "420p10");
+    }
+    else if (color_format == XEVD_CF_YCBCR422)
+    {
+        if (bit_depth == 8) strcpy(c_buf, "422");
+        else if (bit_depth == 10) strcpy(c_buf, "422p10");
+    }
+    else if (color_format == XEVD_CF_YCBCR444)
+    {
+        if (bit_depth == 8)  strcpy(c_buf, "444");
+        else if (bit_depth == 10) strcpy(c_buf, "444p10");
+    }
+    else if (color_format == XEVD_CF_YCBCR400)
+    {
+        if (bit_depth == 8)  strcpy(c_buf, "mono");
+    }
+
+    if (c_buf == NULL)
+    {
+        printf("Color format is not suuported by y4m");
+        return -1;
+    }
+
+    /*setting fps to 30 by default as there is no fps related parameter */
+    buff_len = snprintf(buf, len, "YUV4MPEG2 W%d H%d F%d:%d Ip C%s\n", \
+        img->w[0], img->h[0], 30, 1, c_buf);
+
+
+    fp = fopen(fname, "ab");
+    if (fp == NULL)
+    {
+        logv0("cannot open file = %s\n", fname);
+        return -1;
+    }
+    if (buff_len != fwrite(buf, 1, buff_len, fp)) return -1;
+    fclose(fp);
+    return XEVD_OK;
+
+}
+/* Frame level header or separator */
+static int write_y4m_frame_header(char * fname)
+{
+    FILE * fp;
+    fp = fopen(fname, "ab");
+    if (fp == NULL)
+    {
+        logv0("cannot open file = %s\n", fname);
+        return -1;
+    }
+    if (6 != fwrite("FRAME\n", 1, 6, fp)) return -1;
+    fclose(fp);
+    return XEVD_OK;
+
+}
+
+
+static int write_dec_img(XEVD id, char * fname, XEVD_IMGB * img, XEVD_IMGB * imgb_t, int flag_y4m)
 {
     imgb_cpy(imgb_t, img);
+    if (flag_y4m)
+    {
+        if(write_y4m_frame_header(op_fname_out)) return -1;
+    }
     if(imgb_write(op_fname_out, imgb_t)) return -1;
     return XEVD_OK;
 }
@@ -214,19 +281,21 @@ int main(int argc, const char **argv)
     unsigned char    * bs_buf = NULL;
     XEVD               id = NULL;
     XEVD_CDSC          cdsc;
-    XEVD_BITB          bitb;
-    XEVD_IMGB        * imgb;
+    XEVD_BITB           bitb;
+    XEVD_IMGB        *  imgb;
     /*temporal buffer for video bit depth less than 10bit */
-    XEVD_IMGB        * imgb_t = NULL;
+    XEVD_IMGB        *  imgb_t = NULL;
     XEVD_STAT          stat;
     XEVD_OPL           opl;
     int                ret;
-    XEVD_CLK           clk_beg, clk_tot;
+    XEVD_CLK            clk_beg, clk_tot;
     int                bs_cnt, pic_cnt;
     int                bs_size, bs_read_pos = 0;
     int                w, h;
     FILE             * fp_bs = NULL;
     int                decod_frames = 0;
+    int                is_y4m = 0;
+
 
     /* parse options */
     ret = xevd_args_parse_all(argc, argv, options);
@@ -238,7 +307,6 @@ int main(int argc, const char **argv)
     }
 
     logv1("eXtra-fast Essential Video Decoder\n");
-
     /* open input bitstream */
     fp_bs = fopen(op_fname_inp, "rb");
     if(fp_bs == NULL)
@@ -250,6 +318,31 @@ int main(int argc, const char **argv)
 
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
+        char fext[4];
+
+        if(strlen(op_fname_out) < 5) /* x.yuv or x.y4m */
+        {
+            logv0("ERROR: invalide output file name\n");
+            return -1;
+        }
+        strcpy(fext, op_fname_out + strlen(op_fname_out) - 3);
+        fext[0] = toupper(fext[0]);
+        fext[1] = toupper(fext[1]);
+        fext[2] = toupper(fext[2]);
+
+        if(strcmp(fext, "YUV") == 0)
+        {
+            is_y4m = 0;
+        }
+        else if(strcmp(fext,"Y4M") == 0)
+        {
+            is_y4m = 1;
+        }
+        else
+        {
+            logv0("ERROR: unknown output format\n");
+            return -1;
+        }
         /* remove decoded file contents if exists */
         FILE * fp;
         fp = fopen(op_fname_out, "wb");
@@ -273,6 +366,8 @@ int main(int argc, const char **argv)
             print_usage();
             return -1;
         }
+
+
         fclose(fp);
     }
 
@@ -282,8 +377,7 @@ int main(int argc, const char **argv)
         logv0("ERROR: cannot allocate bit buffer, size=%d\n", MAX_BS_BUF);
         return -1;
     }
-    cdsc.task_cnt = (int)op_parallel_task;
-    
+    cdsc.threads = (int)op_threads;
 
     id = xevd_create(&cdsc, NULL);
     if(id == NULL)
@@ -325,8 +419,7 @@ int main(int argc, const char **argv)
             bitb.ssize = bs_size;
             bitb.bsize = MAX_BS_BUF;
 
-            logv2("[%4d] NALU --> ", bs_cnt);
-            bs_cnt++;
+            logv2("[%4d] NALU --> ", bs_cnt++);
 
             clk_beg = xevd_clk_get();
 
@@ -335,21 +428,7 @@ int main(int argc, const char **argv)
 
             clk_tot += xevd_clk_from(clk_beg);
 
-            if (op_verbose == VERBOSE_SIMPLE && stat.nalu_type < XEVD_SPS_NUT)
-            {
-                int total_time = ((int)xevd_clk_msec(clk_tot) / 1000);
-                int h = total_time / 3600;
-                total_time = total_time % 3600;
-                int m = total_time / 60;
-                total_time = total_time % 60;
-                int s = total_time;
-
-                logv1("[ %d / %d frames ] [ %.2f frame/sec ] [ %2dh %2dm %2ds ] \r"
-                    , decod_frames, op_max_frm_num, ((float)(decod_frames + 1) * 1000) / ((float)xevd_clk_msec(clk_tot))
-                    , h, m, s);
-                fflush(stdout);
-                decod_frames++;
-            }
+            print_stat(&stat, ret);
 
             if(XEVD_FAILED(ret))
             {
@@ -357,19 +436,18 @@ int main(int argc, const char **argv)
                 goto END;
             }
 
-            print_stat(&stat, ret);
-
             if(stat.read - XEVD_NAL_UNIT_LENGTH_BYTE != bs_size)
             {
-                logv0("\t=> different reading of bitstream (in:%d, read:%d)\n", bs_size, stat.read);
+                logv0("\t=> different reading of bitstream (in:%d, read:%d)\n",
+                    bs_size, stat.read);
             }
 
             process_status = ret;
         }
-
         if(stat.fnum >= 0 || state == STATE_BUMPING)
         {
             ret = xevd_pull(id, &imgb, &opl);
+
             if(ret == XEVD_ERR_UNEXPECTED)
             {
                 logv2("bumping process completed\n");
@@ -391,9 +469,6 @@ int main(int argc, const char **argv)
             w = imgb->aw[0];
             h = imgb->ah[0];
 
-            int internal_codec_bit_depth, size = 4;
-            xevd_config(id, XEVD_CFG_GET_CODEC_BIT_DEPTH, &internal_codec_bit_depth, &size);
-            op_out_bit_depth = op_out_bit_depth == 0 ? internal_codec_bit_depth : op_out_bit_depth;
 
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
@@ -406,7 +481,12 @@ int main(int argc, const char **argv)
                         return -1;
                     }
                 }
-                write_dec_img(id, op_fname_out, imgb, imgb_t);
+
+                if (!pic_cnt && is_y4m)
+                {
+                    if(write_y4m_header(op_fname_out, imgb)) return -1;
+                }
+                write_dec_img(id, op_fname_out, imgb, imgb_t, is_y4m);
             }
 
             if (op_flag[OP_FLAG_FNAME_OPL])
@@ -443,8 +523,7 @@ int main(int argc, const char **argv)
     }
 
 END:
-
-    logv1("=======================================================================================\n");
+    logv1_line("Summary");
     logv1("Resolution                        = %d x %d\n", w, h);
     logv1("Processed NALUs                   = %d\n", bs_cnt);
     logv1("Decoded frame count               = %d\n", pic_cnt);
@@ -460,7 +539,7 @@ END:
         logv1("Average decoding speed            = %.3f frames/sec\n",
                 ((float)pic_cnt*1000)/((float)xevd_clk_msec(clk_tot)));
     }
-    logv1("=======================================================================================\n");
+    logv1_line(NULL);
 
     if(id) xevd_delete(id);
     if(imgb_t) imgb_free(imgb_t);

@@ -38,11 +38,63 @@ extern XEVD_MC_L (*xevd_func_mc_l)[2];
 extern XEVD_MC_C (*xevd_func_mc_c)[2];
 extern XEVD_AVG_NO_CLIP xevd_func_average_no_clip;
 
-void xevd_average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht
-    , int bit_depth);
+void xevd_average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht, int bit_depth);
 void xevd_mc_c_00_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth);
 void xevd_mc_l_00_sse(pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
 #endif
-
-
+void mc_filter_l_8pel_horz_clip_sse(s16 *ref,
+    int src_stride,
+    s16 *pred,
+    int dst_stride,
+    const s16 *coeff,
+    int width,
+    int height,
+    int min_val,
+    int max_val,
+    int offset,
+    int shift);
+void mc_filter_l_8pel_horz_no_clip_sse(s16 *ref,
+    int src_stride,
+    s16 *pred,
+    int dst_stride,
+    const s16 *coeff,
+    int width,
+    int height,
+    int offset,
+    int shift);
+void mc_filter_l_8pel_vert_clip_sse(s16 *ref,
+    int src_stride,
+    s16 *pred,
+    int dst_stride,
+    const s16 *coeff,
+    int width,
+    int height,
+    int min_val,
+    int max_val,
+    int offset,
+    int shift);
+void mc_filter_c_4pel_horz_sse(s16 *ref,
+    int src_stride,
+    s16 *pred,
+    int dst_stride,
+    const s16 *coeff,
+    int width,
+    int height,
+    int min_val,
+    int max_val,
+    int offset,
+    int shift,
+    s8  is_last);
+void mc_filter_c_4pel_vert_sse(s16 *ref,
+    int src_stride,
+    s16 *pred,
+    int dst_stride,
+    const s16 *coeff,
+    int width,
+    int height,
+    int min_val,
+    int max_val,
+    int offset,
+    int shift,
+    s8  is_last);
 #endif /* _XEVD_MC_H_ */

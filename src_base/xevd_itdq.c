@@ -561,8 +561,9 @@ static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
     
 }
 
-typedef void(*XEVD_ITXB)(void *coef, void *t, int shift, int line, int step);
-static XEVD_ITXB tbl_itxb[MAX_TR_LOG2] =
+
+
+XEVD_ITXB tbl_itxb[MAX_TR_LOG2] =
 {
     itx_pb2b,
     itx_pb4b,
@@ -572,7 +573,10 @@ static XEVD_ITXB tbl_itxb[MAX_TR_LOG2] =
     itx_pb64b
 };
 
-void xevd_itrans(s16 *coef, int log2_cuw, int log2_cuh, int bit_depth)
+typedef void(*XEVD_ITX)(s16 *coef, s16 *t, int shift, int line);
+
+void xevd_itrans(s16 *coef, int log2_cuw, int log2_cuh
+    , int bit_depth)
 {
     {
         s32 tb[MAX_TR_DIM]; /* temp buffer */
@@ -582,7 +586,8 @@ void xevd_itrans(s16 *coef, int log2_cuw, int log2_cuh, int bit_depth)
     }
 }
 
-static void xevd_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
+
+void xevd_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
 {
     int i;
     s64 lev;

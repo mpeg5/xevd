@@ -30,7 +30,12 @@
 
 #ifndef _XEVD_H_
 #define _XEVD_H_
+
 #include <stdint.h>
+#include <xevd_exports.h>
+
+/* xevd decoder const */
+#define XEVD_MAX_TASK_CNT                  8
 
 /*****************************************************************************
  * return values and error code
@@ -44,9 +49,9 @@
 /* decoding success, but output frame has been delayed */
 #define XEVD_OK_FRM_DELAYED              (202)
 /* not matched CRC value */
-#define XEVD_ERR_BAD_CRC                 (201) 
+#define XEVD_ERR_BAD_CRC                 (201)
 /* CRC value presented but ignored at decoder*/
-#define XEVD_WARN_CRC_IGNORED            (200) 
+#define XEVD_WARN_CRC_IGNORED            (200)
 
 #define XEVD_OK                          (0)
 
@@ -59,7 +64,8 @@
 #define XEVD_ERR_UNSUPPORTED_COLORSPACE  (-201)
 #define XEVD_ERR_MALFORMED_BITSTREAM     (-202)
 #define XEVD_ERR_THREAD_ALLOCATION       (-203)
-
+/* not matched CRC value */
+//#define XEVD_ERR_BAD_CRC                 (-300)
 #define XEVD_ERR_UNKNOWN                 (-32767) /* unknown error */
 
 /* return value checking *****************************************************/
@@ -69,13 +75,7 @@
 /*****************************************************************************
  * color spaces
  *****************************************************************************/
-/*****************************************************************************
- * color spaces
- * - value format = (endian << 14) | (bit-depth << 8) | (color format)
- * - endian (1bit): little endian = 0, big endian = 1
- * - bit-depth (6bit): 0~63
- * - color format (8bit): 0~255
- *****************************************************************************/
+
 /* color formats */
 #define XEVD_CF_UNKNOWN                 0 /* unknown color format */
 #define XEVD_CF_YCBCR400                10 /* Y only */
@@ -126,8 +126,8 @@ typedef enum _CHROMA_FORMAT
 } CHROMA_FORMAT;
 
 /*****************************************************************************
- * config types for decoder
- *****************************************************************************/
+* config types for decoder
+*****************************************************************************/
 #define XEVD_CFG_SET_USE_PIC_SIGNATURE  (301)
 #define XEVD_CFG_SET_USE_OPL_OUTPUT     (302)
 #define XEVD_CFG_GET_CODEC_BIT_DEPTH    (401)
@@ -140,6 +140,7 @@ typedef enum _CHROMA_FORMAT
 #define XEVD_IDR_NUT                     (1)
 #define XEVD_SPS_NUT                     (24)
 #define XEVD_PPS_NUT                     (25)
+#define XEVD_APS_NUT                     (26)
 #define XEVD_FD_NUT                      (27)
 #define XEVD_SEI_NUT                     (28)
 
@@ -239,9 +240,16 @@ struct _XEVD_IMGB
 
     /* life cycle management */
     int                 refcnt;
-    int              (* addref)(XEVD_IMGB * imgb);
-    int              (* getref)(XEVD_IMGB * imgb);
-    int              (* release)(XEVD_IMGB * imgb);
+    int                 (*addref)(XEVD_IMGB * imgb);
+    int                 (*getref)(XEVD_IMGB * imgb);
+    int                 (*release)(XEVD_IMGB * imgb);
+    int                 crop_idx;
+    int                 crop_l;
+    int                 crop_r;
+    int                 crop_t;
+    int                 crop_b;
+    int                 imgb_active_pps_id;
+    int                 imgb_active_aps_id;
 };
 
 /*****************************************************************************
@@ -273,8 +281,7 @@ typedef struct _XEVD_BITB
  *****************************************************************************/
 typedef struct _XEVD_CDSC
 {
-    int            __na; /* nothing */
-    int            task_cnt;
+    int            threads; /* number of thread */
 } XEVD_CDSC;
 
 /*****************************************************************************
@@ -308,16 +315,21 @@ typedef struct _XEVD_OPL
     char digest[3][16];
 } XEVD_OPL;
 
+#define MAX_NUM_REF_PICS                   21
+#define MAX_NUM_ACTIVE_REF_FRAME           5
+#define MAX_NUM_RPLS                       32
+
+
 /*****************************************************************************
  * API for decoder only
  *****************************************************************************/
 /* XEVD instance identifier for decoder */
 typedef void  * XEVD;
 
-XEVD xevd_create(XEVD_CDSC * cdsc, int * err);
-void xevd_delete(XEVD id);
-int  xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat);
-int  xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl);
-int  xevd_config(XEVD id, int cfg, void * buf, int * size);
+XEVD XEVD_EXPORT xevd_create(XEVD_CDSC * cdsc, int * err);
+void XEVD_EXPORT xevd_delete(XEVD id);
+int  XEVD_EXPORT xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat);
+int  XEVD_EXPORT xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl);
+int  XEVD_EXPORT xevd_config(XEVD id, int cfg, void * buf, int * size);
 
 #endif /* _XEVD_H_ */

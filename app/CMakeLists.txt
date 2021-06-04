@@ -1,32 +1,63 @@
 include_directories (${PROJECT_SOURCE_DIR}/app)
+include_directories (${CMAKE_BINARY_DIR})
+
+set( EXE_NAME xevd_app )
+set( EXE_NAME_BASE xevdb_app)
+
+file (GLOB ENC_SRC "*.c" )
+file (GLOB ENC_INC "*.h" )
 
 if(("${SET_PROF}" STREQUAL "MAIN"))
-  set( EXE_NAME xevd_app )
-  set( LIB_NAME xevd )
-  set( INC_PATH . .. ../inc ../src_base ../src_main )
-elseif(("${SET_PROF}" STREQUAL "BASE"))
-  set( EXE_NAME xevdb_app )
-  set( LIB_NAME xevdb )
-  set( INC_PATH . .. ../inc ../src_base )
+  add_executable (${EXE_NAME} ${ENC_SRC} ${ENC_INC} )
+  include_directories( ${EXE_NAME} PUBLIC . .. ../inc ../src_base ../src_main ${BASE_SRC_PATH})
+  
+  if(XEVD_APP_STATIC_BUILD)
+    target_link_libraries (${EXE_NAME} xevd)
+  else()
+    target_link_libraries (${EXE_NAME} xevd_dynamic)
+  endif()
+  
+  set_property(TARGET ${EXE_NAME} PROPERTY FOLDER "app")
+  set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  
+  if( MSVC )
+    target_compile_definitions( ${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS ANY )
+  elseif( UNIX OR MINGW )
+    target_compile_definitions( ${EXE_NAME} PUBLIC LINUX ANY )
+    target_link_libraries (${EXE_NAME} m)
+  endif()
+
+  # Install rules
+  #
+  # Install executable to <prefix>/bin
+  include( GNUInstallDirs)
+  install( TARGETS ${EXE_NAME} RUNTIME COMPONENT Runtime DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 endif()
 
-file (GLOB DEC_SRC "*.c" )
-file (GLOB DEC_INC "*.h" )
+if(("${SET_PROF}" STREQUAL "BASE"))
+  add_executable (${EXE_NAME_BASE} ${ENC_SRC} ${ENC_INC} )
+  include_directories( ${EXE_NAME_BASE} PUBLIC . .. ../inc ../src_base ${BASE_SRC_PATH})
+  
+    if(XEVD_APP_STATIC_BUILD)
+    target_link_libraries (${EXE_NAME_BASE} xevdb)
+  else()
+    target_link_libraries (${EXE_NAME_BASE} xevdb_dynamic)
+  endif()
 
-add_executable (${EXE_NAME} ${DEC_SRC} ${DEC_INC} )
-include_directories( ${EXE_NAME} PUBLIC ${INC_PATH} )
-
-if(XEVD_APP_STATIC_BUILD)
-target_link_libraries (${EXE_NAME} ${LIB_NAME})
-else()
-target_link_libraries (${EXE_NAME} ${LIB_NAME}_dynamic)
+  set_property(TARGET ${EXE_NAME_BASE} PROPERTY FOLDER "app")
+  set_target_properties(${EXE_NAME_BASE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  if( MSVC )
+    target_compile_definitions( ${EXE_NAME_BASE} PUBLIC _CRT_SECURE_NO_WARNINGS ANY )
+  elseif( UNIX OR MINGW )
+    target_compile_definitions( ${EXE_NAME_BASE} PUBLIC LINUX ANY )
+    target_link_libraries (${EXE_NAME_BASE} m)
+  endif()
+  
+  # Install rules
+  #
+  # Install executable to <prefix>/bin
+  include( GNUInstallDirs)
+  install( TARGETS ${EXE_NAME_BASE} RUNTIME COMPONENT Runtime DESTINATION ${CMAKE_INSTALL_BINDIR}) 
 endif()
 
-set_property(TARGET ${EXE_NAME} PROPERTY FOLDER "app")
-set_target_properties(${EXE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-if( MSVC )
-  target_compile_definitions( ${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS ANY )
-elseif( UNIX OR MINGW )
-  target_compile_definitions( ${EXE_NAME} PUBLIC LINUX ANY )
-  target_link_libraries (${EXE_NAME} m)
-endif()

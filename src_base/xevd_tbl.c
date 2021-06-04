@@ -30,6 +30,19 @@
 
 #include "xevd_def.h"
 
+#define NA 255 //never split
+#define NB 14  //not reach in current setting of max AR 1:4
+#define NC 15  //not reach in current setting of max AR 1:4
+const u8 xevd_tbl_split_flag_ctx[6][6] = 
+{
+    { NA,  4,  4, NB, NC, NC },
+    { 4,   4,  3,  3,  2,  2 },
+    { 4,   3,  3,  2,  2,  1 },
+    { NB,  3,  2,  2,  1,  1 },
+    { NC,  2,  2,  1,  1,  0 },
+    { NC,  2,  1,  1,  0,  0 },
+};
+
 const u8 xevd_tbl_mpm[6][6][5] =
 {
 { { 0, 2, 3, 1, 4 },{ 0, 2, 1, 3, 4 },{ 0, 2, 1, 3, 4 },{ 1, 2, 0, 3, 4 },{ 0, 2, 1, 3, 4 },{ 0, 1, 2, 3, 4 } },
@@ -237,13 +250,58 @@ const s8 * xevd_tbl_tm[MAX_CU_DEPTH] =
     xevd_tbl_tm64[0],
 };
 
-u16 *xevd_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int xevd_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
-
-u16 *xevd_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
 int xevd_inv_scan_sr[MAX_TR_SIZE*MAX_TR_SIZE];
 const int xevd_tbl_dq_scale[6] = {40, 45, 51, 57, 64, 72};
 const int xevd_tbl_dq_scale_b[6] = {40, 45, 51, 57, 64, 71};
+const int xevd_tbl_ipred_adi[32][4]=
+{
+    /* AVS-2 design == bilinear interpolation + {1,2,1} ref smoothing */
+    { 32, 64, 32,  0 },
+    { 31, 63, 33,  1 },
+    { 30, 62, 34,  2 },
+    { 29, 61, 35,  3 },
+    { 28, 60, 36,  4 },
+    { 27, 59, 37,  5 },
+    { 26, 58, 38,  6 },
+    { 25, 57, 39,  7 },
+    { 24, 56, 40,  8 },
+    { 23, 55, 41,  9 },
+    { 22, 54, 42, 10 },
+    { 21, 53, 43, 11 },
+    { 20, 52, 44, 12 },
+    { 19, 51, 45, 13 },
+    { 18, 50, 46, 14 },
+    { 17, 49, 47, 15 },
+    { 16, 48, 48, 16 },
+    { 15, 47, 49, 17 },
+    { 14, 46, 50, 18 },
+    { 13, 45, 51, 19 },
+    { 12, 44, 52, 20 },
+    { 11, 43, 53, 21 },
+    { 10, 42, 54, 22 },
+    {  9, 41, 55, 23 },
+    {  8, 40, 56, 24 },
+    {  7, 39, 57, 25 },
+    {  6, 38, 58, 26 },
+    {  5, 37, 59, 27 },
+    {  4, 36, 60, 28 },
+    {  3, 35, 61, 29 },
+    {  2, 34, 62, 30 },
+    {  1, 33, 63, 31 },
+};
+
+const int xevd_tbl_ipred_dxdy[IPD_CNT][2] = /* {dx/dy, dy/dx} */
+{
+    { 0,0 },
+    { 0,0 },{ 0,0 },{ 2816,372 },{ 2048,512 },{ 1408,744 },
+    { 1024,1024 },{ 744,1408 },{ 512,2048 },{ 372,2816 },{ 256,4096 },
+    { 128,8192 },{ 0,0 },{ 128,8192 },{ 256,4096 },{ 372,2816 },
+    { 512,2048 },{ 744,1408 },{ 1024,1024 },{ 1408,744 },{ 2048,512 },
+    { 2816,372 },{ 4096,256 },{ 8192,128 },{ 0,0 },{ 8192,128 },
+    { 4096,256 },{ 2816,372 },{ 2048,512 },{ 1408,744 },{ 1024,1024 },
+    { 744,1408 },{ 512,2048 },
+};
 
 const u8 xevd_tbl_df_st[4][52] =
 {
@@ -265,6 +323,24 @@ const u8 xevd_tbl_df_st[4][52] =
     },
 };
 
+const u8 xevd_split_order[2][SPLIT_CHECK_NUM] =
+{
+    /* w > h */
+    { 0, 1, 2, 3, 4, 5 },
+    /* w < h */
+    { 0, 2, 1, 4, 3, 5 },
+};
+
+int xevd_tbl_qp_chroma_adjust_main[XEVD_MAX_QP_TABLE_SIZE] =
+{
+    0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    29, 30, 31, 32, 33, 34, 35, 36, 37, 37,
+    38, 39, 40, 40, 41, 42, 43, 44, 45, 46,
+    47, 48, 49, 50, 51, 52, 53, 54
+};
+
 int xevd_tbl_qp_chroma_adjust_base[XEVD_MAX_QP_TABLE_SIZE] =
 {
      0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
@@ -275,11 +351,15 @@ int xevd_tbl_qp_chroma_adjust_base[XEVD_MAX_QP_TABLE_SIZE] =
     39, 39, 40, 40, 40, 41, 41, 41
 };
 
-int * xevd_tbl_qp_chroma_adjust;
-int * xevd_qp_chroma_dynamic[2];
-int   xevd_tbl_qp_chroma_dynamic_ext[2][XEVD_MAX_QP_TABLE_SIZE_EXT];
-int * xevd_qp_chroma_dynamic_ext[2] = { &(xevd_tbl_qp_chroma_dynamic_ext[0][0]) , &(xevd_tbl_qp_chroma_dynamic_ext[1][0]) };
+int* xevd_tbl_qp_chroma_adjust;
 
+// ChromaQP offset for U and V components
+
+
+int *xevd_qp_chroma_dynamic[2];
+
+int xevd_tbl_qp_chroma_dynamic_ext[2][XEVD_MAX_QP_TABLE_SIZE_EXT];
+int *xevd_qp_chroma_dynamic_ext[2] = { &(xevd_tbl_qp_chroma_dynamic_ext[0][0]) , &(xevd_tbl_qp_chroma_dynamic_ext[1][0]) };
 void xevd_set_chroma_qp_tbl_loc(int codec_bit_depth)
 {
     for(int i = 0; i < 6 * (codec_bit_depth - 8); i++)
@@ -292,189 +372,55 @@ void xevd_set_chroma_qp_tbl_loc(int codec_bit_depth)
 }
 
 
-void xevd_derived_chroma_qp_mapping_tables(XEVD_CHROMA_TABLE * struct_chroma_qp, int bit_depth)
+void xevd_derived_chroma_qp_mapping_tables(XEVD_CHROMA_TABLE *struct_chroma_qp
+,int bit_depth)
 {
-    int max_qp = XEVD_MAX_QP_TABLE_SIZE - 1;
-    int qp_in_val[XEVD_MAX_QP_TABLE_SIZE_EXT] = { 0 };
-    int qp_out_val[XEVD_MAX_QP_TABLE_SIZE_EXT] = { 0 };
-    int qp_bd_offset_c = 6 * (bit_depth - 8);
-    int start_qp = (struct_chroma_qp->global_offset_flag == 1) ? 16 : -qp_bd_offset_c;
+    int MAX_QP = XEVD_MAX_QP_TABLE_SIZE - 1;
+    int qpInVal[XEVD_MAX_QP_TABLE_SIZE_EXT] = { 0 };
+    int qpOutVal[XEVD_MAX_QP_TABLE_SIZE_EXT] = { 0 };
+
+
+    int qpBdOffsetC = 6 * (bit_depth - 8);
+    int startQp = (struct_chroma_qp->global_offset_flag == 1) ? 16 : -qpBdOffsetC;
 
     for (int i = 0; i < (struct_chroma_qp->same_qp_table_for_chroma ? 1 : 2); i++)
     {
-        qp_in_val[0] = start_qp + struct_chroma_qp->delta_qp_in_val_minus1[i][0];
-        qp_out_val[0] = start_qp + struct_chroma_qp->delta_qp_in_val_minus1[i][0] + struct_chroma_qp->delta_qp_out_val[i][0];
+        qpInVal[0] = startQp + struct_chroma_qp->delta_qp_in_val_minus1[i][0];
+        qpOutVal[0] = startQp + struct_chroma_qp->delta_qp_in_val_minus1[i][0] + struct_chroma_qp->delta_qp_out_val[i][0];
         for (int j = 1; j <= struct_chroma_qp->num_points_in_qp_table_minus1[i]; j++)
         {
-            qp_in_val[j] = qp_in_val[j - 1] + struct_chroma_qp->delta_qp_in_val_minus1[i][j] + 1;
-            qp_out_val[j] = qp_out_val[j - 1] + (struct_chroma_qp->delta_qp_in_val_minus1[i][j] + 1 + struct_chroma_qp->delta_qp_out_val[i][j]);
+            qpInVal[j] = qpInVal[j - 1] + struct_chroma_qp->delta_qp_in_val_minus1[i][j] + 1;
+            qpOutVal[j] = qpOutVal[j - 1] + (struct_chroma_qp->delta_qp_in_val_minus1[i][j] + 1 + struct_chroma_qp->delta_qp_out_val[i][j]);
         }
 
         for (int j = 0; j <= struct_chroma_qp->num_points_in_qp_table_minus1[i]; j++)
         {
-            assert(qp_in_val[j] >= -qp_bd_offset_c && qp_in_val[j]  <= max_qp);
-            assert(qp_out_val[j] >= -qp_bd_offset_c && qp_out_val[j] <= max_qp);
+            assert(qpInVal[j] >= -qpBdOffsetC && qpInVal[j]  <= MAX_QP);
+            assert(qpOutVal[j] >= -qpBdOffsetC && qpOutVal[j] <= MAX_QP);
         }
 
-        xevd_qp_chroma_dynamic[i][qp_in_val[0]] = qp_out_val[0];
-        for (int k = qp_in_val[0] - 1; k >= -qp_bd_offset_c; k--)
+        xevd_qp_chroma_dynamic[i][qpInVal[0]] = qpOutVal[0];
+        for (int k = qpInVal[0] - 1; k >= -qpBdOffsetC; k--)
         {
-            xevd_qp_chroma_dynamic[i][k] = XEVD_CLIP3(-qp_bd_offset_c, max_qp, xevd_qp_chroma_dynamic[i][k + 1] - 1);
+            xevd_qp_chroma_dynamic[i][k] = XEVD_CLIP3(-qpBdOffsetC, MAX_QP, xevd_qp_chroma_dynamic[i][k + 1] - 1);
         }
         for (int j = 0; j < struct_chroma_qp->num_points_in_qp_table_minus1[i]; j++)
         {
             int sh = (struct_chroma_qp->delta_qp_in_val_minus1[i][j + 1] + 1) >> 1;
-            for (int k = qp_in_val[j] + 1, m = 1; k <= qp_in_val[j + 1]; k++, m++)
+            for (int k = qpInVal[j] + 1, m = 1; k <= qpInVal[j + 1]; k++, m++)
             {
-                xevd_qp_chroma_dynamic[i][k] = xevd_qp_chroma_dynamic[i][qp_in_val[j]]
-                    + ((qp_out_val[j + 1] - qp_out_val[j]) * m + sh) / (struct_chroma_qp->delta_qp_in_val_minus1[i][j + 1] + 1);
+                xevd_qp_chroma_dynamic[i][k] = xevd_qp_chroma_dynamic[i][qpInVal[j]]
+                    + ((qpOutVal[j + 1] - qpOutVal[j]) * m + sh) / (struct_chroma_qp->delta_qp_in_val_minus1[i][j + 1] + 1);
             }
         }
-        for (int k = qp_in_val[struct_chroma_qp->num_points_in_qp_table_minus1[i]] + 1; k <= max_qp; k++)
+        for (int k = qpInVal[struct_chroma_qp->num_points_in_qp_table_minus1[i]] + 1; k <= MAX_QP; k++)
         {
-            xevd_qp_chroma_dynamic[i][k] = XEVD_CLIP3(-qp_bd_offset_c, max_qp, xevd_qp_chroma_dynamic[i][k - 1] + 1);
+            xevd_qp_chroma_dynamic[i][k] = XEVD_CLIP3(-qpBdOffsetC, MAX_QP, xevd_qp_chroma_dynamic[i][k - 1] + 1);
         }
     }
     if (struct_chroma_qp->same_qp_table_for_chroma)
     {
-        memcpy(&(xevd_qp_chroma_dynamic[1][-qp_bd_offset_c]), &(xevd_qp_chroma_dynamic[0][-qp_bd_offset_c]), XEVD_MAX_QP_TABLE_SIZE_EXT * sizeof(int));
+        xevd_mcpy(&(xevd_qp_chroma_dynamic[1][-qpBdOffsetC]), &(xevd_qp_chroma_dynamic[0][-qpBdOffsetC]), XEVD_MAX_QP_TABLE_SIZE_EXT * sizeof(int));
     }
 }
 
-const s16 init_skip_flag[2][NUM_CTX_SKIP_FLAG] =
-{
-    {    0,    0, },
-    {  711,  233, },
-};
-
-const s16 init_direct_mode_flag[2][NUM_CTX_DIRECT_MODE_FLAG] =
-{
-    {    0, },
-    {    0, },
-};
-
-const s16 init_merge_mode_flag[2][NUM_CTX_MERGE_MODE_FLAG] =
-{
-    {    0, },
-    {  464, },
-};
-
-const s16 init_inter_dir[2][NUM_CTX_INTER_PRED_IDC] =
-{
-    {    0,    0, },
-    {  242,   80, },
-};
-
-const s16 init_intra_luma_pred_mpm_flag[2][NUM_CTX_INTRA_LUMA_PRED_MPM_FLAG] =
-{
-    {  263, },
-    {  225, },
-};
-
-const s16 init_intra_luma_pred_mpm_idx[2][NUM_CTX_INTRA_LUMA_PRED_MPM_IDX] =
-{
-    {  436, },
-    {  724, },
-};
-
-const s16 init_intra_chroma_pred_mode[2][NUM_CTX_INTRA_CHROMA_PRED_MODE] =
-{
-    {  465, },
-    {  560, },
-};
-
-const s16 init_intra_dir[2][NUM_CTX_INTRA_PRED_MODE] =
-{
-    {    0,    0, },
-    {    0,    0, },
-};
-
-const s16 init_pred_mode[2][NUM_CTX_PRED_MODE] =
-{
-    {   64,    0,    0, },
-    {  481,   16,  368, },
-};
-
-const s16 init_refi[2][NUM_CTX_REF_IDX] =
-{
-    {    0,    0, },
-    {  288,    0, },
-};
-
-const s16 init_merge_idx[2][NUM_CTX_MERGE_IDX] =
-{
-    {    0,    0,    0,  496,  496, },
-    {   18,  128,  146,   37,   69, },
-};
-
-const s16 init_mvp_idx[2][NUM_CTX_MVP_IDX] =
-{
-    {    0,    0,    0, },
-    {    0,    0,    0, },
-};
-
-const s16 init_bi_idx[2][NUM_CTX_BI_PRED_IDX] =
-{
-    {    0,    0, },
-    {   49,   17, },
-};
-
-const s16 init_mvd[2][NUM_CTX_MVD] =
-{
-    {    0, },
-    {   18, },
-};
-
-const s16 init_cbf_all[2][NUM_CTX_CBF_ALL] =
-{
-    {    0, },
-    {  794, },
-};
-
-const s16 init_cbf_luma[2][NUM_CTX_CBF_LUMA] =
-{
-    {  664, },
-    {  368, },
-};
-
-const s16 init_cbf_cb[2][NUM_CTX_CBF_CB] =
-{
-    {  384, },
-    {  416, },
-};
-
-const s16 init_cbf_cr[2][NUM_CTX_CBF_CR] =
-{
-    {  320, },
-    {  288, },
-};
-
-const s16 init_dqp[2][NUM_CTX_DELTA_QP] =
-{
-    {    4, },
-    {    4, },
-};
-
-const s16 init_run[2][NUM_CTX_CC_RUN] =
-{
-    {   48,  112,  128,    0,  321,   82,  419,  160,  385,  323,  353,  129,  225,  193,  387,  389,  453,  227,  453,  161,  421,  161,  481,  225, },
-    {  129,  178,  453,   97,  583,  259,  517,  259,  453,  227,  871,  355,  291,  227,  195,   97,  161,   65,   97,   33,   65,    1, 1003,  227, },
-};
-
-const s16 init_last[2][NUM_CTX_CC_LAST] =
-{
-    {  421,  337, },
-    {   33,  790, },
-};
-
-const s16 init_level[2][NUM_CTX_CC_LEVEL] =
-{
-    {  416,   98,  128,   66,   32,   82,   17,   48,  272,  112,   52,   50,  448,  419,  385,  355,  161,  225,   82,   97,  210,    0,  416,  224, },
-    {  805,  775,  775,  581,  355,  389,   65,  195,   48,   33,  224,  225,  775,  227,  355,  161,  129,   97,   33,   65,   16,    1,  841,  355, },
-};
-
-const s16 init_split_cu_flag[2][NUM_CTX_SPLIT_CU_FLAG] =
-{
-    {    0, },
-    {    0, },
-};
