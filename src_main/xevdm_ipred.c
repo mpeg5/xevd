@@ -303,7 +303,7 @@ void xevdm_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
     }
 }
 
-int intra_mode_list[IPD_CNT] = {
+static int intra_mode_list[IPD_CNT] = {
     IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
     IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
     IPD_HOR - 1,IPD_HOR + 1, IPD_HOR - 2, IPD_HOR + 2, IPD_HOR - 3, IPD_HOR + 3,
