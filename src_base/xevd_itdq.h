@@ -33,7 +33,7 @@
 #include "xevd_def.h"
 typedef void INV_TRANS(s16 *, s16 *, int, int, int, int);
 typedef void(*XEVD_ITXB)(void *coef, void *t, int shift, int line, int step);
-XEVD_ITXB tbl_itxb[MAX_TR_LOG2];
+extern XEVD_ITXB tbl_itxb[MAX_TR_LOG2];
 void xevd_itdq(s16 *coef, int log2_w, int log2_h, int scale, int bit_depth);
 void xevd_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v
                        , int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int bit_depth, int chroma_format_idc);

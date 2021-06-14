@@ -676,19 +676,6 @@ void xevd_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *d
     }
 }
 
-int intra_mode_list[IPD_CNT] = {
-    IPD_DC, IPD_BI, IPD_VER, IPD_PLN, IPD_HOR,
-    IPD_VER - 1, IPD_VER + 1, IPD_VER - 2, IPD_VER + 2, IPD_VER - 3, IPD_VER + 3,
-    IPD_HOR - 1,IPD_HOR + 1, IPD_HOR - 2, IPD_HOR + 2, IPD_HOR - 3, IPD_HOR + 3,
-    IPD_DIA_R,
-    IPD_DIA_L, IPD_DIA_L - 3, IPD_DIA_L - 2, IPD_DIA_L - 1,
-    IPD_DIA_U, IPD_DIA_U + 1, IPD_DIA_U + 2,
-    IPD_VER + 5, IPD_VER + 4,
-    IPD_HOR - 4, IPD_HOR - 5,
-    IPD_VER - 5, IPD_VER - 4,
-    IPD_HOR + 5, IPD_HOR + 4,
-};
-
 void xevd_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
                    u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */, u8 * map_tidx)
 {
