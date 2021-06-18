@@ -135,6 +135,12 @@ static void sequence_deinit(XEVD_CTX * ctx)
     xevd_mfree_fast(ctx->map_tidx);
     xevdm_picman_deinit(&mctx->dpm);
     xevd_mfree((void*)ctx->sync_flag);
+
+    XEVDM_SH  *msh = &mctx->sh;
+    if (msh->alf_sh_param.alf_ctu_enable_flag != NULL)
+    {
+        xevd_mfree(msh->alf_sh_param.alf_ctu_enable_flag);
+    }
 }
 
 int xevd_create_cu_data(XEVD_CU_DATA *cu_data, int log2_cuw, int log2_cuh);
@@ -233,6 +239,15 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     mctx->alf              = new_alf(ctx->internal_codec_bit_depth);
     ADAPTIVE_LOOP_FILTER* alf = (ADAPTIVE_LOOP_FILTER*)(mctx->alf);
     alf_create(alf, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5, ctx->sps.chroma_format_idc, ctx->internal_codec_bit_depth);
+
+    XEVDM_SH  *msh = &mctx->sh;
+    if (msh->alf_sh_param.alf_ctu_enable_flag == NULL)
+    {
+        msh->alf_sh_param.alf_ctu_enable_flag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+        xevd_assert_gv(msh->alf_sh_param.alf_ctu_enable_flag, ret, XEVD_ERR_OUT_OF_MEMORY, ERR);
+        xevd_mset_x64a(msh->alf_sh_param.alf_ctu_enable_flag, 0, N_C * ctx->f_lcu * sizeof(u8));
+    }
+
     /* alloc SCU map */
     if(ctx->map_scu == NULL)
     {
@@ -327,7 +342,7 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
 
     ret = xevdm_picman_init(&mctx->dpm, MAXM_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
-    
+
     xevdm_split_tbl_init(ctx);
 
     xevd_set_chroma_qp_tbl_loc(ctx->sps.bit_depth_luma_minus8 + 8);
@@ -358,6 +373,12 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
             ctx->sync_flag[i] = 0;
         }
     }
+
+    if (sps->vui_parameters_present_flag && sps->vui_parameters.bitstream_restriction_flag)
+    {
+        ctx->max_coding_delay = sps->vui_parameters.num_reorder_pics;
+    }
+
     return XEVD_OK;
 ERR:
     sequence_deinit(ctx);
@@ -371,7 +392,6 @@ static void slice_deinit(XEVD_CTX * ctx)
 
 static int slice_init(XEVD_CTX * ctx, XEVD_CORE * core, XEVD_SH * sh)
 {
-    XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     core->lcu_num = 0;
     core->x_lcu = 0;
     core->y_lcu = 0;
@@ -388,12 +408,6 @@ static int slice_init(XEVD_CTX * ctx, XEVD_CORE * core, XEVD_SH * sh)
             ctx->sync_flag[i] = 0;
         }
     }
-
-    /* clear maps */
-    xevd_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
-    xevd_mset_x64a(mctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
-    xevd_mset_x64a(mctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
-    xevd_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
 
     if(ctx->sh.slice_type == SLICE_I)
     {
@@ -1784,7 +1798,7 @@ static int xevd_recon_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int c
 }
 
 static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, int cuh, int cud, int cup, int is_hor_edge
-    , TREE_CONS_NEW tree_cons , XEVD_CORE * core, int boundary_filtering)
+                       , TREE_CONS_NEW tree_cons , XEVD_CORE * core, int boundary_filtering)
 {
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     s8  split_mode;
@@ -1835,7 +1849,7 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
             if(x_pos < ctx->w && y_pos < ctx->h)
             {
                 deblock_tree(ctx, pic, x_pos, y_pos, sub_cuw, sub_cuh, split_struct.cud[cur_part_num], split_struct.cup[cur_part_num], is_hor_edge
-                     ,tree_constrain_for_child, core, boundary_filtering);
+                            ,tree_constrain_for_child, core, boundary_filtering);
             }
         }
 
@@ -1857,38 +1871,20 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
         {
             if (cuh > MAX_TR_SIZE)
             {
-                xevdm_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
-                                   mctx->map_unrefined_mv
-                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                                   , mcore->tree_cons
-                                   , ctx->map_tidx, boundary_filtering
-                                   , ctx->sps.tool_addb
-                                   , mctx->map_ats_inter
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
-                                   , ctx->sps.chroma_format_idc
-                );
+                xevdm_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                                   , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
 
-                xevdm_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,
-                                   mctx->map_unrefined_mv
-                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                                   , mcore->tree_cons
-                                   , ctx->map_tidx, boundary_filtering
-                                   , ctx->sps.tool_addb
-                                   , mctx->map_ats_inter
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
+                xevdm_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv
+                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering
+                                   , ctx->sps.tool_addb, mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
                                    , ctx->sps.chroma_format_idc);
             }
             else
             {
-                xevdm_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,
-                                   mctx->map_unrefined_mv
-                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                                   , mcore->tree_cons
-                                   , ctx->map_tidx, boundary_filtering
-                                   , ctx->sps.tool_addb
-                                   , mctx->map_ats_inter
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
-                                   , ctx->sps.chroma_format_idc);
+                xevdm_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                                   , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
             }
         }
         else
@@ -1896,36 +1892,18 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
             if (cuw > MAX_TR_SIZE)
             {
                 xevdm_deblock_cu_ver(pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
-                  , ctx->map_cu_mode
-                  , ctx->refp, 0
-                  , mcore->tree_cons
-                  , ctx->map_tidx, boundary_filtering
-                  , ctx->sps.tool_addb
-                  , mctx->map_ats_inter
-                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc
-                );
+                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb
+                                   , mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
+
                 xevdm_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
-                  , ctx->map_cu_mode
-                  , ctx->refp, 0
-                  , mcore->tree_cons
-                  , ctx->map_tidx, boundary_filtering
-                  , ctx->sps.tool_addb
-                  , mctx->map_ats_inter
-                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
-                  , ctx->sps.chroma_format_idc
-                );
+                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
+                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
             }
             else
             {
                 xevdm_deblock_cu_ver(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
-                  , ctx->map_cu_mode
-                  , ctx->refp, 0
-                  , mcore->tree_cons
-                  , ctx->map_tidx, boundary_filtering
-                  , ctx->sps.tool_addb
-                  , mctx->map_ats_inter
-                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc
-                );
+                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb
+                                   , mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
             }
         }
     }
@@ -1938,7 +1916,6 @@ int xevdm_deblock(void * arg)
     XEVD_CORE  * core = (XEVD_CORE *)arg;
     XEVD_CTX   * ctx = core->ctx;
     int          tile_idx;
-    int          filter_across_boundary = core->filter_across_boundary;
     int          i, j;
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     tile_idx = core->tile_num;
@@ -1947,7 +1924,6 @@ int xevdm_deblock(void * arg)
     ctx->pic->pic_qp_u_offset = ctx->sh.qp_u_offset;
     ctx->pic->pic_qp_v_offset = ctx->sh.qp_v_offset;
 
-    int boundary_filtering = 0;
     int x_l, x_r, y_l, y_r, l_scu, r_scu, t_scu, b_scu;
     u32 k1;
     int scu_in_lcu_wh = 1 << (ctx->log2_max_cuwh - MIN_CU_LOG2);
@@ -1961,10 +1937,8 @@ int xevdm_deblock(void * arg)
     t_scu = y_l * scu_in_lcu_wh;
     b_scu = XEVD_CLIP3(0, ctx->h_scu, y_r*scu_in_lcu_wh);
 
-    if (filter_across_boundary)
+    for (j = t_scu; j < b_scu; j++)
     {
-        boundary_filtering = 1;
-        j = t_scu;
         for (i = l_scu; i < r_scu; i++)
         {
             k1 = i + j * ctx->w_scu;
@@ -1978,83 +1952,18 @@ int xevdm_deblock(void * arg)
                 mctx->map_unrefined_mv[k1][REFP_1][MV_Y] = ctx->map_mv[k1][REFP_1][MV_Y];
             }
         }
+    }
 
-
-        /* horizontal filtering */
-        j = y_l;
+    /* horizontal filtering */
+    for (j = y_l; j < y_r; j++)
+    {
         for (i = x_l; i < x_r; i++)
         {
-            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
-                       , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                       , core, boundary_filtering);
-        }
-
-        i = l_scu;
-        for (j = t_scu; j < b_scu; j++)
-        {
-            MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
-        }
-
-        /* vertical filtering */
-        i = x_l;
-        for (j = y_l; j < y_r; j++)
-        {
-            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
-                       , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                       , core, boundary_filtering);
+            deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, core->deblock_is_hor
+                       , (TREE_CONS_NEW) { TREE_LC, eAll }, core, ctx->pps.loop_filter_across_tiles_enabled_flag);
         }
     }
-    else
-    {
-        for (j = t_scu; j < b_scu; j++)
-        {
-            for (i = l_scu; i < r_scu; i++)
-            {
-                k1 = i + j * ctx->w_scu;
-                MCU_CLR_COD(ctx->map_scu[k1]);
 
-                if (!MCU_GET_DMVRF(ctx->map_scu[k1]))
-                {
-                    mctx->map_unrefined_mv[k1][REFP_0][MV_X] = ctx->map_mv[k1][REFP_0][MV_X];
-                    mctx->map_unrefined_mv[k1][REFP_0][MV_Y] = ctx->map_mv[k1][REFP_0][MV_Y];
-                    mctx->map_unrefined_mv[k1][REFP_1][MV_X] = ctx->map_mv[k1][REFP_1][MV_X];
-                    mctx->map_unrefined_mv[k1][REFP_1][MV_Y] = ctx->map_mv[k1][REFP_1][MV_Y];
-                }
-            }
-        }
-
-        /* horizontal filtering */
-        for (j = y_l; j < y_r; j++)
-        {
-            for (i = x_l; i < x_r; i++)
-            {
-                deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
-                    , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                    , core
-                    , boundary_filtering);
-            }
-        }
-
-        for (j = t_scu; j < b_scu; j++)
-        {
-            for (i = l_scu; i < r_scu; i++)
-            {
-                MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
-            }
-        }
-
-        /* vertical filtering */
-        for (j = y_l; j < y_r; j++)
-        {
-            for (i = x_l; i < x_r; i++)
-            {
-                deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
-                    , (TREE_CONS_NEW) { TREE_LC, eAll } //TODO: Tim this place could not work with "special main (advanced dbf off)"
-                    , core
-                    , boundary_filtering);
-            }
-        }
-    }
     return XEVD_OK;
 }
 
@@ -2136,6 +2045,8 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
     w_lcu = ctx->w_lcu;
     h_lcu = ctx->h_lcu;
 
+    xevd_mset(ctx->tile_order_slice, 0, sizeof(u16) * MAX_NUM_TILES_COL*MAX_NUM_TILES_ROW);
+
     if (!sh->arbitrary_slice_flag)
     {
         int first_tile_col_idx, last_tile_col_idx, delta_tile_idx;
@@ -2175,7 +2086,8 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
             {
                 int curr_col_slice = (st_col_slice + tmp2) % w_tile;
                 int curr_row_slice = (st_row_slice + tmp1) % h_tile;
-                ctx->tile_in_slice[i++] = curr_row_slice * w_tile + curr_col_slice;
+                ctx->tile_in_slice[i] = curr_row_slice * w_tile + curr_col_slice;
+                ctx->tile_order_slice[curr_row_slice * w_tile + curr_col_slice] = i++;
             }
         }
     }
@@ -2186,6 +2098,7 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
         for (i = 1; i <= (ctx->num_tiles_in_slice -1); i++)
         {
             ctx->tile_in_slice[i] = sh->delta_tile_id_minus1[i - 1] + ctx->tile_in_slice[i - 1] + 1;
+            ctx->tile_order_slice[sh->delta_tile_id_minus1[i - 1] + ctx->tile_in_slice[i - 1] + 1] = i;
         }
     }
 
@@ -2535,11 +2448,11 @@ int xevdm_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core)
 
     ctx->sh.qp_prev_eco = ctx->sh.qp;
 
-
     int tile_idx;
     int thread_idx;
     int num_tiles_in_slice = ctx->num_tiles_in_slice;
     int tile_start_num, num_tiles_proc;
+    int tile_cnt = 0;
 
     tile_start_num = 0;
 
@@ -2565,17 +2478,17 @@ int xevdm_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core)
             xevd_mcpy(core_mt->bs, &bs_temp, sizeof(XEVD_BSR));
             xevd_mcpy(core_mt->sbac, &sbac_temp, sizeof(XEVD_SBAC));
             SET_SBAC_DEC(core_mt->bs, core_mt->sbac);
-
-            if (tile_idx != 0)
+            tile_cnt = ctx->tile_order_slice[tile_idx];
+            if (tile_cnt != 0)
             {
                 int offset = 0;
-                for (int l = 0; l < tile_idx; l++)
+                for (int i = 0; i < tile_cnt; i++)
                 {
-                    offset += ctx->sh.entry_point_offset_minus1[l] + 1;
+                    offset += ctx->sh.entry_point_offset_minus1[i] + 1;
                 }
-                int seek = offset - (bs_temp.leftbits >> 3);
+                int seek = offset - (core_mt->bs->leftbits >> 3);
                 int leftbits = seek - (seek / 4) * 4;
-                core_mt->bs->cur = bs_temp.cur + (seek / 4) * 4;          //bs changed according to marker in bs
+                core_mt->bs->cur = core_mt->bs->cur + (seek / 4) * 4;          //bs changed according to marker in bs
                 core_mt->bs->leftbits = 0;
                 if (leftbits)
                 {
@@ -2768,6 +2681,18 @@ void xevdm_flush(XEVD_CTX * ctx)
     }
 }
 
+static int clear_map(XEVD_CTX * ctx)
+{
+    XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
+    /* clear maps */
+    xevd_mset_x64a(ctx->map_scu, 0, sizeof(u32) * ctx->f_scu);
+    xevd_mset_x64a(ctx->map_cu_mode, 0, sizeof(u32) * ctx->f_scu);
+    xevd_mset_x64a(mctx->map_affine, 0, sizeof(u32) * ctx->f_scu);
+    xevd_mset_x64a(mctx->map_ats_inter, 0, sizeof(u8) * ctx->f_scu);
+
+    return XEVD_OK;
+}
+
 int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 {
     XEVD_BSR  *bs = &ctx->bs;
@@ -2785,7 +2710,9 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     /* set error status */
     ctx->bs_err = bitb->err;
 
+#if !TRACE_DBF
     XEVD_TRACE_SET(1);
+#endif
 
     /* bitstream reader initialization */
     xevd_bsr_init(bs, bitb->addr, bitb->ssize, NULL);
@@ -2858,7 +2785,8 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             xevd_mcpy(alf_param_dst, alf_param_src, sizeof(XEVD_ALF_SLICE_PARAM));
             store_dec_aps_to_buffer(ctx);
         }
-        else if ((aps_array[1].aps_id != -1) && (aps_array[0].aps_id == -1)){
+        else if ((aps_array[1].aps_id != -1) && (aps_array[0].aps_id == -1))
+        {
             XEVD_APS_GEN *local_aps = local_aps_gen + 1;
             XEVD_APS_GEN *data_aps = aps_array + 1;
             // store in the new buffer
@@ -2870,15 +2798,28 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             xevd_mcpy(alf_param_dst, alf_param_src, sizeof(SIG_PARAM_DRA));
         }
         else
-            printf("This version of XEVD doesnot support APS type\n");
+        {
+            xevd_trace("This version of XEVD doesnot support APS type\n");
+        }
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
     else if (nalu->nal_unit_type_plus1 - 1 < XEVD_SPS_NUT)
     {
+        static u16 slice_num = 0;
+        if (ctx->num_ctb == 0)
+        {
+            ctx->num_ctb = ctx->f_lcu;
+            slice_num = 0;
+        }
+
+        if (slice_num == 0)
+        {
+            clear_map(ctx);
+            xevd_mset(msh->alf_sh_param.alf_ctu_enable_flag, 1, N_C * ctx->f_lcu * sizeof(u8));
+        }
+
         /* decode slice header */
         sh->num_ctb = ctx->f_lcu;
-        msh->alf_sh_param.alf_ctu_enable_flag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
-        xevd_mset(msh->alf_sh_param.alf_ctu_enable_flag, 1, N_C * ctx->f_lcu * sizeof(u8));
 
         ret = xevdm_eco_sh(bs, &ctx->sps, &ctx->pps, sh, msh, ctx->nalu.nal_unit_type_plus1 - 1);
 
@@ -2892,6 +2833,11 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         }
 
         /* POC derivation process */
+        if (ctx->poc.poc_val > ctx->poc.prev_pic_max_poc_val)
+        {
+            ctx->poc.prev_pic_max_poc_val = ctx->poc.poc_val;
+        }
+
         if(!sps->tool_pocs) //sps_pocs_flag == 0
         {
             if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT)
@@ -2942,17 +2888,19 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 
             ctx->slice_ref_flag = 1;
         }
+
+        s32 pic_delay = (ctx->poc.poc_val - (s32)ctx->poc.prev_pic_max_poc_val - 1);
+        if (ctx->max_coding_delay < pic_delay)
+        {
+            ctx->max_coding_delay = pic_delay;
+        }
+
         ret = slice_init(ctx, ctx->core, sh);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        static u16 slice_num = 0;
 
         ret = set_tile_info(ctx, ctx->core, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        if (ctx->num_ctb == 0)
-        {
-            ctx->num_ctb = ctx->f_lcu;
-            slice_num = 0;
-        }
+
         ctx->slice_num = slice_num;
         slice_num++;
 
@@ -3005,85 +2953,82 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ret = ctx->fn_dec_slice(ctx, ctx->core);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
-        /* deblocking filter */
-        if(ctx->sh.deblocking_filter_on)
-        {
-            u32 k = 0;
-            int fitler_across_boundary = 0;
-            int i, j;
-            int num_tiles_in_slice = ctx->num_tiles_in_slice;
-            int res = 0;
-            int tile_start_num, num_tiles_proc;
-            XEVD_CORE * core_mt;
-
-            while (num_tiles_in_slice)
-            {
-                if(num_tiles_in_slice > ctx->tc.max_task_cnt)
-                {
-                    tile_start_num = k;
-                    num_tiles_proc = ctx->tc.max_task_cnt;
-                }
-                else
-                {
-                    tile_start_num = k;
-                    num_tiles_proc = num_tiles_in_slice;
-                }
-
-                for(j = 1; j < num_tiles_proc; j++)
-                {
-                    i = ctx->tile_in_slice[tile_start_num + j - 1];
-                    core_mt = ctx->core_mt[j];
-                    core_mt->ctx = ctx;
-                    core_mt->tile_num = i;
-                    core_mt->filter_across_boundary = 0;
-                    ret = ctx->tc.run(ctx->thread_pool[j], ctx->fn_deblock, (void *)core_mt);
-                    xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                    k++;
-                }
-                j = tile_start_num + num_tiles_proc - 1;
-                i = ctx->tile_in_slice[j];
-                core_mt = ctx->core_mt[0];
-                core_mt->ctx = ctx;
-                core_mt->tile_num = i;
-                core_mt->filter_across_boundary = 0;
-                ret = ctx->fn_deblock((void *)core_mt);
-                xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                k++;
-                for(i = 1; i<num_tiles_proc; i++)
-                {
-                    ret = ctx->tc.join(ctx->thread_pool[i], &res);
-                }
-                num_tiles_in_slice -= (num_tiles_proc);
-            }
-
-            if (ctx->pps.loop_filter_across_tiles_enabled_flag)
-            {
-                k = 0;
-                int fitler_across_boundary = 1;
-                num_tiles_in_slice = ctx->num_tiles_in_slice;
-                while (num_tiles_in_slice)
-                {
-                    i = ctx->tile_in_slice[k++];
-                    core_mt = ctx->core_mt[0];
-                    core_mt->ctx = ctx;
-                    core_mt->tile_num = i;
-                    core_mt->filter_across_boundary = fitler_across_boundary;
-                    ret = ctx->fn_deblock((void *)core_mt);
-                    xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                    num_tiles_in_slice--;
-                }
-            }
-        }
-
-        /* adaptive loop filter */
-        if( mctx->sh.alf_on )
-        {
-            ret = mctx->fn_alf(ctx,  ctx->pic);
-            xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        }
-
         if (ctx->num_ctb == 0)
         {
+            /* deblocking filter */
+            if(ctx->sh.deblocking_filter_on)
+            {
+#if TRACE_DBF
+                XEVD_TRACE_SET(1);
+#endif
+                u32 k = 0;
+                int i, j, res;
+                int num_tiles_in_pic, tile_start_num, num_tiles_proc;
+                XEVD_CORE * core_mt;
+
+                for(int is_hor_edge = 0 ; is_hor_edge <= 1 ; is_hor_edge++)
+                {
+                    for (int i = 0; i < ctx->f_scu; i++)
+                    {
+                        MCU_CLR_COD(ctx->map_scu[i]);
+                    }
+
+                    k = 0;
+                    res = 0;
+                    num_tiles_in_pic = ctx->w_tile * ctx->h_tile;
+                    while (num_tiles_in_pic)
+                    {
+                        if(num_tiles_in_pic > ctx->tc.max_task_cnt)
+                        {
+                            tile_start_num = k;
+                            num_tiles_proc = ctx->tc.max_task_cnt;
+                        }
+                        else
+                        {
+                            tile_start_num = k;
+                            num_tiles_proc = num_tiles_in_pic;
+                        }
+
+                        for(j = 1; j < num_tiles_proc; j++)
+                        {
+                            i = tile_start_num + j - 1;
+                            core_mt = ctx->core_mt[j];
+                            core_mt->ctx = ctx;
+                            core_mt->tile_num = i;
+                            core_mt->filter_across_boundary = 0;
+                            core_mt->deblock_is_hor = is_hor_edge;
+                            ret = ctx->tc.run(ctx->thread_pool[j], ctx->fn_deblock, (void *)core_mt);
+                            xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+                            k++;
+                        }
+                        j = tile_start_num + num_tiles_proc - 1;
+                        core_mt = ctx->core_mt[0];
+                        core_mt->ctx = ctx;
+                        core_mt->tile_num = j;
+                        core_mt->filter_across_boundary = 0;
+                        core_mt->deblock_is_hor = is_hor_edge;
+                        ret = ctx->fn_deblock((void *)core_mt);
+                        xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+                        k++;
+                        for(i = 1; i<num_tiles_proc; i++)
+                        {
+                            ret = ctx->tc.join(ctx->thread_pool[i], &res);
+                        }
+                        num_tiles_in_pic -= (num_tiles_proc);
+                    }
+                }
+#if TRACE_DBF
+                XEVD_TRACE_SET(0);
+#endif
+            }
+
+            /* adaptive loop filter */
+            if( mctx->sh.alf_on )
+            {
+                ret = mctx->fn_alf(ctx,  ctx->pic);
+                xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+            }
+
             /* expand pixels to padding area */
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 
@@ -3514,28 +3459,63 @@ void xevd_delete(XEVD id)
 int xevd_config(XEVD id, int cfg, void * buf, int * size)
 {
     XEVD_CTX *ctx;
+    int t0 = 0;
 
     XEVD_ID_TO_CTX_RV(id, ctx, XEVD_ERR_INVALID_ARGUMENT);
 
     switch(cfg)
     {
-        /* set config ************************************************************/
-        case XEVD_CFG_SET_USE_PIC_SIGNATURE:
-            ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
-            break;
+    /* set config ************************************************************/
+    case XEVD_CFG_SET_USE_PIC_SIGNATURE:
+        ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
+        break;
 
-        case XEVD_CFG_SET_USE_OPL_OUTPUT:
-            ctx->use_opl = (*((int *)buf)) ? 1 : 0;
-            break;
+    case XEVD_CFG_SET_USE_OPL_OUTPUT:
+        ctx->use_opl = (*((int *)buf)) ? 1 : 0;
+        break;
 
-        /* get config ************************************************************/
-        case XEVD_CFG_GET_CODEC_BIT_DEPTH:
-            xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-            *((int *)buf) = ctx->internal_codec_bit_depth;
-            break;
+    /* get config ************************************************************/
+    case XEVD_CFG_GET_CODEC_BIT_DEPTH:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->internal_codec_bit_depth;
+        break;
 
-        default:
-            xevd_assert_rv(0, XEVD_ERR_UNSUPPORTED);
+    case XEVD_CFG_GET_WIDTH:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        t0 = ctx->sps.picture_crop_left_offset + ctx->sps.picture_crop_right_offset;
+        if(ctx->sps.chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        *((int *)buf) = ctx->w - t0;
+        break;
+
+    case XEVD_CFG_GET_HEIGHT:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        t0 = ctx->sps.picture_crop_top_offset + ctx->sps.picture_crop_bottom_offset;
+        if(ctx->sps.chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        *((int *)buf) = ctx->h - t0;
+        break;
+
+    case XEVD_CFG_GET_CODED_WIDTH:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->w;
+        break;
+
+    case XEVD_CFG_GET_CODED_HEIGHT:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->h;
+        break;
+
+    case XEVD_CFG_GET_COLOR_SPACE:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps.chroma_format_idc];
+        break;
+
+    case XEVD_CFG_GET_MAX_CODING_DELAY:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->max_coding_delay;
+        break;
+
+    default:
+        xevd_assert_rv(0, XEVD_ERR_UNSUPPORTED);
     }
     return XEVD_OK;
 }
@@ -3578,12 +3558,13 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
 
     return ctx->fn_dec_cnk(ctx, bitb, stat);
 }
-int xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl)
+
+int xevd_pull(XEVD id, XEVD_IMGB ** imgb, XEVD_OPL * opl)
 {
     XEVD_CTX *ctx;
 
     XEVD_ID_TO_CTX_RV(id, ctx, XEVD_ERR_INVALID_ARGUMENT);
     xevd_assert_rv(ctx->fn_pull, XEVD_ERR_UNKNOWN);
 
-    return ctx->fn_pull(ctx, img, opl);
+    return ctx->fn_pull(ctx, imgb, opl);
 }

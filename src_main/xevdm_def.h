@@ -37,16 +37,7 @@
 #define _XEVDM_DEF_H_
 
 #include "xevd.h"
-#include "xevd_port.h"
-#include "xevd_bsr.h"
 #include "xevd_def.h"
-
-#define TRACE_ENC_HISTORIC 0
-#define TRACE_START_POC 0
-#define TRACE_RDO_EXCLUDE_I 0
-#define TRACE_DBF 0
-#define TRACE_HLS                          0
-#define DBF_IMPROVE 1
 
 /* Profiles definitions */
 #define PROFILE_MAIN                                 1

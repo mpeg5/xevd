@@ -34,50 +34,60 @@
 #include "xevd_def.h"
 #include <stdlib.h>
 
-/*! macro to determine maximum */
+/* determine maximum */
 #define XEVD_MAX(a,b)                   (((a) > (b)) ? (a) : (b))
 
-/*! macro to determine minimum */
+/* determine minimum */
 #define XEVD_MIN(a,b)                   (((a) < (b)) ? (a) : (b))
 
-/*! macro to absolute a value */
+/* absolute a value */
 #define XEVD_ABS(a)                     abs(a)
 
-/*! macro to absolute a 64-bit value */
+/* absolute a 64-bit value */
 #define XEVD_ABS64(a)                   (((a)^((a)>>63)) - ((a)>>63))
 
-/*! macro to absolute a 32-bit value */
+/* absolute a 32-bit value */
 #define XEVD_ABS32(a)                   (((a)^((a)>>31)) - ((a)>>31))
 
-/*! macro to absolute a 16-bit value */
+/* absolute a 16-bit value */
 #define XEVD_ABS16(a)                   (((a)^((a)>>15)) - ((a)>>15))
 
-/*! macro to clipping within min and max */
+/* clipping within min and max */
 #define XEVD_CLIP3(min_x, max_x, value)   XEVD_MAX((min_x), XEVD_MIN((max_x), (value)))
 
-/*! macro to clipping within min and max */
+/* clipping within min and max */
 #define XEVD_CLIP(n,min,max)            (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
 
 #define XEVD_SIGN(x)                    (((x) < 0) ? -1 : 1)
 
-/*! macro to get a sign from a 16-bit value.\n
+/* get a sign from a 16-bit value.
 operation: if(val < 0) return 1, else return 0 */
 #define XEVD_SIGN_GET(val)              ((val<0)? 1: 0)
 
-/*! macro to set sign into a value.\n
+/* set sign into a value.
 operation: if(sign == 0) return val, else if(sign == 1) return -val */
 #define XEVD_SIGN_SET(val, sign)        ((sign)? -val : val)
 
-/*! macro to get a sign from a 16-bit value.\n
+/* get a sign from a 16-bit value.
 operation: if(val < 0) return 1, else return 0 */
 #define XEVD_SIGN_GET16(val)            (((val)>>15) & 1)
 
-/*! macro to set sign into a 16-bit value.\n
+/* rounded right shift. NOTE: Assume shift >= 1 */
+#define XEVD_RRSHIFT(val, shift) (((val) + (1<<((shift) - 1))) >> (shift))
+
+
+/* set sign into a 16-bit value.
 operation: if(sign == 0) return val, else if(sign == 1) return -val */
 #define XEVD_SIGN_SET16(val, sign)      (((val) ^ ((s16)((sign)<<15)>>15)) + (sign))
 #define XEVD_ALIGN(val, align)          ((((val) + (align) - 1) / (align)) * (align))
 #define XEVD_CONV_LOG2(v)               (xevd_tbl_log2[v])
 #define XEVD_IMGB_OPT_NONE              (0)
+
+#define XEVD_GET_CHROMA_W_SHIFT(idc)    \
+    (((idc+10)==XEVD_CF_YCBCR400) ? 1 : (((idc+10)==XEVD_CF_YCBCR420) ? 1 : (((idc+10)==XEVD_CF_YCBCR422) ? 1 : 0)))
+
+#define XEVD_GET_CHROMA_H_SHIFT(idc)    \
+    (((idc+10)==XEVD_CF_YCBCR400) ? 1 : (((idc+10)==XEVD_CF_YCBCR420) ? 1 : 0))
 
 /* create image buffer */
 XEVD_IMGB * xevd_imgb_create(int w, int h, int cs, int opt, int pad[XEVD_IMGB_MAX_PLANE], int align[XEVD_IMGB_MAX_PLANE]);
@@ -88,7 +98,7 @@ void xevd_picbuf_lc_free(XEVD_PIC *pic);
 void xevd_picbuf_lc_expand(XEVD_PIC *pic, int exp_l, int exp_c);
 void xevd_poc_derivation(XEVD_SPS sps, int tid, XEVD_POC *poc);
 void xevd_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
-void xevd_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu, 
+void xevd_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu,
     s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr);
 
 enum
@@ -160,6 +170,8 @@ void xevd_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *ctx, s16 *ctx_init_model, u16 
 BOOL xevd_check_bi_applicability(int slice_type, int cuw, int cuh);
 void xevd_block_copy(s16 * src, int src_stride, s16 * dst, int dst_stride, int log2_copy_w, int log2_copy_h);
 int xevd_get_luma_cup(int x_scu, int y_scu, int cu_w_scu, int cu_h_scu, int w_scu);
+
+extern const int xevd_chroma_format_idc_to_imgb_cs[4];
 
 void xevd_picbuf_expand(XEVD_CTX * ctx, XEVD_PIC * pic);
 XEVD_PIC * xevd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret, int bit_depth);

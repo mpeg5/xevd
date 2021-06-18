@@ -38,15 +38,7 @@
 
 #if ENC_DEC_TRACE
 FILE *fp_trace;
-#if TRACE_RDO
-#if TRACE_RDO_EXCLUDE_I
 int fp_trace_print = 0;
-#else
-int fp_trace_print = 1;
-#endif
-#else
-int fp_trace_print = 0;
-#endif
 int fp_trace_counter = 0;
 #endif
 
@@ -142,6 +134,14 @@ static int imgb_release(XEVD_IMGB * imgb)
     }
     return refcnt;
 }
+
+const int xevd_chroma_format_idc_to_imgb_cs[4] =
+{
+    XEVD_CS_YCBCR400_10LE,
+    XEVD_CS_YCBCR420_10LE,
+    XEVD_CS_YCBCR422_10LE,
+    XEVD_CS_YCBCR444_10LE
+};
 
 XEVD_IMGB * xevd_imgb_create(int w, int h, int cs, int opt, int pad[XEVD_IMGB_MAX_PLANE], int align[XEVD_IMGB_MAX_PLANE])
 {
@@ -258,10 +258,10 @@ XEVD_PIC * xevd_picbuf_lc_alloc(int w, int h, int pad_l, int pad_c, int *err, in
     pad[2] = pad_c;
 
 
-   
+
     int cs = idc == 0 ? XEVD_CS_YCBCR400_10LE : (idc == 1 ? XEVD_CS_YCBCR420_10LE : (idc == 2 ? XEVD_CS_YCBCR422_10LE : XEVD_CS_YCBCR444_10LE));
     imgb = xevd_imgb_create(w, h, cs, opt, pad, align);
-    
+
 
     xevd_assert_gv(imgb != NULL, ret, XEVD_ERR_OUT_OF_MEMORY, ERR);
 
@@ -975,7 +975,7 @@ int xevd_md5_imgb(XEVD_IMGB *imgb, u8 digest[N_C][16])
     for(i = 0; i < imgb->np; i++)
     {
         xevd_md5_init(&md5[i]);
-        
+
         for(j = imgb->y[i]; j < imgb->h[i]; j++)
         {
             xevd_md5_update(&md5[i], ((u8 *)imgb->a[i]) + j*imgb->s[i] + imgb->x[i] , imgb->w[i] * 2);
@@ -1205,7 +1205,7 @@ void xevd_init_inverse_scan_sr(u16 *scan_inv, u16 *scan_orig, int width, int hei
     }
     else
     {
-        printf("Not supported scan_type\n");
+        xevd_trace("Not supported scan_type\n");
     }
 }
 
@@ -1518,7 +1518,7 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
 
 
 
-    
+
     for(i = 0; i < h_cu; i++)
     {
         for(j = 0; j < w_cu; j++)

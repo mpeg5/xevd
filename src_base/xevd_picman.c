@@ -36,7 +36,7 @@
 #define SET_REF_MARK(pic)    (((pic)->is_ref) = 1)
 
 #define PRINT_DPB(pm)\
-    printf("%s: current num_ref = %d, dpb_size = %d\n", __FUNCTION__, \
+    xevd_print("%s: current num_ref = %d, dpb_size = %d\n", __FUNCTION__, \
     pm->cur_num_ref_pics, picman_get_num_allocated_pics(pm));
 
 static int picman_get_num_allocated_pics(XEVD_PM * pm)
@@ -202,7 +202,7 @@ static void picman_set_pic_to_pb(XEVD_PM * pm, XEVD_PIC * pic,
         }
         if(i < 0)
         {
-            printf("i=%d\n", i);
+            xevd_trace("i=%d\n", i);
             xevd_assert(i >= 0);
         }
     }

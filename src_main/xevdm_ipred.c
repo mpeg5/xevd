@@ -298,7 +298,7 @@ void xevdm_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
             ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
         default:
-            printf("\n illegal chroma intra prediction mode\n");
+            xevd_trace("\n illegal chroma intra prediction mode\n");
             break;
     }
 }
