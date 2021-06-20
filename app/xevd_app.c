@@ -193,6 +193,82 @@ static int set_extra_config(XEVD id)
     return 0;
 }
 
+static int get_extra_config(XEVD id)
+{
+    int width, height, coded_width, coded_height, color_space, max_coding_delay;
+    int ret, size;
+
+    size = 4;
+    ret = xevd_config(id, XEVD_CFG_GET_WIDTH, &width, &size);
+    if (XEVD_FAILED(ret))
+    {
+        logv2("failed to get width\n");
+        return -1;
+    }
+    logv2("width = %d\n", width);
+
+    size = 4;
+    ret = xevd_config(id, XEVD_CFG_GET_HEIGHT, &height, &size);
+    if (XEVD_FAILED(ret))
+    {
+        logv2("failed to get height\n");
+        return -1;
+    }
+    logv2("height = %d\n", height);
+
+    size = 4;
+    ret = xevd_config(id, XEVD_CFG_GET_CODED_WIDTH, &coded_width, &size);
+    if (XEVD_FAILED(ret))
+    {
+        logv2("failed to get coded_width\n");
+        return -1;
+    }
+    logv2("coded_width = %d\n", coded_width);
+
+    size = 4;
+    ret = xevd_config(id, XEVD_CFG_GET_CODED_HEIGHT, &coded_height, &size);
+    if (XEVD_FAILED(ret))
+    {
+        logv2("failed to get coded_height\n");
+        return -1;
+    }
+    logv2("coded_height = %d\n", coded_height);
+
+    size = 4;
+    ret = xevd_config(id, XEVD_CFG_GET_COLOR_SPACE, &color_space, &size);
+    if (XEVD_FAILED(ret))
+    {
+        logv2("failed to get color_space\n");
+        return -1;
+    }
+    switch(color_space)
+    {
+    case XEVD_CS_YCBCR400_10LE:
+        logv2("color_space = XEVD_CS_YCBCR400_10LE\n");
+        break;
+    case XEVD_CS_YCBCR420_10LE:
+        logv2("color_space = XEVD_CS_YCBCR420_10LE\n");
+        break;
+    case XEVD_CS_YCBCR422_10LE:
+        logv2("color_space = XEVD_CS_YCBCR422_10LE\n");
+        break;
+    case XEVD_CS_YCBCR444_10LE:
+        logv2("color_space = XEVD_CS_YCBCR444_10LE\n");
+        break;
+    default:
+        logv2("unknown color space\n");
+    }
+    size = 4;
+    ret = xevd_config(id, XEVD_CFG_GET_MAX_CODING_DELAY, &max_coding_delay, &size);
+    if (XEVD_FAILED(ret))
+    {
+        logv2("failed to get max_coding_delay\n");
+        return -1;
+    }
+    logv2("max_coding_delay = %d\n", max_coding_delay);
+    return 0;
+}
+
 /* sequence level header */
 static int write_y4m_header(char * fname, XEVD_IMGB * img)
 {
@@ -227,7 +303,7 @@ static int write_y4m_header(char * fname, XEVD_IMGB * img)
 
     if (c_buf == NULL)
     {
-        printf("Color format is not suuported by y4m");
+        logv0("Color format is not suuported by y4m");
         return -1;
     }
 
@@ -287,7 +363,7 @@ int main(int argc, const char **argv)
     XEVD_IMGB        *  imgb_t = NULL;
     XEVD_STAT          stat;
     XEVD_OPL           opl;
-    int                ret;
+    int                ret, proc_ret;
     XEVD_CLK            clk_beg, clk_tot;
     int                bs_cnt, pic_cnt;
     int                bs_size, bs_read_pos = 0;
@@ -395,8 +471,7 @@ int main(int argc, const char **argv)
     clk_tot = 0;
     bs_cnt  = 0;
     w = h   = 0;
-
-    int process_status = XEVD_OK;
+    proc_ret = 0;
 
     while(1)
     {
@@ -433,6 +508,7 @@ int main(int argc, const char **argv)
             if(XEVD_FAILED(ret))
             {
                 logv0("failed to decode bitstream\n");
+				proc_ret = -1;
                 goto END;
             }
 
@@ -442,7 +518,9 @@ int main(int argc, const char **argv)
                     bs_size, stat.read);
             }
 
-            process_status = ret;
+            /* print extra config */
+            //get_extra_config(id);
+
         }
         if(stat.fnum >= 0 || state == STATE_BUMPING)
         {
@@ -451,12 +529,14 @@ int main(int argc, const char **argv)
             if(ret == XEVD_ERR_UNEXPECTED)
             {
                 logv2("bumping process completed\n");
+				proc_ret = 0;
                 goto END;
             }
             else if(XEVD_FAILED(ret))
             {
                 logv0("failed to pull the decoded image\n");
-                return -1;
+				proc_ret = -1;
+				goto END;
             }
         }
         else
@@ -478,13 +558,18 @@ int main(int argc, const char **argv)
                     if(imgb_t == NULL)
                     {
                         logv0("failed to allocate temporay image buffer\n");
-                        return -1;
+						proc_ret = -1;
+						goto END;
                     }
                 }
 
                 if (!pic_cnt && is_y4m)
                 {
-                    if(write_y4m_header(op_fname_out, imgb)) return -1;
+                    if(write_y4m_header(op_fname_out, imgb))
+					{
+						proc_ret = -1;
+						goto END;
+					}
                 }
                 write_dec_img(id, op_fname_out, imgb, imgb_t, is_y4m);
             }
@@ -496,7 +581,8 @@ int main(int argc, const char **argv)
                 {
                     logv0("ERROR: cannot create an opl file\n");
                     print_usage();
-                    return -1;
+                    proc_ret = -1;
+					goto END;
                 }
 
                 fprintf(fp_opl, "%d %d %d ", opl.poc, w, h);
@@ -546,5 +632,6 @@ END:
     if(fp_bs) fclose(fp_bs);
     if(bs_buf) free(bs_buf);
 
-    return process_status;
+    return proc_ret;
 }
+

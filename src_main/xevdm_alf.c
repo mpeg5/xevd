@@ -1188,7 +1188,7 @@ void alf_process(ADAPTIVE_LOOP_FILTER *alf, CODING_STRUCTURE* cs, ALF_SLICE_PARA
     int col_bd = 0;
     u32 k = 0;
     ii = 0;
-    int num_tiles_in_slice = ctx->num_tiles_in_slice;
+    int num_tiles_in_slice = ctx->w_tile * ctx->h_tile;
     XEVD_ALF_TMP alf_tmp[DEC_XEVD_MAX_TASK_CNT];
     int i;
     int(*tile_alf)(void * arg) = alf_process_tile;
@@ -1215,7 +1215,7 @@ void alf_process(ADAPTIVE_LOOP_FILTER *alf, CODING_STRUCTURE* cs, ALF_SLICE_PARA
             alf_tmp[j].alf_slice_param = alf_slice_param;
             alf_tmp[j].cs = cs;
             alf_tmp[j].alf = alf;
-            alf_tmp[j].tile_idx = ctx->tile_in_slice[tile_start_num + j - 1];
+            alf_tmp[j].tile_idx = tile_start_num + j - 1;
 
             alf_tmp[j].tsk_num = j;
 
@@ -1227,7 +1227,7 @@ void alf_process(ADAPTIVE_LOOP_FILTER *alf, CODING_STRUCTURE* cs, ALF_SLICE_PARA
         alf_tmp[0].alf_slice_param = alf_slice_param;
         alf_tmp[0].cs = cs;
         alf_tmp[0].alf = alf;
-        alf_tmp[0].tile_idx = ctx->tile_in_slice[j];
+        alf_tmp[0].tile_idx = j;
         alf_tmp[0].tsk_num = 0;
 
         ret = tile_alf((void *)(&alf_tmp[0]));

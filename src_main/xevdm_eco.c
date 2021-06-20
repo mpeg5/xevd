@@ -733,6 +733,14 @@ static int xevdm_eco_merge_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
 {
     int idx;
     idx = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.merge_idx, NUM_CTX_MERGE_IDX, MAXM_NUM_MVP);
+
+#if ENC_DEC_TRACE
+    XEVD_TRACE_COUNTER;
+    XEVD_TRACE_STR("merge idx ");
+    XEVD_TRACE_INT(idx);
+    XEVD_TRACE_STR("\n");
+#endif
+
     return idx;
 }
 
@@ -741,7 +749,19 @@ static int xevdm_eco_affine_mvp_idx( XEVD_BSR * bs, XEVD_SBAC * sbac )
 #if AFF_MAX_NUM_MVP == 1
     return 0;
 #else
+#if ENC_DEC_TRACE
+    int idx;
+    idx = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.affine_mvp_idx, NUM_CTX_AFFINE_MVP_IDX, AFF_MAX_NUM_MVP);
+
+    XEVD_TRACE_COUNTER;
+    XEVD_TRACE_STR("affine mvp idx ");
+    XEVD_TRACE_INT(idx);
+    XEVD_TRACE_STR("\n");
+
+    return idx;
+#else
     return sbac_read_truncate_unary_sym( bs, sbac, sbac->ctx.affine_mvp_idx, NUM_CTX_AFFINE_MVP_IDX, AFF_MAX_NUM_MVP );
+#endif
 #endif
 }
 
@@ -2091,7 +2111,9 @@ int xevdm_eco_aps_gen(XEVD_BSR * bs, XEVD_APS_GEN * aps, int  bit_depth)
         xevdm_eco_dra_aps_param(bs, aps_tmp, bit_depth); // parse ALF filter parameter (except ALF map)
     }
     else
-        printf("This version of ETM doesn't support APS Type %d\n", aps->aps_type_id);
+    {
+        xevd_trace("This version of ETM doesn't support APS Type %d\n", aps->aps_type_id);
+    }
 
     u32 aps_extension_flag, aps_extension_data_flag, t0;
     xevd_bsr_read1(bs, &aps_extension_flag);
@@ -2755,7 +2777,7 @@ int xevdm_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, XE
     xevd_bsr_read(bs, &sh->qp, 6);
     if (sh->qp < 0 || sh->qp > 51)
     {
-        printf("malformed bitstream: slice_qp should be in the range of 0 to 51\n");
+        xevd_trace("malformed bitstream: slice_qp should be in the range of 0 to 51\n");
         return XEVD_ERR_MALFORMED_BITSTREAM;
     }
 

@@ -146,32 +146,37 @@ static XEVD_CLK xevd_clk_from(XEVD_CLK from) \
     ((int)((clk + (XEVD_CLK_PER_SEC/2))/XEVD_CLK_PER_SEC))
 
 #define XEVDA_CLIP(n,min,max) (((n)>(max))? (max) : (((n)<(min))? (min) : (n)))
+/* rounded right shift */
+#define XEVDA_RRSHIFT(v, s) ((s>0)? (((v) + (1<<((s) - 1))) >> (s)):(v))
+/* rounded toward ceil(inf.) with right shift. Assume v>=0 & s>=0 */
+#define XEVDA_CRSHIFT(v, s) (((v) + (1<<(s)) - 1) >> (s))
 
 static int imgb_read(FILE * fp, XEVD_IMGB * img)
 {
     int f_w, f_h;
-    int y_size, u_size, v_size;
+    int size_l, size_cb;
+    int chroma_format = XEVD_CS_GET_FORMAT(img->cs);
+    int w_shift = ((chroma_format == XEVD_CF_YCBCR420) || (chroma_format == XEVD_CF_YCBCR422)) ? 1 : 0;
+    int h_shift = chroma_format == XEVD_CF_YCBCR420 ? 1 : 0;
 
     f_w = img->w[0];
     f_h = img->h[0];
-    int idc = XEVD_CS_GET_FORMAT(img->cs);
+
     if((XEVD_CS_GET_BIT_DEPTH(img->cs)) == 8)
     {
-        y_size = f_w * f_h;
-        u_size = v_size = (f_w >> 1) * (f_h >> 1);
-
-        if(fread(img->a[0], 1, y_size, fp) != (unsigned)y_size)
+        size_l = f_w * f_h;
+        if(fread(img->a[0], 1, size_l, fp) != (unsigned)size_l)
         {
             return -1;
         }
-        u_size = v_size = (f_w >> (XEVD_GET_CHROMA_W_SHIFT(idc-10))) * (f_h >> (XEVD_GET_CHROMA_H_SHIFT(idc-10)));
-        if(idc)
+        size_cb = XEVDA_CRSHIFT(f_w, w_shift) * XEVDA_CRSHIFT(f_h, h_shift);
+        if(chroma_format != XEVD_CF_YCBCR400)
         {
-            if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+            if(fread(img->a[1], 1, size_cb, fp) != (unsigned)size_cb)
             {
                 return -1;
             }
-            if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
+            if(fread(img->a[2], 1, size_cb, fp) != (unsigned)size_cb)
             {
                 return -1;
             }
@@ -180,20 +185,20 @@ static int imgb_read(FILE * fp, XEVD_IMGB * img)
     else if(((XEVD_CS_GET_BIT_DEPTH(img->cs)) >= 10))
     {
 
-        y_size = f_w * f_h * sizeof(short);
-        u_size = v_size = (f_w >> 1) * (f_h >> 1) * sizeof(short);
-        if(fread(img->a[0], 1, y_size, fp) != (unsigned)y_size)
+        size_l = f_w * f_h * sizeof(short);
+        if(fread(img->a[0], 1, size_l, fp) != (unsigned)size_l)
         {
             return -1;
         }
-        u_size = v_size = (f_w >> (XEVD_GET_CHROMA_W_SHIFT(idc-10))) * (f_h >> (XEVD_GET_CHROMA_H_SHIFT(idc-10))) * sizeof(short);
-        if(idc)
+        size_cb = XEVDA_CRSHIFT(f_w, w_shift) * XEVDA_CRSHIFT(f_h, h_shift) *
+            sizeof(short);
+        if(chroma_format != XEVD_CF_YCBCR400)
         {
-            if(fread(img->a[1], 1, u_size, fp) != (unsigned)u_size)
+            if(fread(img->a[1], 1, size_cb, fp) != (unsigned)size_cb)
             {
                 return -1;
             }
-            if(fread(img->a[2], 1, v_size, fp) != (unsigned)v_size)
+            if(fread(img->a[2], 1, size_cb, fp) != (unsigned)size_cb)
             {
                 return -1;
             }
@@ -710,8 +715,10 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
         return NULL;
     }
     memset(imgb, 0, sizeof(XEVD_IMGB));
-    int idc = XEVD_CS_GET_FORMAT(cs);
-    int np =  idc == 0 ? 1 : 3;
+    int chroma_format = XEVD_CS_GET_FORMAT(cs);
+    int w_shift = (chroma_format == XEVD_CF_YCBCR420) || (chroma_format == XEVD_CF_YCBCR422) ? 1 : 0;
+    int h_shift = chroma_format == XEVD_CF_YCBCR420 ? 1 : 0;
+    int np = chroma_format == XEVD_CF_YCBCR400 ? 1 : 3;
 
     if(XEVD_CS_GET_BIT_DEPTH(cs)==8)
     {
@@ -730,10 +737,8 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
 
             if(i == 0)
             {
-                if((XEVD_GET_CHROMA_W_SHIFT(idc-10)))
-                    w = (w + 1) >> (XEVD_GET_CHROMA_W_SHIFT(idc-10));
-                if((XEVD_GET_CHROMA_H_SHIFT(idc-10)))
-                    h = (h + 1) >> (XEVD_GET_CHROMA_H_SHIFT(idc-10));
+                w = (w + 1) >> w_shift;
+                h = (h + 1) >> h_shift;
             }
         }
         imgb->np = np;
@@ -759,10 +764,8 @@ XEVD_IMGB * imgb_alloc(int w, int h, int cs)
 
             if(i == 0)
             {
-                if((XEVD_GET_CHROMA_W_SHIFT(idc-10)))
-                    w = (w + 1) >> (XEVD_GET_CHROMA_W_SHIFT(idc-10));
-                if((XEVD_GET_CHROMA_H_SHIFT(idc-10)))
-                    h = (h + 1) >> (XEVD_GET_CHROMA_H_SHIFT(idc-10));
+                w = (w + 1) >> w_shift;
+                h = (h + 1) >> h_shift;
             }
         }
         imgb->np = np;

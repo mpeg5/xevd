@@ -32,7 +32,6 @@
 #define _XEVD_DEF_H_
 
 #include "xevd.h"
-#include "xevd_bsr.h"
 #include "xevd_port.h"
 #include "xevd_tp.h"
 
@@ -44,8 +43,6 @@
 #define PROFILE_STILL_PIC_BASELINE                   2
 #define GET_QP(qp,dqp)                               ((qp + dqp + 52) % 52)
 #define GET_LUMA_QP(qp, qp_bd_offset)                (qp + 6 * qp_bd_offset)
-
-
 
 #define MC_PRECISION                                 4
 
@@ -119,11 +116,7 @@ typedef int BOOL;
 #define ENC_DEC_TRACE                      0
 
 #if ENC_DEC_TRACE
-#define TRACE_ENC_CU_DATA                  0 ///< Trace CU index on encoder
-#define TRACE_ENC_CU_DATA_CHECK            0 ///< Trace CU index on encoder
-#define MVF_TRACE                          0 ///< use for tracing MVF
 #define TRACE_COEFFS                       0 ///< Trace coefficients
-#define TRACE_RDO                          0 //!< Trace only encode stream (0), only RDO (1) or all of them (2)
 #define TRACE_BIN                          0 //!< trace each bin
 #define TRACE_START_POC                    0 //!< POC of frame from which we start to write output tracing information
 #define TRACE_COSTS                        0 //!< Trace cost information
@@ -131,22 +124,15 @@ typedef int BOOL;
 #define TRACE_ADDITIONAL_FLAGS             0
 #define TRACE_DBF                          0 //!< Trace only DBF
 #define TRACE_HLS                          0 //!< Trace SPS, PPS, APS, Slice Header, etc.
-#if TRACE_RDO
-#define TRACE_RDO_EXCLUDE_I                0 //!< Exclude I frames
-#endif
+
 extern FILE *fp_trace;
 extern int fp_trace_print;
 extern int fp_trace_counter;
 #if TRACE_START_POC
 extern int fp_trace_started;
 #endif
-#if TRACE_RDO == 1
-#define XEVD_TRACE_SET(A) fp_trace_print=!A
-#elif TRACE_RDO == 2
-#define XEVD_TRACE_SET(A)
-#else
+
 #define XEVD_TRACE_SET(A) fp_trace_print=A
-#endif
 #define XEVD_TRACE_STR(STR) if(fp_trace_print) { fprintf(fp_trace, STR); fflush(fp_trace); }
 #define XEVD_TRACE_DOUBLE(DOU) if(fp_trace_print) { fprintf(fp_trace, "%g", DOU); fflush(fp_trace); }
 #define XEVD_TRACE_INT(INT) if(fp_trace_print) { fprintf(fp_trace, "%d ", INT); fflush(fp_trace); }
@@ -1006,6 +992,8 @@ typedef struct _XEVD_POC
     u32             prev_poc_val;
     /* the decoding order count of the previous picture */
     int             prev_doc_offset;
+    /* the maximum picture index of the previous picture */
+    u32             prev_pic_max_poc_val;
 } XEVD_POC;
 
 /*****************************************************************************
@@ -1167,6 +1155,8 @@ typedef struct _XEVD_CU_DATA
     pel *reco[N_C];
 } XEVD_CU_DATA;
 
+#include "xevd_bsr.h"
+
 typedef struct _XEVD_CORE
 {
     /************** current CU **************/
@@ -1258,7 +1248,7 @@ typedef struct _XEVD_CORE
     u16            y;
     u16            thread_idx;
     u8             ctx_flags[NUM_CNID];
-
+    u8             deblock_is_hor;
 
 } XEVD_CORE;
 
@@ -1390,6 +1380,7 @@ struct _XEVD_CTX
     u16                     h_tile;
     /* tile to slice map */
     u16                     tile_in_slice[MAX_NUM_TILES_COL*MAX_NUM_TILES_ROW];
+    u16                     tile_order_slice[MAX_NUM_TILES_COL*MAX_NUM_TILES_ROW];
      /* Number of tiles in slice*/
     u16                     num_tiles_in_slice;
     u32                     num_ctb;
@@ -1404,6 +1395,8 @@ struct _XEVD_CTX
     int                     parallel_rows; //Number of parallel rows which can be encoded
     volatile s32          * sync_flag;
     SYNC_OBJ                sync_block; //has to be initialized at context creation and has to be released on context destruction
+    /* mximum number of coding delay */
+    s32                     max_coding_delay;
     /* address of ready function */
     int  (* fn_ready)(XEVD_CTX * ctx);
     /* address of flush function */
@@ -1434,6 +1427,7 @@ void xevd_flush(XEVD_CTX * ctx);
 int  xevd_deblock(void * args);
 
 int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
+
 
 #include "xevd_util.h"
 #include "xevd_eco.h"

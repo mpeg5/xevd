@@ -459,13 +459,6 @@ int xevd_eco_refi(XEVD_BSR * bs, XEVD_SBAC * sbac, int num_refp)
     return ref_num;
 }
 
-static int xevd_eco_merge_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
-{
-    int idx;
-    idx = sbac_read_truncate_unary_sym(bs, sbac, sbac->ctx.merge_idx, NUM_CTX_MERGE_IDX, MAX_NUM_MVP);
-    return idx;
-}
-
 int xevd_eco_mvp_idx(XEVD_BSR * bs, XEVD_SBAC * sbac)
 {
     int idx;
@@ -1189,7 +1182,7 @@ int xevd_eco_nalu(XEVD_BSR * bs, XEVD_NALU * nalu)
 
     if (nalu->forbidden_zero_bit != 0)
     {
-        printf("malformed bitstream: forbidden_zero_bit != 0\n");
+        xevd_trace("malformed bitstream: forbidden_zero_bit != 0\n");
         return XEVD_ERR_MALFORMED_BITSTREAM;
     }
 
@@ -1199,7 +1192,7 @@ int xevd_eco_nalu(XEVD_BSR * bs, XEVD_NALU * nalu)
 
     if (nalu->nuh_reserved_zero_5bits != 0)
     {
-        printf("malformed bitstream: nuh_reserved_zero_5bits != 0");
+        xevd_trace("malformed bitstream: nuh_reserved_zero_5bits != 0");
         return XEVD_ERR_MALFORMED_BITSTREAM;
     }
 
@@ -1207,7 +1200,7 @@ int xevd_eco_nalu(XEVD_BSR * bs, XEVD_NALU * nalu)
 
     if (nalu->nuh_extension_flag != 0)
     {
-        printf("malformed bitstream: nuh_extension_flag != 0");
+        xevd_trace("malformed bitstream: nuh_extension_flag != 0");
         return XEVD_ERR_MALFORMED_BITSTREAM;
     }
 
@@ -1553,7 +1546,7 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
     xevd_bsr_read(bs, &sh->qp, 6);
     if (sh->qp < 0 || sh->qp > 51)
     {
-        printf("malformed bitstream: slice_qp should be in the range of 0 to 51\n");
+        xevd_trace("malformed bitstream: slice_qp should be in the range of 0 to 51\n");
         return XEVD_ERR_MALFORMED_BITSTREAM;
     }
 

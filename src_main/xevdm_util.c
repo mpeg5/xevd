@@ -165,7 +165,7 @@ XEVD_IMGB * xevd_imgb_generate(int w, int h, int padl, int padc, int idc, int bi
     imgb = xevd_imgb_create(w, h, XEVD_CS_SET(idc + 10, bit_depth, 0), 0, pad, align);
     if (imgb == NULL)
     {
-        printf("Cannot generate image buffer\n");
+        xevd_trace("Cannot generate image buffer\n");
         return imgb;
     }
     return imgb;
@@ -4034,7 +4034,7 @@ void xevd_imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
     }
     else
     {
-        printf("ERROR: unsupported image copy\n");
+        xevd_trace("ERROR: unsupported image copy\n");
         return;
     }
     for (i = 0; i < 4; i++)

@@ -48,8 +48,6 @@
 #define XEVD_OK_DIM_CHANGED              (203)
 /* decoding success, but output frame has been delayed */
 #define XEVD_OK_FRM_DELAYED              (202)
-/* not matched CRC value */
-#define XEVD_ERR_BAD_CRC                 (201)
 /* CRC value presented but ignored at decoder*/
 #define XEVD_WARN_CRC_IGNORED            (200)
 
@@ -65,7 +63,7 @@
 #define XEVD_ERR_MALFORMED_BITSTREAM     (-202)
 #define XEVD_ERR_THREAD_ALLOCATION       (-203)
 /* not matched CRC value */
-//#define XEVD_ERR_BAD_CRC                 (-300)
+#define XEVD_ERR_BAD_CRC                 (-300)
 #define XEVD_ERR_UNKNOWN                 (-32767) /* unknown error */
 
 /* return value checking *****************************************************/
@@ -94,11 +92,6 @@
 #define XEVD_CS_SET_FORMAT(cs, v)        (((cs) & ~0xFF) | ((v) << 0))
 #define XEVD_CS_SET_BIT_DEPTH(cs, v)     (((cs) & ~(0x3F<<8)) | ((v) << 8))
 #define XEVD_CS_SET_ENDIAN(cs, v)        (((cs) & ~(0x1<<14)) | ((v) << 14))
-#define XEVD_GET_CHROMA_W_SHIFT(idc)    \
-    (((idc+10)==XEVD_CF_YCBCR400) ? 1 : (((idc+10)==XEVD_CF_YCBCR420) ? 1 : (((idc+10)==XEVD_CF_YCBCR422) ? 1 : 0)))
-
-#define XEVD_GET_CHROMA_H_SHIFT(idc)    \
-    (((idc+10)==XEVD_CF_YCBCR400) ? 1 : (((idc+10)==XEVD_CF_YCBCR420) ? 1 : 0))
 
 /* pre-defined color spaces */
 #define XEVD_CS_UNKNOWN                  XEVD_CS_SET(0,0,0)
@@ -115,22 +108,19 @@
 #define XEVD_CS_YCBCR400_14LE            XEVD_CS_SET(XEVD_CF_YCBCR400, 14, 0)
 #define XEVD_CS_YCBCR420_14LE            XEVD_CS_SET(XEVD_CF_YCBCR420, 14, 0)
 
-typedef enum _CHROMA_FORMAT
-{
-    CHROMA_FORMAT_400 = 0,
-    CHROMA_FORMAT_420 = 1,
-    CHROMA_FORMAT_422 = 2,
-    CHROMA_FORMAT_444 = 3,
-    NUMBER_CHROMA_FORMAT = 4
-
-} CHROMA_FORMAT;
-
 /*****************************************************************************
 * config types for decoder
 *****************************************************************************/
 #define XEVD_CFG_SET_USE_PIC_SIGNATURE  (301)
 #define XEVD_CFG_SET_USE_OPL_OUTPUT     (302)
 #define XEVD_CFG_GET_CODEC_BIT_DEPTH    (401)
+#define XEVD_CFG_GET_WIDTH              (402)
+#define XEVD_CFG_GET_HEIGHT             (403)
+#define XEVD_CFG_GET_CODED_WIDTH        (404)
+#define XEVD_CFG_GET_CODED_HEIGHT       (405)
+#define XEVD_CFG_GET_COLOR_SPACE        (406)
+#define XEVD_CFG_GET_MAX_CODING_DELAY   (407)
+
 
 /*****************************************************************************
  * NALU types

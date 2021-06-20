@@ -244,6 +244,12 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
             ctx->sync_flag[i] = 0;
         }
     }
+
+    if (sps->vui_parameters_present_flag && sps->vui_parameters.bitstream_restriction_flag)
+    {
+        ctx->max_coding_delay = sps->vui_parameters.num_reorder_pics;
+    }
+
     return XEVD_OK;
 ERR:
     sequence_deinit(ctx);
@@ -1687,6 +1693,11 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         }
 
         /* POC derivation process */
+        if (ctx->poc.poc_val > ctx->poc.prev_pic_max_poc_val)
+        {
+            ctx->poc.prev_pic_max_poc_val = ctx->poc.poc_val;
+        }
+
         if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT)
         {
             sh->poc_lsb = 0;
@@ -1701,7 +1712,13 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             xevd_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
             sh->poc_lsb = ctx->poc.poc_val;
         }
-        
+
+        s32 pic_delay = (ctx->poc.poc_val - (s32)ctx->poc.prev_pic_max_poc_val - 1);
+        if (ctx->max_coding_delay < pic_delay)
+        {
+            ctx->max_coding_delay = pic_delay;
+        }
+
         ret = slice_init(ctx, ctx->core, sh);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         static u16 slice_num = 0;
@@ -2081,31 +2098,63 @@ void xevd_delete(XEVD id)
 int xevd_config(XEVD id, int cfg, void * buf, int * size)
 {
     XEVD_CTX *ctx;
+    int t0 = 0;
 
     XEVD_ID_TO_CTX_RV(id, ctx, XEVD_ERR_INVALID_ARGUMENT);
 
     switch(cfg)
     {
-        /* set config ************************************************************/
-        case XEVD_CFG_SET_USE_PIC_SIGNATURE:
-            xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-            ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
-            break;
+    /* set config ************************************************************/
+    case XEVD_CFG_SET_USE_PIC_SIGNATURE:
+        ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
+        break;
 
-        case XEVD_CFG_SET_USE_OPL_OUTPUT:
-            xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-            ctx->use_opl = (*((int *)buf)) ? 1 : 0;
-            break;
+    case XEVD_CFG_SET_USE_OPL_OUTPUT:
+        ctx->use_opl = (*((int *)buf)) ? 1 : 0;
+        break;
 
-        /* get config ************************************************************/
+    /* get config ************************************************************/
+    case XEVD_CFG_GET_CODEC_BIT_DEPTH:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->internal_codec_bit_depth;
+        break;
 
-        case XEVD_CFG_GET_CODEC_BIT_DEPTH:
-            xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-            *((int *)buf) = ctx->internal_codec_bit_depth;
-            break;
+    case XEVD_CFG_GET_WIDTH:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        t0 = ctx->sps.picture_crop_left_offset + ctx->sps.picture_crop_right_offset;
+        if(ctx->sps.chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        *((int *)buf) = ctx->w - t0;
+        break;
 
-        default:
-            xevd_assert_rv(0, XEVD_ERR_UNSUPPORTED);
+    case XEVD_CFG_GET_HEIGHT:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        t0 = ctx->sps.picture_crop_top_offset + ctx->sps.picture_crop_bottom_offset;
+        if(ctx->sps.chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        *((int *)buf) = ctx->h - t0;
+        break;
+
+    case XEVD_CFG_GET_CODED_WIDTH:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->w;
+        break;
+
+    case XEVD_CFG_GET_CODED_HEIGHT:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->h;
+        break;
+
+    case XEVD_CFG_GET_COLOR_SPACE:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps.chroma_format_idc];
+        break;
+
+    case XEVD_CFG_GET_MAX_CODING_DELAY:
+        xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
+        *((int *)buf) = ctx->max_coding_delay;
+        break;
+
+    default:
+        xevd_assert_rv(0, XEVD_ERR_UNSUPPORTED);
     }
     return XEVD_OK;
 }

@@ -293,12 +293,10 @@ THREAD_RESULT terminate_worker_thread(POOL_THREAD * thread_id)
 
 SYNC_OBJ xevd_get_synchronized_object()
 {
-   
 
     THREAD_MUTEX * imutex = (THREAD_MUTEX *)malloc(sizeof(THREAD_MUTEX));
     if (0 == imutex)
     {
-        printf("failed to allocate sync object\n");
         return 0; //failure case
     }
 
@@ -306,7 +304,6 @@ SYNC_OBJ xevd_get_synchronized_object()
     int result = pthread_mutex_init(&imutex->lmutex, NULL);
     if (result)
     {
-        printf("failed to create sync object\n");
         if (imutex)
         {
             free(imutex);
@@ -589,7 +586,6 @@ SYNC_OBJ xevd_get_synchronized_object()
     THREAD_MUTEX * imutex = (THREAD_MUTEX *)malloc(sizeof(THREAD_MUTEX));
     if (0 == imutex)
     {
-        printf("failed to allocate sync object\n");
         return 0; //failure case
     }
 
@@ -598,7 +594,6 @@ SYNC_OBJ xevd_get_synchronized_object()
     imutex->lmutex = CreateMutex(NULL,FALSE,NULL);
     if (0 == imutex->lmutex)
     {
-        printf("failed to create sync object\n");
         if (imutex)
         {
             free(imutex);
