@@ -34,18 +34,10 @@
 #include <assert.h>
 
 #if X86_SSE
-
-XEVD_MC_L (*xevd_func_mc_l)[2];
-XEVD_MC_C (*xevd_func_mc_c)[2];
-XEVD_AVG_NO_CLIP xevd_func_average_no_clip;
-
-
 /****************************************************************************
  * motion compensation for luma
  ****************************************************************************/
-void xevd_average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht
-    , int bit_depth
-)
+void xevd_average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht, int bit_depth)
 {
     s16 *p0, *p1, *p2;
     int rem_h = ht;

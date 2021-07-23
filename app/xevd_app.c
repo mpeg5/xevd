@@ -104,7 +104,7 @@ static void print_stat(XEVD_STAT * stat, int ret)
 
     if(XEVD_SUCCEEDED(ret))
     {
-        if(stat->nalu_type < XEVD_SPS_NUT)
+        if(stat->nalu_type < XEVD_NUT_SPS)
         {
             logv2("%c-slice", stat->stype == XEVD_ST_I ? 'I' : stat->stype == XEVD_ST_P ? 'P' : 'B');
 
@@ -118,19 +118,19 @@ static void print_stat(XEVD_STAT * stat, int ret)
                 logv2("] ");
             }
         }
-        else if(stat->nalu_type == XEVD_SPS_NUT)
+        else if(stat->nalu_type == XEVD_NUT_SPS)
         {
             logv2("Sequence Parameter Set (%d bytes)", stat->read);
         }
-        else if (stat->nalu_type == XEVD_PPS_NUT)
+        else if (stat->nalu_type == XEVD_NUT_PPS)
         {
             logv2("Picture Parameter Set (%d bytes)", stat->read);
         }
-        else if (stat->nalu_type == XEVD_APS_NUT)
+        else if (stat->nalu_type == XEVD_NUT_APS)
         {
             logv2("Adaptation Parameter Set (%d bytes)", stat->read);
         }
-        else if (stat->nalu_type == XEVD_SEI_NUT)
+        else if (stat->nalu_type == XEVD_NUT_SEI)
         {
             logv2("SEI message: ");
             if (ret == XEVD_OK)
@@ -492,7 +492,6 @@ int main(int argc, const char **argv)
             stat.read += XEVD_NAL_UNIT_LENGTH_BYTE;
             bitb.addr = bs_buf;
             bitb.ssize = bs_size;
-            bitb.bsize = MAX_BS_BUF;
 
             logv2("[%4d] NALU --> ", bs_cnt++);
 

@@ -58,15 +58,20 @@ static void log_msg(char * filename, int line, const char *fmt, ...)
 
 static void log_line(char * pre)
 {
+    int i, len;
     char str[128]={'\0',};
     const int chars = 80;
-    int len = (pre == NULL)? 0: (int)strlen(pre);
+    for(i = 0 ; i< 3; i++) {str[i] = '=';}
+    str[i] = '\0';
+
+    len = (pre == NULL)? 0: (int)strlen(pre);
     if(len > 0)
     {
-        sprintf(str, "%s ", pre);
+        sprintf(str + 3, " %s ", pre);
         len = (int)strlen(str);
     }
-    for(int i = len ; i< chars; i++) {str[i] = '=';}
+
+    for(i = len ; i< chars; i++) {str[i] = '=';}
     str[chars] = '\0';
     printf("%s\n", str);
 }

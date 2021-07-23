@@ -865,7 +865,7 @@ int xevdm_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
             if (cbf_all)
             {
                 int is_coded_cbf_zero = xevdm_eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all, mcore->tree_cons, ctx->sps.chroma_format_idc);
-                
+
                 if (is_coded_cbf_zero)
                 {
                     core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, 0);
@@ -2591,7 +2591,7 @@ int xevdm_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, XE
         num_tiles_in_slice = sh->num_remaining_tiles_in_slice_minus1 + 2;
     }
 
-    if (nut == XEVD_IDR_NUT)
+    if (nut == XEVD_NUT_IDR)
     {
         xevd_bsr_read1(bs, &sh->no_output_of_prior_pics_flag);
     }
@@ -2655,7 +2655,7 @@ int xevdm_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, XE
         }
     }
 
-    if (nut != XEVD_IDR_NUT)
+    if (nut != XEVD_NUT_IDR)
     {
         if (sps->tool_pocs)
         {

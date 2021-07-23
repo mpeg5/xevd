@@ -339,13 +339,13 @@ static int eco_cbf(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 pred_mode, u8 cbf[N_C], i
         {
             cbf[U_C] = cbf[V_C] = 0;
         }
-        
+
         cbf[Y_C] = xevd_sbac_decode_bin(bs, sbac, sbac_ctx->cbf_luma);
         XEVD_TRACE_COUNTER;
         XEVD_TRACE_STR("cbf Y ");
         XEVD_TRACE_INT(cbf[Y_C]);
         XEVD_TRACE_STR("\n");
-        
+
     }
 
     return 0;
@@ -843,7 +843,7 @@ int xevd_eco_intra_dir(XEVD_BSR * bs, XEVD_SBAC * sbac, u8 mpm[2], u8 mpm_ext[8]
 {
     int ipm = 0;
     int mpm_flag;
-    
+
     mpm_flag = xevd_sbac_decode_bin(bs, sbac, sbac->ctx.intra_luma_pred_mpm_flag); /* intra_luma_pred_mpm_flag */
 
     if(mpm_flag)
@@ -1515,7 +1515,7 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
         num_tiles_in_slice = sh->num_remaining_tiles_in_slice_minus1 + 2;
     }
 
-    if (nut == XEVD_IDR_NUT)
+    if (nut == XEVD_NUT_IDR)
     {
         xevd_bsr_read1(bs, &sh->no_output_of_prior_pics_flag);
     }

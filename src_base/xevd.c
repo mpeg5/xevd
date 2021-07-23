@@ -297,7 +297,7 @@ static void make_stat(XEVD_CTX * ctx, int btype, XEVD_STAT * stat)
     if(ctx)
     {
         stat->read += XEVD_BSR_GET_READ_BYTE(&ctx->bs);
-        if(btype < XEVD_SPS_NUT)
+        if(btype < XEVD_NUT_SPS)
         {
             stat->fnum = ctx->pic_cnt;
             stat->stype = ctx->sh.slice_type;
@@ -400,7 +400,7 @@ void xevd_get_skip_motion(XEVD_CTX * ctx, XEVD_CORE * core)
     xevd_get_motion(core->scup, REFP_0, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, srefi[REFP_0], smvp[REFP_0]);
 
     core->refi[REFP_0] = srefi[REFP_0][core->mvp_idx[REFP_0]];
-   
+
     core->mv[REFP_0][MV_X] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_X];
     core->mv[REFP_0][MV_Y] = smvp[REFP_0][core->mvp_idx[REFP_0]][MV_Y];
 
@@ -607,7 +607,7 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
         }
         xevd_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val
             , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
-        
+
         xevd_set_dec_info(ctx, core);
     }
     else
@@ -697,7 +697,7 @@ static void copy_to_cu_data(XEVD_CTX *ctx, XEVD_CORE *core, int cud)
     core->cuh = 1 << core->log2_cuh;
     cu_data = &ctx->map_cu_data[core->lcu_num];
 
-    
+
     /* copy coef */
     size = core->cuw * sizeof(s16);
     s16* dst_coef = cu_data->coef[Y_C] + (y_in_lcu << ctx->log2_max_cuwh) + x_in_lcu;
@@ -789,7 +789,7 @@ static void copy_to_cu_data(XEVD_CTX *ctx, XEVD_CORE *core, int cud)
     {
         cu_data->ipm[1][idx] = core->ipm[1];
     }
-    
+
 }
 
 static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, int y0, int log2_cuw, int log2_cuh, int cup, int cud
@@ -1199,7 +1199,7 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
 
     int st_row_slice = sh->first_tile_id / w_tile;
     int st_col_slice = sh->first_tile_id % w_tile;
-        
+
     i = 0;
     for (tmp1 = 0; tmp1 < h_tile_slice; tmp1++)
     {
@@ -1210,7 +1210,7 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
             ctx->tile_in_slice[i++] = curr_row_slice * w_tile + curr_col_slice;
         }
     }
-    
+
     /* alloc tile information */
     if (slice_num == 0)
     {
@@ -1234,7 +1234,7 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
         t0 += row_h[i];
     }
     row_h[i] = h_lcu - t0;
-    
+
     /* update tile information */
     tidx = 0;
     tile = &ctx->tile[tidx];
@@ -1398,7 +1398,7 @@ int xevd_ctu_row_rec_mt(void * arg)
 
         xevd_assert_rv(core->lcu_num < ctx->f_lcu, XEVD_ERR_UNEXPECTED);
         xevd_mcpy(core->split_mode, ctx->map_split[core->lcu_num], sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-        
+
         ret = xevd_recon_tree(ctx, core, (core->x_lcu << ctx->log2_max_cuwh), (core->y_lcu << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0);
         xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
 
@@ -1475,7 +1475,7 @@ int xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core)
     int         num_tiles_in_slice = 1;
 
     bs   = &ctx->bs;
-    sbac = GET_SBAC_DEC(bs);    
+    sbac = GET_SBAC_DEC(bs);
     xevd_mcpy(&bs_temp, bs, sizeof(XEVD_BSR));
     xevd_mcpy(&sbac_temp, sbac, sizeof(XEVD_SBAC));
     ctx->sh.qp_prev_eco = ctx->sh.qp;
@@ -1656,7 +1656,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     /* parse nalu header */
     ret = xevd_eco_nalu(bs, nalu);
     xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-    if(nalu->nal_unit_type_plus1 - 1 == XEVD_SPS_NUT)
+    if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
         ret = xevd_eco_sps(bs, sps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -1668,7 +1668,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ret = sequence_init(ctx, sps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
-    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_PPS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
         ret = xevd_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -1676,7 +1676,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ret = picture_init(ctx);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
-    else if (nalu->nal_unit_type_plus1 - 1 < XEVD_SPS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 < XEVD_NUT_SPS)
     {
         /* decode slice header */
         sh->num_ctb = ctx->f_lcu;
@@ -1698,7 +1698,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             ctx->poc.prev_pic_max_poc_val = ctx->poc.poc_val;
         }
 
-        if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT)
+        if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR)
         {
             sh->poc_lsb = 0;
             ctx->poc.prev_doc_offset = -1;
@@ -1722,7 +1722,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ret = slice_init(ctx, ctx->core, sh);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         static u16 slice_num = 0;
-        
+
         ret = set_tile_info(ctx, ctx->core, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         if (ctx->num_ctb == 0)
@@ -1732,7 +1732,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         }
         ctx->slice_num = slice_num;
         slice_num++;
-        
+
         /* initialize reference pictures */
         ret = xevd_picman_refp_init(&ctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
         xevd_assert_rv(ret == XEVD_OK, ret);
@@ -1839,11 +1839,11 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             }
 
             /* put decoded picture to DPB */
-            ret = xevd_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, ctx->ref_pic_gap_length);
+            ret = xevd_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         }
     }
-    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_SEI_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SEI)
     {
         ret = xevd_eco_sei(ctx, bs);
 
@@ -1950,7 +1950,7 @@ int xevd_platform_init(XEVD_CTX *ctx)
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
     }
 #endif
-   
+
     ctx->fn_ready         = xevd_ready;
     ctx->fn_flush         = xevd_flush;
     ctx->fn_dec_cnk       = xevd_dec_nalu;
@@ -1998,7 +1998,7 @@ XEVD xevd_create(XEVD_CDSC * cdsc, int * err)
     //get the context synchronization handle
     ctx->sync_block = xevd_get_synchronized_object();
     xevd_assert_gv(ctx->sync_block != NULL, ret, XEVD_ERR_UNKNOWN, ERR);
-    
+
     if (ctx->tc.max_task_cnt > 1)
     {
         for (int i = 1; i < ctx->tc.max_task_cnt; i++)
@@ -2007,7 +2007,7 @@ XEVD xevd_create(XEVD_CDSC * cdsc, int * err)
             xevd_assert_gv(ctx->thread_pool[i] != NULL, ret, XEVD_ERR_UNKNOWN, ERR);
         }
     }
-   
+
     /* additional initialization for each platform, if needed */
     ret = xevd_platform_init(ctx);
     xevd_assert_g(ret == XEVD_OK, ERR);

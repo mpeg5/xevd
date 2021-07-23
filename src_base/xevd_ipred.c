@@ -374,8 +374,7 @@ void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int
 #define ADI_4T_FILTER_BITS                 7
 #define ADI_4T_FILTER_OFFSET              (1<<(ADI_4T_FILTER_BITS-1))
 
-__inline
-pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, int h
+static __inline pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 avail_lr, int ipm, int i, int j, int w, int pos_min, int pos_max, int h
     , int bit_depth)
 {
     int offset;

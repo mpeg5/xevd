@@ -34,9 +34,6 @@
 #ifdef X86_SSE
 extern XEVD_MC_L xevd_tbl_mc_l_sse[2][2];
 extern XEVD_MC_C xevd_tbl_mc_c_sse[2][2];
-extern XEVD_MC_L (*xevd_func_mc_l)[2];
-extern XEVD_MC_C (*xevd_func_mc_c)[2];
-extern XEVD_AVG_NO_CLIP xevd_func_average_no_clip;
 
 void xevd_average_16b_no_clip_sse(s16 *src, s16 *ref, s16 *dst, int s_src, int s_ref, int s_dst, int wd, int ht, int bit_depth);
 void xevd_mc_c_00_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth);

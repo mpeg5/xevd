@@ -445,7 +445,7 @@ static void make_stat(XEVD_CTX * ctx, int btype, XEVD_STAT * stat)
     if(ctx)
     {
         stat->read += XEVD_BSR_GET_READ_BYTE(&ctx->bs);
-        if(btype < XEVD_SPS_NUT)
+        if(btype < XEVD_NUT_SPS)
         {
             stat->fnum = ctx->pic_cnt;
             stat->stype = ctx->sh.slice_type;
@@ -2722,7 +2722,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     ret = xevd_eco_nalu(bs, nalu);
     xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     mctx->aps_temp = -1;
-    if(nalu->nal_unit_type_plus1 - 1 == XEVD_SPS_NUT)
+    if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
         ret = xevdm_eco_sps(bs, sps);
 
@@ -2739,7 +2739,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 
         msh->mmvd_group_enable_flag = sps->tool_mmvd;
     }
-    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_PPS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
         ret = xevdm_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -2748,7 +2748,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ret = picture_init(ctx);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
-    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_APS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_APS)
     {
         XEVD_ALF_SLICE_PARAM alf_control;
         alf_control.is_ctb_alf_on = 0;
@@ -2803,7 +2803,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         }
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
-    else if (nalu->nal_unit_type_plus1 - 1 < XEVD_SPS_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 < XEVD_NUT_SPS)
     {
         static u16 slice_num = 0;
         if (ctx->num_ctb == 0)
@@ -2840,7 +2840,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 
         if(!sps->tool_pocs) //sps_pocs_flag == 0
         {
-            if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT)
+            if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR)
             {
                 sh->poc_lsb = 0;
                 ctx->poc.prev_doc_offset = -1;
@@ -2857,7 +2857,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         }
         else //sps_pocs_flag == 1
         {
-            if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT)
+            if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR)
             {
                 sh->poc_lsb = 0;
                 ctx->poc.poc_val = 0;
@@ -3068,12 +3068,12 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             }
 
             /* put decoded picture to DPB */
-            ret = xevdm_picman_put_pic(&mctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_IDR_NUT, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
+            ret = xevdm_picman_put_pic(&mctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         }
         slice_deinit(ctx);
     }
-    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_SEI_NUT)
+    else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SEI)
     {
         ret = xevd_eco_sei(ctx, bs);
 
