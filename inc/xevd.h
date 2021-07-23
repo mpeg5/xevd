@@ -126,13 +126,13 @@
  * NALU types
  *****************************************************************************/
 #define XEVD_NAL_UNIT_LENGTH_BYTE        (4)
-#define XEVD_NONIDR_NUT                  (0)
-#define XEVD_IDR_NUT                     (1)
-#define XEVD_SPS_NUT                     (24)
-#define XEVD_PPS_NUT                     (25)
-#define XEVD_APS_NUT                     (26)
-#define XEVD_FD_NUT                      (27)
-#define XEVD_SEI_NUT                     (28)
+#define XEVD_NUT_NONIDR                  (0)
+#define XEVD_NUT_IDR                     (1)
+#define XEVD_NUT_SPS                     (24)
+#define XEVD_NUT_PPS                     (25)
+#define XEVD_NUT_APS                     (26)
+#define XEVD_NUT_FD                      (27)
+#define XEVD_NUT_SEI                     (28)
 
 /*****************************************************************************
  * slice type

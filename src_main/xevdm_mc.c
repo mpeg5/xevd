@@ -1334,7 +1334,8 @@ void xevd_DMVR_refine(int w, int h, pel *ref_l0, int s_ref_l0, pel *ref_l1, int 
     ref_l0 = ref_l0_Orig;
     ref_l1 = ref_l1_Orig;
 }
-__inline s32 div_for_maxq7(s64 N, s64 D)
+
+static __inline s32 div_for_maxq7(s64 N, s64 D)
 {
     s32 sign, q;
 
@@ -1856,8 +1857,8 @@ void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM]
     }
 }
 
-void xevdm_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], XEVD_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM], \
-    int poc_c, pel *dmvr_current_template, pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
+void xevdm_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16(*mv)[MV_D], XEVD_REFP(*refp)[REFP_NUM], pel pred[REFP_NUM][N_C][MAX_CU_DIM]
+    , int poc_c, pel *dmvr_current_template, pel dmvr_ref_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT)) * (MAX_CU_SIZE + ((DMVR_NEW_VERSION_ITER_COUNT + 1) * REF_PRED_EXTENTION_PEL_COUNT))]
     , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)], BOOL apply_DMVR, pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE], u8 *cu_dmvr_flag, s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
     , int sps_admvp_flag, int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc)
 {
