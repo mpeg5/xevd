@@ -514,7 +514,7 @@ int main(int argc, const char **argv)
             if(stat.read - XEVD_NAL_UNIT_LENGTH_BYTE != bs_size)
             {
                 logv0("\t=> different reading of bitstream (in:%d, read:%d)\n",
-                    bs_size, stat.read);
+                    bs_size, stat.read - XEVD_NAL_UNIT_LENGTH_BYTE);
             }
 
             /* print extra config */

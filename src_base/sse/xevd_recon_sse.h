@@ -28,19 +28,14 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _XEVD_ITDQ_H_
-#define _XEVD_ITDQ_H_
+#ifndef _XEVD_RECON_SSE_H_
+#define _XEVD_RECON_SSE_H_
+
+
 #include "xevd_def.h"
-typedef void INV_TRANS(s16 *, s16 *, int, int, int, int);
-extern const XEVD_ITXB xevd_tbl_itxb[MAX_TR_LOG2];
-void xevd_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, int bit_depth);
-void xevd_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v
-                       , int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int bit_depth, int chroma_format_idc);
-void xevd_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift);
-void xevd_itx_pb2b(void* src, void* dst, int shift, int line, int step);
-void xevd_itx_pb4b(void* src, void* dst, int shift, int line, int step);
-void xevd_itx_pb8b(void* src, void* dst, int shift, int line, int step);
-void xevd_itx_pb16b(void* src, void* dst, int shift, int line, int step);
-void xevd_itx_pb32b(void* src, void* dst, int shift, int line, int step);
-void xevd_itx_pb64b(void* src, void* dst, int shift, int line, int step);
-#endif /* _XEVD_ITDQ_H_ */
+
+#if X86_SSE
+void xevd_recon_sse(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, int bit_depth);
+#endif /* X86_SSE */
+
+#endif /* _XEVD_RECON_SSE_H_  */

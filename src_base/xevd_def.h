@@ -356,7 +356,7 @@ extern int fp_trace_started;
 /*****************************************************************************
 * Transform
 *****************************************************************************/
-
+typedef void(*XEVD_ITXB)(void* coef, void* t, int shift, int line, int step);
 #define PI                                (3.14159265358979323846)
 
 /*****************************************************************************
@@ -1220,7 +1220,7 @@ typedef struct _XEVD_CORE
     u16            y_pel;
 
     /* split mode map for current LCU */
-    s8             split_mode[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8             (*split_mode)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
 
     /* platform specific data, if needed */
     void          *pf;
@@ -1411,6 +1411,8 @@ struct _XEVD_CTX
     int  ( * fn_deblock)(void * arg);
     /* function address of picture buffer expand */
     void (* fn_picbuf_expand)(XEVD_CTX * ctx, XEVD_PIC * pic);
+    const XEVD_ITXB ( * fn_itxb)[MAX_TR_LOG2];
+    void  ( * fn_recon) (s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec,int bit_depth);
     /* platform specific data, if needed */
     void                  * pf;
 
@@ -1445,5 +1447,9 @@ int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
 #include "xevd_df.h"
 #include "xevd_mc_sse.h"
 #include "xevd_mc_avx.h"
+#include "xevd_itdq_sse.h"
+#include "xevd_itdq_avx.h"
+#include "xevd_recon_avx.h"
+#include "xevd_recon_sse.h"
 
 #endif /* _XEVD_DEF_H_ */

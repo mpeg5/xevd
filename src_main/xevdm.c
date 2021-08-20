@@ -470,7 +470,7 @@ static void make_stat(XEVD_CTX * ctx, int btype, XEVD_STAT * stat)
 static void xevdm_itdq_main(XEVD_CTX * ctx, XEVD_CORE * core)
 {
     XEVDM_CORE * mcore = (XEVDM_CORE *)core;
-    xevdm_sub_block_itdq(core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt, core->pred_mode == MODE_IBC ? 0 : mcore->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((mcore->ats_intra_mode_h << 1) | mcore->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : mcore->ats_inter_info, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+    xevdm_sub_block_itdq(ctx, core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt, core->pred_mode == MODE_IBC ? 0 : mcore->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((mcore->ats_intra_mode_h << 1) | mcore->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : mcore->ats_inter_info, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
 }
 
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, XEVD_CTX * ctx, XEVD_CORE * core)
@@ -1725,8 +1725,8 @@ static int xevd_recon_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int c
     mcore->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons };
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     lcu_num = core->lcu_num; //(x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
-    xevd_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_split[lcu_num]);
-    xevdm_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, mctx->map_suco[lcu_num]);
+    xevd_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, &ctx->map_split[lcu_num]);
+    xevdm_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, &mctx->map_suco[lcu_num]);
 
     if(split_mode != NO_SPLIT)
     {
@@ -1807,8 +1807,8 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
     XEVDM_CORE *mcore = (XEVDM_CORE *)core;
     mcore->tree_cons = ( TREE_CONS ) { FALSE, tree_cons.tree_type, tree_cons.mode_cons };
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
-    xevd_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_split[lcu_num]);
-    xevdm_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, mctx->map_suco[lcu_num]);
+    xevd_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, &ctx->map_split[lcu_num]);
+    xevdm_get_suco_flag(&suco_flag, cud, cup, cuw, cuh, ctx->max_cuwh, &mctx->map_suco[lcu_num]);
 
     if(split_mode != NO_SPLIT)
     {
@@ -2276,7 +2276,9 @@ int xevd_tile_eco(void * arg)
         int split_allow[6] = { 0, 0, 0, 0, 0, 1 };
         xevd_assert_rv(core->lcu_num < ctx->f_lcu, XEVD_ERR_UNEXPECTED);
 
-        xevd_mset(core->split_mode, 0, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
+        core->split_mode = &ctx->map_split[core->lcu_num];
+        mcore->suco_flag = &mctx->map_suco[core->lcu_num];
+
         XEVD_ALF_SLICE_PARAM* alf_slice_param = &(mctx->sh.alf_sh_param);
         if ((alf_slice_param->is_ctb_alf_on) && (mctx->sh.alf_on))
         {
@@ -2297,15 +2299,14 @@ int xevd_tile_eco(void * arg)
         //Recursion to do entropy decoding for the entire CTU
         ret = xevd_entropy_decode_tree(ctx, core, core->x_pel, core->y_pel, ctx->log2_max_cuwh, ctx->log2_max_cuwh, 0, 0, bs, sbac, 1
             , 0, NO_SPLIT, same_layer_split, 0, split_allow, 0, 0, 0, eAll);
-
         xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
-        xevd_mcpy(ctx->map_split[core->lcu_num], core->split_mode, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-        xevd_mcpy(mctx->map_suco[core->lcu_num], mcore->suco_flag, sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
         lcu_cnt_in_tile--;
         if (lcu_cnt_in_tile == 0)
         {
-            assert(xevd_eco_tile_end_flag(bs, sbac) == 1);
+            xevd_assert_gv(xevd_eco_tile_end_flag(bs, sbac) == 1, ret, XEVD_ERR, ERR);
+            ret = xevd_eco_cabac_zero_word(bs);
+            xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
             break;
         }
         core->x_lcu++;
@@ -2347,7 +2348,6 @@ int xevd_ctu_row_rec_mt(void * arg)
     //LCU decoding with in a tile
     while (ctx->tile[tile_idx].f_ctb > 0)
     {
-
         if (core->y_lcu != sp_y_lcu && core->x_lcu < (sp_x_lcu + ctx->tile[tile_idx].w_ctb - 1))
         {
             /* up-right CTB */
@@ -2355,9 +2355,6 @@ int xevd_ctu_row_rec_mt(void * arg)
         }
 
         xevd_assert_rv(core->lcu_num < ctx->f_lcu, XEVD_ERR_UNEXPECTED);
-
-        xevd_mcpy(core->split_mode, ctx->map_split[core->lcu_num], sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
-        xevd_mcpy(mcore->suco_flag, mctx->map_suco[core->lcu_num], sizeof(s8) * NUM_CU_DEPTH * NUM_BLOCK_SHAPE * MAX_CU_CNT_IN_LCU);
 
         if (ctx->sps.tool_hmvp && core->x_lcu == sp_x_lcu) //This condition will reset history buffer
         {
@@ -2391,6 +2388,7 @@ int xevd_tile_mt(void * arg)
     int          thread_idx = core->thread_idx + ctx->tc.tile_task_num;
 
     xevd_tile_eco(arg);
+    xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
     for (int thread_cnt = 1; thread_cnt < ctx->tc.task_num_in_tile[core->tile_num]; thread_cnt++)
     {
@@ -2430,9 +2428,9 @@ int xevd_tile_mt(void * arg)
 int xevdm_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core)
 {
     XEVD_BSR   * bs;
-    XEVD_SBAC * sbac;
+    XEVD_SBAC  * sbac;
     XEVD_TILE  * tile;
-    XEVD_CORE * core_mt;
+    XEVD_CORE  * core_mt;
     XEVD_BSR     bs_temp;
     XEVD_SBAC    sbac_temp;
 
@@ -2505,6 +2503,7 @@ int xevdm_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core)
         }
 
         ret = xevd_tile_mt((void *)core_mt);
+        xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
 
         for (thread_idx = 1; thread_idx < num_tiles_proc; thread_idx++)
         {
@@ -3228,44 +3227,47 @@ int xevdm_platform_init(XEVD_CTX *ctx)
 
     if (support_avx2)
     {
-        xevd_func_itrans            = xevdm_itrans_map_tbl_sse;
+        xevd_func_itrans     = xevdm_itrans_map_tbl_sse;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l_sse;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c_sse;
-        xevdm_func_bl_mc_l = xevdm_tbl_bl_mc_l_sse;
-        //xevdm_func_dmvr_sad = xevdm_dmvr_sad
+        xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l_sse;
+        xevd_func_mc_l       = xevd_tbl_mc_l_avx;
+        xevd_func_mc_c       = xevd_tbl_mc_c_avx;
         xevd_func_average_no_clip = xevd_average_16b_no_clip_sse;
+        ctx->fn_itxb         = &xevd_tbl_itxb_avx;
     }
     else if (support_sse)
     {
-        xevd_func_itrans            = xevdm_itrans_map_tbl_sse;
+        xevd_func_itrans     = xevdm_itrans_map_tbl_sse;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l_sse;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c_sse;
-        xevdm_func_bl_mc_l = xevdm_tbl_bl_mc_l_sse;
-        //xevd_func_mc_l = xevd_tbl_mc_l_sse;
-        //xevd_func_mc_c = xevd_tbl_mc_c_sse;
+        xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l_sse;
+        xevd_func_mc_l       = xevd_tbl_mc_l_sse;
+        xevd_func_mc_c       = xevd_tbl_mc_c_sse;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip_sse;
+        ctx->fn_itxb         = &xevd_tbl_itxb_sse;
     }
     else
     {
-        xevd_func_itrans            = xevdm_itrans_map_tbl;
+        xevd_func_itrans     = xevdm_itrans_map_tbl;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c;
-        xevdm_func_bl_mc_l = xevdm_tbl_bl_mc_l;
-        //xevdm_func_dmvr_sad = xevdm_dmvr_sad
-        //xevd_func_mc_l = xevd_tbl_mc_l;
-        //xevd_func_mc_c = xevd_tbl_mc_c;
+        xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l;
+        xevd_func_mc_l       = xevd_tbl_mc_l;
+        xevd_func_mc_c       = xevd_tbl_mc_c;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
+        ctx->fn_itxb         = &xevd_tbl_itxb;
     }
 #else
     {
-        xevd_func_itrans            = xevdm_itrans_map_tbl;
+        xevd_func_itrans     = xevdm_itrans_map_tbl;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c;
-        xevdm_func_bl_mc_l = xevdm_tbl_bl_mc_l;
-        //xevdm_func_dmvr_sad = xevdm_dmvr_sad;
-        xevd_func_mc_l = xevd_tbl_mc_l;
-        xevd_func_mc_c = xevd_tbl_mc_c;
+        xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l;
+        xevd_func_mc_l       = xevd_tbl_mc_l;
+        xevd_func_mc_c       = xevd_tbl_mc_c;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
+        ctx->fn_itxb         = xevd_tbl_itxb;
     }
 #endif
     ctx->fn_ready         = xevdm_ready;

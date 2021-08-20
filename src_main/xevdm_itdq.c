@@ -709,7 +709,7 @@ static XEVD_ITX tbl_itx[MAX_TR_LOG2] =
     itx_pb64
 };
 
-void xevdm_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag, int bit_depth)
+static void xevdm_itrans(XEVD_CTX * ctx, s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag, int bit_depth)
 {
     if(iqt_flag)
     {
@@ -721,9 +721,8 @@ void xevdm_itrans(s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag, int bit_d
     else
     {
         s32 tb[MAX_TR_DIM]; /* temp buffer */
-        tbl_itxb[log2_cuh - 1](coef, tb, 0, 1 << log2_cuw, 0);
-        tbl_itxb[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2(bit_depth)), 1 << log2_cuh, 1);
-
+        (*ctx->fn_itxb)[log2_cuh - 1](coef, tb, 0, 1 << log2_cuw, 0);
+        (*ctx->fn_itxb)[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2(bit_depth)), 1 << log2_cuh, 1);
     }
 }
 
@@ -734,7 +733,7 @@ void xevdm_itrans_ats_intra(s16* coef, int log2_w, int log2_h, u8 ats_mode, int 
 }
 
 
-void xevdm_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth)
+void xevdm_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth)
 {
     s32 offset;
     u8 shift;
@@ -787,11 +786,11 @@ void xevdm_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 a
     }
     else
     {
-        xevdm_itrans(coef, log2_w, log2_h, iqt_flag, bit_depth);
+        xevdm_itrans(ctx, coef, log2_w, log2_h, iqt_flag, bit_depth);
     }
 }
 
-void xevdm_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
+void xevdm_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
                         , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int bit_depth, int chroma_format_idc)
 {
     s16 *coef_temp[N_C];
@@ -866,11 +865,11 @@ void xevdm_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh,
 
                     if(c == 0)
                     {
-                        xevdm_itdq(coef_temp[c], log2_w_sub, log2_h_sub, scale, iqt_flag, ats_intra_cu_on, ats_mode_idx, bit_depth);
+                        xevdm_itdq(ctx, coef_temp[c], log2_w_sub, log2_h_sub, scale, iqt_flag, ats_intra_cu_on, ats_mode_idx, bit_depth);
                     }
                     else
                     {
-                        xevdm_itdq(coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc)), scale, iqt_flag, ats_intra_cu_on, ats_mode_idx, bit_depth);
+                        xevdm_itdq(ctx, coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc)), scale, iqt_flag, ats_intra_cu_on, ats_mode_idx, bit_depth);
                     }
 
                     if(loop_h + loop_w > 2)

@@ -138,9 +138,9 @@ void xevd_get_mv_dir(XEVD_REFP refp[REFP_NUM], u32 poc, int scup, int c_scu, u16
 int  xevd_get_avail_cu(int neb_scua[MAX_NEB2], u32 * map_cu, u8 * map_tidx);
 int  xevd_scan_tbl_init(XEVD_CTX * ctx);
 int  xevd_scan_tbl_delete(XEVD_CTX * ctx);
-int  xevd_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+int  xevd_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (* split_mode_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 
-void xevd_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
+void xevd_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 u16 xevd_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu, u8* map_tidx);
 
 /* MD5 structure */

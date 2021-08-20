@@ -147,7 +147,7 @@
 }
 #endif
 
-static void itx_pb2b(void *src, void *dst, int shift, int line, int step)
+void xevd_itx_pb2b(void *src, void *dst, int shift, int line, int step)
 {
     int j;
     s64 E, O;
@@ -180,7 +180,7 @@ static void itx_pb2b(void *src, void *dst, int shift, int line, int step)
     }
 }
 
-static void itx_pb4b(void *src, void *dst, int shift, int line, int step)
+void xevd_itx_pb4b(void *src, void *dst, int shift, int line, int step)
 {
     int j;
     s64 E[2], O[2];
@@ -215,6 +215,7 @@ static void itx_pb4b(void *src, void *dst, int shift, int line, int step)
     if (step == 0)
     {
         RUN_ITX_PB4(src, dst, s16, s32);
+
     }
     else
     {
@@ -223,7 +224,7 @@ static void itx_pb4b(void *src, void *dst, int shift, int line, int step)
 
 }
 
-static void itx_pb8b(void *src, void *dst, int shift, int line, int step)
+void xevd_itx_pb8b(void *src, void *dst, int shift, int line, int step)
 {
     int j, k;
     s64 E[4], O[4];
@@ -278,7 +279,7 @@ static void itx_pb8b(void *src, void *dst, int shift, int line, int step)
     }
 }
 
-static void itx_pb16b(void *src, void *dst, int shift, int line, int step)
+void xevd_itx_pb16b(void *src, void *dst, int shift, int line, int step)
 {
     int j, k;
     s64 E[8], O[8];
@@ -343,11 +344,11 @@ static void itx_pb16b(void *src, void *dst, int shift, int line, int step)
     }
     else
     {
-        RUN_ITX_PB16(src, dst, s32, s16);    
+        RUN_ITX_PB16(src, dst, s32, s16);
     }
 }
 
-static void itx_pb32b(void *src, void *dst, int shift, int line, int step)
+void xevd_itx_pb32b(void *src, void *dst, int shift, int line, int step)
 {
     int j, k;
     s64 E[16], O[16];
@@ -446,7 +447,7 @@ static void itx_pb32b(void *src, void *dst, int shift, int line, int step)
 
 }
 
-static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
+void xevd_itx_pb64b(void *src, void *dst, int shift, int line, int step)
 {
     const int tx_size = 64;
     const s8 *tm = xevd_tbl_tm64[0];
@@ -561,31 +562,22 @@ static void itx_pb64b(void *src, void *dst, int shift, int line, int step)
     
 }
 
-
-
-XEVD_ITXB tbl_itxb[MAX_TR_LOG2] =
+const XEVD_ITXB xevd_tbl_itxb[MAX_TR_LOG2] =
 {
-    itx_pb2b,
-    itx_pb4b,
-    itx_pb8b,
-    itx_pb16b,
-    itx_pb32b,
-    itx_pb64b
+    xevd_itx_pb2b,
+    xevd_itx_pb4b,
+    xevd_itx_pb8b,
+    xevd_itx_pb16b,
+    xevd_itx_pb32b,
+    xevd_itx_pb64b
 };
 
-typedef void(*XEVD_ITX)(s16 *coef, s16 *t, int shift, int line);
-
-void xevd_itrans(s16 *coef, int log2_cuw, int log2_cuh
-    , int bit_depth)
+static void xevd_itrans(XEVD_CTX * ctx, s16 *coef, int log2_cuw, int log2_cuh, int bit_depth)
 {
-    {
-        s32 tb[MAX_TR_DIM]; /* temp buffer */
-        tbl_itxb[log2_cuh - 1](coef, tb, 0, 1 << log2_cuw, 0);
-        tbl_itxb[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2(bit_depth)), 1 << log2_cuh, 1);
-
-    }
+    s32 tb[MAX_TR_DIM];
+    (*ctx->fn_itxb)[log2_cuh - 1](coef, tb, 0, 1 << log2_cuw, 0);
+    (*ctx->fn_itxb)[log2_cuw - 1](tb, coef, (ITX_SHIFT1 + ITX_SHIFT2(bit_depth)), 1 << log2_cuh, 1);
 }
-
 
 void xevd_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 shift)
 {
@@ -601,7 +593,7 @@ void xevd_dquant(s16 *coef, int log2_w, int log2_h, int scale, s32 offset, u8 sh
 }
 
 
-void xevd_itdq(s16 *coef, int log2_w, int log2_h, int scale, int bit_depth)
+void xevd_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, int bit_depth)
 {
     s32 offset;
     u8 shift;
@@ -648,15 +640,11 @@ void xevd_itdq(s16 *coef, int log2_w, int log2_h, int scale, int bit_depth)
     skip_w = cuw - 1 - max_x;
     skip_h = cuh - 1 - max_y;
 
-    
-    {
-        xevd_itrans(coef, log2_w, log2_h, bit_depth);
-    }
+    xevd_itrans(ctx, coef, log2_w, log2_h, bit_depth);
 }
 
-void xevd_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM]
-    , int bit_depth
-    , int chroma_format_idc)
+void xevd_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C]
+                       , int nnz_sub[N_C][MAX_SUB_TB_NUM], int bit_depth, int chroma_format_idc)
 {
     s16 *coef_temp[N_C];
     s16 coef_temp_buf[N_C][MAX_TR_DIM];
@@ -712,12 +700,11 @@ void xevd_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, 
 
                     if (c == 0)
                     {
-                        xevd_itdq(coef_temp[c], log2_w_sub, log2_h_sub, scale, bit_depth);
+                        xevd_itdq(ctx, coef_temp[c], log2_w_sub, log2_h_sub, scale, bit_depth);
                     }
                     else
                     {
-                        xevd_itdq(coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc)), scale
-                            , bit_depth);
+                        xevd_itdq(ctx, coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc)), scale, bit_depth);
                     }
 
                     if (loop_h + loop_w > 2)

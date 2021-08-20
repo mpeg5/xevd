@@ -1096,7 +1096,7 @@ int xevd_scan_tbl_delete(XEVD_CTX * ctx)
     return XEVD_OK;
 }
 
-int xevd_get_split_mode(s8 *split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
+int xevd_get_split_mode(s8 *split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (* split_mode_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = XEVD_OK;
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
@@ -1108,18 +1108,18 @@ int xevd_get_split_mode(s8 *split_mode, int cud, int cup, int cuw, int cuh, int 
         return ret;
     }
 
-    *split_mode = split_mode_buf[cud][shape][pos];
+    *split_mode = (*split_mode_buf)[cud][shape][pos];
 
     return ret;
 }
 
-void xevd_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
+void xevd_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (XEVD_CONV_LOG2(cuw) - XEVD_CONV_LOG2(cuh));
 
     if(cuw >= 8 || cuh >= 8)
-        split_mode_buf[cud][shape][pos] = split_mode;
+        (*split_mode_buf)[cud][shape][pos] = split_mode;
 }
 
 
@@ -1489,7 +1489,7 @@ int xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16]
 
 void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
 {
-    s8  (*map_refi)[REFP_NUM];
+    s8 (*map_refi)[REFP_NUM];
     s16 (*map_mv)[REFP_NUM][MV_D];
 
     u32  *map_scu;
@@ -1508,72 +1508,68 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
     h_cu = (1 << core->log2_cuh) >> MIN_CU_LOG2;
     w_scu = ctx->w_scu;
     map_refi = ctx->map_refi + scup;
-    map_scu  = ctx->map_scu + scup;
-    map_mv   = ctx->map_mv + scup;
+    map_scu = ctx->map_scu + scup;
+    map_mv = ctx->map_mv + scup;
 
-    map_ipm  = ctx->map_ipm + scup;
+    map_ipm = ctx->map_ipm + scup;
 
     flag = (core->pred_mode == MODE_INTRA) ? 1 : 0;
     map_cu_mode = ctx->map_cu_mode + scup;
 
 
-
-
-    for(i = 0; i < h_cu; i++)
+    u32 temp1, temp2;
+    
+    if (core->pred_mode == MODE_SKIP)
     {
-        for(j = 0; j < w_cu; j++)
-        {
-            if(core->pred_mode == MODE_SKIP)
-            {
-                MCU_SET_SF(map_scu[j]);
-            }
-            else
-            {
-                MCU_CLR_SF(map_scu[j]);
-            }
-
-            int sub_idx = ((!!(i & 32)) << 1) | (!!(j & 32));
-            if (core->is_coef_sub[Y_C][sub_idx])
-            {
-                MCU_SET_CBFL(map_scu[j]);
-            }
-            else
-            {
-                MCU_CLR_CBFL(map_scu[j]);
-            }
-
-
-            MCU_SET_LOGW(map_cu_mode[j], core->log2_cuw);
-            MCU_SET_LOGH(map_cu_mode[j], core->log2_cuh);
-            MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
-
-
-            map_refi[j][REFP_0] = core->refi[REFP_0];
-            map_refi[j][REFP_1] = core->refi[REFP_1];
-
-            map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-            map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-            map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-            map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
-
-            map_ipm[j] = core->ipm[0];
-        }
-        map_refi += w_scu;
-        map_mv += w_scu;
-
-        map_scu += w_scu;
-        map_ipm += w_scu;
-
-        map_cu_mode += w_scu;
+        MCU_SET_SF(map_scu[0]);
+    }
+    else
+    {
+        MCU_CLR_SF(map_scu[0]);
     }
 
+    if (core->is_coef_sub[Y_C][0])
+    {
+        MCU_SET_CBFL(map_scu[0]);
+    }
+    else
+    {
+        MCU_CLR_CBFL(map_scu[0]);
+    }
 
-    map_refi = ctx->map_refi + scup;
-    map_mv = ctx->map_mv + scup;
+    MCU_SET_LOGW(map_cu_mode[0], core->log2_cuw);
+    MCU_SET_LOGH(map_cu_mode[0], core->log2_cuh);
+    MCU_SET_IF_COD_SN_QP(map_scu[0], flag, ctx->slice_num, core->qp);
 
-    xevd_mcpy(core->mv, map_mv, sizeof(core->mv));
-    xevd_mcpy(core->refi, map_refi, sizeof(core->refi));
 
+    temp1 = map_scu[0];
+    temp2 = map_cu_mode[0];
+
+    for (j = 0; j < w_cu; j++)
+    {
+        map_scu[j] = temp1;
+        map_cu_mode[j] = temp2;
+
+        map_refi[j][REFP_0] = core->refi[REFP_0];
+        map_refi[j][REFP_1] = core->refi[REFP_1];
+
+        map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+        map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+        map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+        map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
+    }
+
+     xevd_mset(map_ipm, core->ipm[0], w_cu*sizeof(core->ipm[0]));
+      
+    for (i = 1; i < h_cu; i++)
+    {
+        xevd_mcpy(map_mv + i*w_scu, map_mv, 4*w_cu*sizeof(s16));
+        xevd_mcpy(map_refi + i*w_scu, map_refi, 2*w_cu*sizeof(s8));
+        xevd_mcpy(map_scu + i*w_scu, map_scu, w_cu*sizeof(map_scu[0]));
+        xevd_mcpy(map_cu_mode + i*w_scu, map_cu_mode, w_cu*sizeof(map_cu_mode[0]));
+        xevd_mcpy(map_ipm + i*w_scu, map_ipm, w_cu*sizeof(core->ipm[0]));       
+    } 
+          
 #if MVF_TRACE
     // Trace MVF in decoder
     {
@@ -1581,7 +1577,7 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
         map_scu = ctx->map_scu + scup;
         map_mv = ctx->map_mv + scup;
 
-        for(i = 0; i < h_cu; i++)
+        for (i = 0; i < h_cu; i++)
         {
             for (j = 0; j < w_cu; j++)
             {
@@ -1610,4 +1606,3 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
     }
 #endif
 }
-

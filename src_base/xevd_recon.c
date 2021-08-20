@@ -67,15 +67,17 @@ void xevd_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, 
     }
 }
 
-void xevd_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C], XEVD_PIC *pic, int bit_depth, int chroma_format_idc)
+void xevd_recon_yuv(XEVD_CTX * ctx, XEVD_CORE* core, int x, int y, int cuw, int cuh)
 {
     pel * rec;
     int s_rec, off;
-
+    XEVD_PIC * pic = ctx->pic;
+    int bit_depth = ctx->sps.bit_depth_luma_minus8 + 8; 
+    int chroma_format_idc = ctx->sps.chroma_format_idc;
     /* Y */
     s_rec = pic->s_l;
     rec = pic->y + (y * s_rec) + x;
-    xevd_recon(coef[Y_C], pred[Y_C], nnz[Y_C], cuw, cuh, s_rec, rec, bit_depth);
+    ctx->fn_recon(core->coef[Y_C], core->pred[0][Y_C], core->is_coef[Y_C], cuw, cuh, s_rec, rec, bit_depth);
     
     if (chroma_format_idc != 0)   
     {
@@ -84,7 +86,7 @@ void xevd_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], p
         cuh >>= (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc));
         off = (x >> (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc))) + (y >> (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc))) * pic->s_c;
 
-        xevd_recon(coef[U_C], pred[U_C], nnz[U_C], cuw, cuh, pic->s_c, pic->u + off,  bit_depth);
-        xevd_recon(coef[V_C], pred[V_C], nnz[V_C], cuw, cuh, pic->s_c, pic->v + off,  bit_depth);
+        ctx->fn_recon(core->coef[U_C], core->pred[0][U_C], core->is_coef[U_C], cuw, cuh, pic->s_c, pic->u + off,  bit_depth);
+        ctx->fn_recon(core->coef[V_C], core->pred[0][V_C], core->is_coef[V_C], cuw, cuh, pic->s_c, pic->v + off,  bit_depth);
     }
 }
