@@ -538,7 +538,7 @@ typedef struct _XEVDM_CORE
     u8             ibc_skip_flag;
     u8             ibc_merge_flag;
     /* SUCO flag for current LCU */
-    s8             suco_flag[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
+    s8          (* suco_flag)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
 
     s16            mmvd_idx;
     u8             mmvd_flag;
@@ -549,7 +549,7 @@ typedef struct _XEVDM_CORE
 
     /* ATS_INTER info (index + position)*/
     u8             ats_inter_info;
-    u8            dmvr_flag;
+    u8             dmvr_flag;
     // spatial neighboring MV of affine block
     s8             refi_sp[REFP_NUM];
     s16            mv_sp[REFP_NUM][MV_D];

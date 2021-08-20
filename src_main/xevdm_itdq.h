@@ -41,8 +41,8 @@
 #include "xevdm_itdq_sse.h"
 extern INV_TRANS *(*xevd_func_itrans)[5];
 extern INV_TRANS *xevdm_itrans_map_tbl[16][5];
-void xevdm_itdq(s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth);
-void xevdm_sub_block_itdq(s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
+void xevdm_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth);
+void xevdm_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
                         , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int bit_depth, int chroma_format_idc);
 void xevdm_itrans_ats_intra_DST7_B4(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);
 void xevdm_itrans_ats_intra_DCT8_B4(s16 *coeff, s16 *block, int shift, int line, int skip_line, int skip_line_2);

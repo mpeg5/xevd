@@ -1679,23 +1679,23 @@ void xevdm_check_split_mode(int *split_allow, int log2_cuw, int log2_cuh, int bo
     }
 }
 
-int xevdm_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
+int xevdm_get_suco_flag(s8* suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (* suco_flag_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int ret = XEVD_OK;
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (XEVD_CONV_LOG2(cuw) - XEVD_CONV_LOG2(cuh));
 
-    *suco_flag = suco_flag_buf[cud][shape][pos];
+    *suco_flag = (*suco_flag_buf)[cud][shape][pos];
 
     return ret;
 }
 
-void xevdm_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
+void xevdm_set_suco_flag(s8  suco_flag, int cud, int cup, int cuw, int cuh, int lcu_s, s8(*suco_flag_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU])
 {
     int pos = cup + (((cuh >> 1) >> MIN_CU_LOG2) * (lcu_s >> MIN_CU_LOG2) + ((cuw >> 1) >> MIN_CU_LOG2));
     int shape = SQUARE + (XEVD_CONV_LOG2(cuw) - XEVD_CONV_LOG2(cuh));
 
-    suco_flag_buf[cud][shape][pos] = suco_flag;
+    (*suco_flag_buf)[cud][shape][pos] = suco_flag;
 
 }
 
@@ -4483,7 +4483,7 @@ static int draw_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y,
     int     dx, dy, cup1, cup2, cup3;
 
     lcu_num = (x >> ctx->log2_max_cuwh) + (y >> ctx->log2_max_cuwh) * ctx->w_lcu;
-    xevd_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, ctx->map_split[lcu_num]);
+    xevd_get_split_mode(&split_mode, cud, cup, cuw, cuh, ctx->max_cuwh, &ctx->map_split[lcu_num]);
 
     if (split_mode != NO_SPLIT && !(cuw == 4 && cuh == 4))
     {

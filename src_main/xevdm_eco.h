@@ -47,16 +47,10 @@ int xevdm_eco_dra_aps_param(XEVD_BSR * bs, XEVD_APS_GEN * aps, int bit_depth);
 int xevdm_eco_aps(XEVD_BSR * bs, XEVD_APS * aps);
 int xevdm_eco_alf_aps_param(XEVD_BSR * bs, XEVD_APS * aps);
 int xevdm_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, XEVDM_SH * msh, int nut);
-
 void xevdm_eco_sbac_reset(XEVD_BSR * bs, u8 slice_type, u8 slice_qp, int sps_cm_init_flag);
 int xevdm_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core);
-
 s8 xevdm_eco_split_mode(XEVD_CTX * ctx, XEVD_BSR *bs, XEVD_SBAC *sbac, int cuw, int cuh, const int parent_split, int* same_layer_split, const int node_idx, const int* parent_split_allow, int* curr_split_allow, int qt_depth, int btt_depth, int x, int y, MODE_CONS mode_cons, XEVD_CORE * core);
 s8 xevdm_eco_suco_flag(XEVD_BSR *bs, XEVD_SBAC *sbac, XEVD_CTX *c, XEVD_CORE *core, int cuw, int cuh, s8 split_mode, int boundary, u8 log2_max_cuwh, int parent_suco);
-
-#define xevd_eco_tile_end_flag(bs, sbac) \
-    ((int)xevd_sbac_decode_bin_trm((bs), (sbac)))
-
 int xevdm_eco_affine_mrg_idx(XEVD_BSR * bs, XEVD_SBAC * sbac);
 MODE_CONS xevdm_eco_mode_constr( XEVD_BSR *bs, u8 ctx_num );
 

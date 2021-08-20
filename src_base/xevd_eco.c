@@ -1310,6 +1310,7 @@ int xevd_eco_sps(XEVD_BSR * bs, XEVD_SPS * sps)
 #endif
     xevd_bsr_read_ue(bs, &sps->sps_seq_parameter_set_id);
     xevd_bsr_read(bs, &sps->profile_idc, 8);
+    xevd_assert_rv((sps->profile_idc == PROFILE_BASELINE || sps->profile_idc == PROFILE_STILL_PIC_BASELINE) , XEVD_ERR);
     xevd_bsr_read(bs, &sps->level_idc, 8);
     xevd_bsr_read(bs, &sps->toolset_idc_h, 32);
     xevd_bsr_read(bs, &sps->toolset_idc_l, 32);
@@ -1614,4 +1615,15 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
 u32  xevd_eco_tile_end_flag(XEVD_BSR * bs, XEVD_SBAC * sbac)
 {
     return xevd_sbac_decode_bin_trm(bs, sbac);
+}
+
+s32  xevd_eco_cabac_zero_word(XEVD_BSR* bs)
+{
+    u32 cabac_zero_word = 1;
+    while ((bs->cur < bs->end) || (bs->leftbits != 0))
+    {
+        xevd_bsr_read(bs, &cabac_zero_word, 16);
+        xevd_assert_rv(cabac_zero_word == 0, XEVD_ERR);
+    }
+    return XEVD_OK;
 }

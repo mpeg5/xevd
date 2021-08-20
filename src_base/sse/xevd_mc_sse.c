@@ -2280,12 +2280,10 @@ void xevd_mc_c_n0_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 {
     int       dx;
 
-
     dx = gmv_x & 31;
     ref += (gmv_y >> (MC_PRECISION + 1)) * s_ref + (gmv_x >> (MC_PRECISION + 1)) - 1;
 
     int max = ((1 << bit_depth) - 1);
-
     int min = 0;
 
     mc_filter_c_4pel_horz_sse(ref, s_ref, pred, s_pred, tbl_mc_c_coeff[dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
@@ -2295,7 +2293,6 @@ void xevd_mc_c_n0_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 void xevd_mc_c_0n_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth)
 {
     int  dy;
-
 
     dy = gmv_y & 31;
     ref += ((gmv_y >> (MC_PRECISION + 1)) - 1) * s_ref + (gmv_x >> (MC_PRECISION + 1));
@@ -2309,7 +2306,6 @@ void xevd_mc_c_0n_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
 void xevd_mc_c_nn_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16 *pred, int w, int h, int bit_depth)
 {
     s16         buf[(MAX_CU_SIZE + MC_IBUF_PAD_C)*MAX_CU_SIZE];
-
     int         dx, dy;
 
     dx = gmv_x & 31;
@@ -2320,24 +2316,15 @@ void xevd_mc_c_nn_sse(s16 *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16
     int shift2 = XEVD_MAX(8, 20 - bit_depth);
     int offset1 = 0;
     int offset2 = (1 << (shift2 - 1));
-
-
-
     int max = ((1 << bit_depth) - 1);
-
     int min = 0;
-
 
     mc_filter_c_4pel_horz_sse(ref, s_ref, buf, w, tbl_mc_c_coeff[dx],
         w, (h + 3), min, max, offset1, shift1, 0);
     mc_filter_c_4pel_vert_sse(buf, w, pred, s_pred, tbl_mc_c_coeff[dy],
         w, h, min, max, offset2, shift2, 1);
 
-
 }
-
-
-
 
 
 XEVD_MC_L xevd_tbl_mc_l_sse[2][2] =

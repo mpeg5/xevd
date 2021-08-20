@@ -32,7 +32,6 @@
 #define _XEVD_RECON_H_
 
 void xevd_recon(s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec, int bit_depth);
-void xevd_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], pel pred[N_C][MAX_CU_DIM], int nnz[N_C]
-                  , XEVD_PIC *pic, int bit_depth, int chroma_format_idc);
+void xevd_recon_yuv(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int cuw, int cuh);
 
 #endif /* _XEVD_RECON_H_ */

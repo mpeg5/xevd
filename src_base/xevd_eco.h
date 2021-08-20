@@ -47,6 +47,7 @@ void xevd_eco_sbac_reset(XEVD_BSR * bs, u8 slice_type, u8 slice_qp);
 int  xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core);
 s8   xevd_eco_split_mode(XEVD_BSR *bs, XEVD_SBAC * sbac, int cuw, int cuh);
 u32  xevd_eco_tile_end_flag(XEVD_BSR * bs, XEVD_SBAC * sbac);
+s32  xevd_eco_cabac_zero_word(XEVD_BSR* bs);
 int  xevd_eco_bi_idx(XEVD_BSR * bs, XEVD_SBAC * sbac);
 void xevd_eco_cu_skip_flag(XEVD_CTX * ctx, XEVD_CORE * core);
 int  xevd_eco_mvp_idx(XEVD_BSR * bs, XEVD_SBAC * sbac);
