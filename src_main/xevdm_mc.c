@@ -2037,11 +2037,9 @@ void xevdm_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM
     }
 }
 
-void xevdm_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], XEVD_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM], TREE_CONS tree_cons
-                , int chroma_format_idc
-
-)
+void xevdm_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], XEVD_PIC *ref_pic, pel (*pred)[MAX_CU_DIM], TREE_CONS tree_cons, int chroma_format_idc)
 {
+
     int i = 0, j = 0;
     int size = 0;
 
@@ -2072,9 +2070,7 @@ void xevdm_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], XEVD_P
         }
     }
 
-    if (xevd_check_chroma_fn(tree_cons)
-        && (chroma_format_idc != 0)
-        )
+    if (xevd_check_chroma_fn(tree_cons) && (chroma_format_idc != 0))
     {
         cuw >>=(XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc));
         cuh >>= (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc));

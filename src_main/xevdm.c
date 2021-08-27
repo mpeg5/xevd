@@ -3267,7 +3267,7 @@ int xevdm_platform_init(XEVD_CTX *ctx)
         xevd_func_mc_l       = xevd_tbl_mc_l;
         xevd_func_mc_c       = xevd_tbl_mc_c;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
-        ctx->fn_itxb         = xevd_tbl_itxb;
+        ctx->fn_itxb         = &xevd_tbl_itxb;
     }
 #endif
     ctx->fn_ready         = xevdm_ready;
