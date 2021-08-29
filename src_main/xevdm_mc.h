@@ -73,7 +73,7 @@ void xevdm_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM
             , pel dmvr_half_pred_interpolated[REFP_NUM][(MAX_CU_SIZE + 1) * (MAX_CU_SIZE + 1)], BOOL apply_DMVR, pel dmvr_padding_buf[REFP_NUM][N_C][PAD_BUFFER_STRIDE * PAD_BUFFER_STRIDE], u8* cu_dmvr_flag, s16 dmvr_mv[MAX_CU_CNT_IN_LCU][REFP_NUM][MV_D]
             , int sps_admvp_flag, int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc);
 
-void xevdm_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], XEVD_PIC *ref_pic, pel pred[N_C][MAX_CU_DIM], TREE_CONS tree_cons, int chroma_format_idc);
+void xevdm_IBC_mc(int x, int y, int log2_cuw, int log2_cuh, s16 mv[MV_D], XEVD_PIC *ref_pic, pel(*pred)[MAX_CU_DIM], TREE_CONS tree_cons, int chroma_format_idc);
 
 void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][MV_D], s16(*mv_t)[MV_D]);
 void xevdm_affine_mc(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM], s16 mv[REFP_NUM][VER_NUM][MV_D], XEVD_REFP(*refp)[REFP_NUM], pel pred[2][N_C][MAX_CU_DIM], int vertex_num, pel* tmp_buffer

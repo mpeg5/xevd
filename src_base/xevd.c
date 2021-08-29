@@ -1022,17 +1022,18 @@ int xevd_deblock(void * arg)
     u32 k1;
     int scu_in_lcu_wh = 1 << (ctx->log2_max_cuwh - MIN_CU_LOG2);
 
-    x_l = (ctx->tile[0].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
-    y_l = (ctx->tile[0].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
-    x_r = x_l + ctx->tile[0].w_ctb;
-    y_r = y_l + ctx->tile[0].h_ctb;
-    l_scu = x_l * scu_in_lcu_wh;
-    r_scu = XEVD_CLIP3(0, ctx->w_scu, x_r*scu_in_lcu_wh);
-    t_scu = y_l * scu_in_lcu_wh;
-    b_scu = XEVD_CLIP3(0, ctx->h_scu, y_r*scu_in_lcu_wh);
-
     if (filter_across_boundary)
     {
+        x_l = (ctx->tile[0].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
+        y_l = (ctx->tile[0].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
+        x_r = x_l + ctx->tile[0].w_ctb;
+        y_r = y_l + ctx->tile[0].h_ctb;
+        l_scu = x_l * scu_in_lcu_wh;
+        r_scu = XEVD_CLIP3(0, ctx->w_scu, x_r*scu_in_lcu_wh);
+        t_scu = y_l * scu_in_lcu_wh;
+        b_scu = XEVD_CLIP3(0, ctx->h_scu, y_r*scu_in_lcu_wh);
+
+
         boundary_filtering = 1;
         j = t_scu;
         for (i = l_scu; i < r_scu; i++)
@@ -1046,7 +1047,7 @@ int xevd_deblock(void * arg)
         for (i = x_l; i < x_r; i++)
         {
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
-                       , core, boundary_filtering);
+                , core, boundary_filtering);
         }
 
         i = l_scu;
@@ -1060,46 +1061,65 @@ int xevd_deblock(void * arg)
         for (j = y_l; j < y_r; j++)
         {
             deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
-                       , core, boundary_filtering);
+                , core, boundary_filtering);
         }
     }
     else
     {
-        for (j = t_scu; j < b_scu; j++)
+        while(core->y_lcu < ctx->h_lcu)
         {
-            for (i = l_scu; i < r_scu; i++)
+            x_l = core->x_lcu;
+            y_l = core->y_lcu;
+            x_r = x_l + ctx->w_lcu;
+            y_r = y_l + 1;
+            l_scu = x_l * scu_in_lcu_wh;
+            r_scu = XEVD_CLIP3(0, ctx->w_scu, x_r*scu_in_lcu_wh);
+            t_scu = y_l * scu_in_lcu_wh;
+            b_scu = XEVD_CLIP3(0, ctx->h_scu, y_r*scu_in_lcu_wh);
+            if (core->deblock_is_hor)
             {
-                k1 = i + j * ctx->w_scu;
-                MCU_CLR_COD(ctx->map_scu[k1]);
-            }
-        }
+                for (j = t_scu; j < b_scu; j++)
+                {
+                    for (i = l_scu; i < r_scu; i++)
+                    {
+                        k1 = i + j * ctx->w_scu;
+                        MCU_CLR_COD(ctx->map_scu[k1]);
+                    }
+                }
 
-        /* horizontal filtering */
-        for (j = y_l; j < y_r; j++)
-        {
-            for (i = x_l; i < x_r; i++)
-            {
-                deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
-                           , core, boundary_filtering);
+                /* horizontal filtering */
+                for (j = y_l; j < y_r; j++)
+                {
+                    for (i = x_l; i < x_r; i++)
+                    {
+                        deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 0/*0 - horizontal filtering of vertical edge*/
+                            , core, boundary_filtering);
+                    }
+                }
             }
-        }
+            else
+            {
 
-        for (j = t_scu; j < b_scu; j++)
-        {
-            for (i = l_scu; i < r_scu; i++)
-            {
-                MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
-            }
-        }
+                for (j = t_scu; j < b_scu; j++)
+                {
+                    for (i = l_scu; i < r_scu; i++)
+                    {
+                        MCU_CLR_COD(ctx->map_scu[i + j * ctx->w_scu]);
+                    }
+                }
 
-        /* vertical filtering */
-        for (j = y_l; j < y_r; j++)
-        {
-            for (i = x_l; i < x_r; i++)
-            {
-                deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
-                           , core, boundary_filtering);
+                /* vertical filtering */
+                for (j = y_l; j < y_r; j++)
+                {
+                    for (i = x_l; i < x_r; i++)
+                    {
+                        deblock_tree(ctx, ctx->pic, (i << ctx->log2_max_cuwh), (j << ctx->log2_max_cuwh), ctx->max_cuwh, ctx->max_cuwh, 0, 0, 1/*1 - vertical filtering of horizontal edge*/
+                            , core, boundary_filtering);
+                    }
+                }
             }
+            core->y_lcu = core->y_lcu + ctx->tc.task_num_in_tile[0];
+            core->x_lcu = 0;           
         }
     }
     return XEVD_OK;
@@ -1758,72 +1778,71 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
         /* deblocking filter */
-        if(ctx->sh.deblocking_filter_on)
+        if (ctx->sh.deblocking_filter_on)
         {
-            u32 k = 0;
+
             int fitler_across_boundary = 0;
             int i, j;
             int num_tiles_in_slice = ctx->num_tiles_in_slice;
             int res = 0;
-            int tile_start_num, num_tiles_proc;
             XEVD_CORE * core_mt;
 
-            while (num_tiles_in_slice)
-            {
-                if(num_tiles_in_slice > ctx->tc.max_task_cnt)
-                {
-                    tile_start_num = k;
-                    num_tiles_proc = ctx->tc.max_task_cnt;
-                }
-                else
-                {
-                    tile_start_num = k;
-                    num_tiles_proc = num_tiles_in_slice;
-                }
+            /* Horizontal Filtering*/
 
-                for(j = 1; j < num_tiles_proc; j++)
-                {
-                    i = ctx->tile_in_slice[tile_start_num + j - 1];
-                    core_mt = ctx->core_mt[j];
-                    core_mt->ctx = ctx;
-                    core_mt->tile_num = i;
-                    core_mt->filter_across_boundary = 0;
-                    ret = ctx->tc.run(ctx->thread_pool[j], ctx->fn_deblock, (void *)core_mt);
-                    xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                    k++;
-                }
-                j = tile_start_num + num_tiles_proc - 1;
-                i = ctx->tile_in_slice[j];
-                core_mt = ctx->core_mt[0];
+            for (j = 1; j < ctx->tc.task_num_in_tile[0]; j++)
+            {
+                core_mt = ctx->core_mt[j];
                 core_mt->ctx = ctx;
-                core_mt->tile_num = i;
+                core_mt->y_lcu = j;
+                core_mt->x_lcu = 0;
+                core_mt->deblock_is_hor = 1;
                 core_mt->filter_across_boundary = 0;
-                ret = ctx->fn_deblock((void *)core_mt);
+                ret = ctx->tc.run(ctx->thread_pool[j], ctx->fn_deblock, (void *)core_mt);
                 xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                k++;
-                for(i = 1; i<num_tiles_proc; i++)
-                {
-                    ret = ctx->tc.join(ctx->thread_pool[i], &res);
-                }
-                num_tiles_in_slice -= (num_tiles_proc);
+
             }
 
-            if (ctx->pps.loop_filter_across_tiles_enabled_flag)
+            core_mt = ctx->core_mt[0];
+            core_mt->ctx = ctx;
+            core_mt->y_lcu = 0;
+            core_mt->x_lcu = 0;
+            core_mt->deblock_is_hor = 1;
+            core_mt->filter_across_boundary = 0;
+            ret = ctx->fn_deblock((void *)core_mt);
+            xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+
+            for (i = 1; i < ctx->tc.task_num_in_tile[0]; i++)
             {
-                k = 0;
-                int fitler_across_boundary = 1;
-                num_tiles_in_slice = ctx->num_tiles_in_slice;
-                while (num_tiles_in_slice)
-                {
-                    i = ctx->tile_in_slice[k++];
-                    core_mt = ctx->core_mt[0];
-                    core_mt->ctx = ctx;
-                    core_mt->tile_num = i;
-                    core_mt->filter_across_boundary = fitler_across_boundary;
-                    ret = ctx->fn_deblock((void *)core_mt);
-                    xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                    num_tiles_in_slice--;
-                }
+                ret = ctx->tc.join(ctx->thread_pool[i], &res);
+            }
+
+            /* Vertical filtering*/
+
+            for (j = 1; j < ctx->tc.task_num_in_tile[0]; j++)
+            {
+
+                core_mt = ctx->core_mt[j];
+                core_mt->ctx = ctx;
+                core_mt->y_lcu = j;
+                core_mt->x_lcu = 0;
+                core_mt->deblock_is_hor = 0;
+                core_mt->filter_across_boundary = 0;
+                ret = ctx->tc.run(ctx->thread_pool[j], ctx->fn_deblock, (void *)core_mt);
+                xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+
+            }
+            core_mt = ctx->core_mt[0];
+            core_mt->ctx = ctx;
+            core_mt->y_lcu = 0;
+            core_mt->x_lcu = 0;
+            core_mt->deblock_is_hor = 0;
+            core_mt->filter_across_boundary = 0;
+            ret = ctx->fn_deblock((void *)core_mt);
+            xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+
+            for (i = 1; i < ctx->tc.task_num_in_tile[0]; i++)
+            {
+                ret = ctx->tc.join(ctx->thread_pool[i], &res);
             }
         }
         if (ctx->num_ctb == 0)

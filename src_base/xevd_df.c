@@ -105,7 +105,7 @@ void deblock_scu_hor(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp
 
 
     st = tbl_qp_to_st[qp] << bit_depth_minus8;
-    size = (is_luma ? MIN_CU_SIZE : (MIN_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc))));
+    size = MIN_CU_SIZE;
 
 
     if(st)
@@ -154,7 +154,7 @@ void deblock_scu_hor_chroma(pel *buf, int qp, int stride, int is_luma, const u8 
 
 
     st = tbl_qp_to_st[qp] << bit_depth_minus8; 
-   size = (is_luma ? MIN_CU_SIZE : (MIN_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc))));
+    size = MIN_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(chroma_format_idc));
 
 
     if(st)
@@ -199,8 +199,7 @@ void deblock_scu_ver(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp
 
     st = tbl_qp_to_st[qp] << bit_depth_minus8;
 
-    size = (is_luma ? MIN_CU_SIZE : (MIN_CU_SIZE >> (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc))));
-
+    size = MIN_CU_SIZE;
 
     if(st)
     {
@@ -214,13 +213,13 @@ void deblock_scu_ver(pel *buf, int qp, int stride, int is_luma, const u8 *tbl_qp
             d = (A - (B << 2) + (C << 2) - D) / 8;
 
             abs = XEVD_ABS16(d);
-            sign = XEVD_SIGN_GET(d);
+            sign = XEVD_SIGN_GET16(d);
 
             t16 = XEVD_MAX(0, ((abs - st) << 1));
             clip = XEVD_MAX(0, (abs - t16));
-            d1 = XEVD_SIGN_SET(clip, sign);
+            d1 = XEVD_SIGN_SET16(clip, sign);
             clip >>= 1;
-            d2 = XEVD_CLIP(((A - D) / 4), -clip, clip);
+            d2 = XEVD_CLIP3(-clip, clip, ((A - D) / 4));
 
             A -= d2;
             B += d1;
@@ -248,9 +247,8 @@ void deblock_scu_ver_chroma(pel *buf, int qp, int stride, int is_luma, const u8 
     int i, size;
 
     st = tbl_qp_to_st[qp] << bit_depth_minus8;
-    size = (is_luma ? MIN_CU_SIZE : (MIN_CU_SIZE >> (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc))));
-
-
+  
+    size = MIN_CU_SIZE >> (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc));
     if(st)
     {
         for(i = 0; i < size; i++)
@@ -263,16 +261,16 @@ void deblock_scu_ver_chroma(pel *buf, int qp, int stride, int is_luma, const u8 
             d = (A - (B << 2) + (C << 2) - D) / 8;
 
             abs = XEVD_ABS16(d);
-            sign = XEVD_SIGN_GET(d);
+            sign = XEVD_SIGN_GET16(d);
 
             t16 = XEVD_MAX(0, ((abs - st) << 1));
             clip = XEVD_MAX(0, (abs - t16));
-            d1 = XEVD_SIGN_SET(clip, sign);
+            d1 = XEVD_SIGN_SET16(clip, sign);
 
             B += d1;
             C -= d1;
 
-            buf[-1] = XEVD_CLIP3(0, (1 << (bit_depth_minus8+8)) - 1, B);
+            buf[-1] = XEVD_CLIP3(0, (1 << (bit_depth_minus8 + 8)) - 1, B);
             buf[0] = XEVD_CLIP3(0, (1 << (bit_depth_minus8 + 8)) - 1, C);
 
 
