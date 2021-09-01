@@ -261,7 +261,7 @@ static void copy_refp(XEVD_REFP * refp_dst, XEVD_REFP * refp_src)
     refp_dst->list_poc = refp_src->list_poc;
 }
 
-int check_copy_refp(XEVD_REFP(*refp)[REFP_NUM], int cnt, int lidx, XEVD_REFP  * refp_src)
+int xevdm_check_copy_refp(XEVD_REFP(*refp)[REFP_NUM], int cnt, int lidx, XEVD_REFP  * refp_src)
 {
     int i;
 
