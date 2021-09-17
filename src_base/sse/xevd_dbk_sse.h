@@ -28,11 +28,15 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _XEVD_DF_H_
-#define _XEVD_DF_H_
-void xevd_deblock_cu_hor(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, int boundary_filtering);
-void xevd_deblock_cu_ver(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, int boundary_filtering);
+#ifndef _XEVD_DBK_SSE_H_
+#define _XEVD_DBK_SSE_H_
 
-extern const XEVD_DBK xevd_tbl_dbk[2];
-extern const XEVD_DBK_CH xevd_tbl_dbk_chroma[2];
-#endif /* _XEVD_DF_H_ */
+
+#include "xevd_def.h"
+
+#if X86_SSE
+extern const XEVD_DBK xevd_tbl_dbk_sse[DBK_MAX];
+extern const XEVD_DBK_CH xevd_tbl_dbk_chroma_sse[DBK_MAX];
+#endif /* X86_SSE */
+
+#endif /* _XEVD_DBK_SSE_H_  */

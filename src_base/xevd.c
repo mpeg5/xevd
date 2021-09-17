@@ -966,37 +966,24 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
         {
             if (cuh > MAX_TR_SIZE)
             {
-                xevd_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv
-                                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, ctx->map_tidx, boundary_filtering
-                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
-                xevd_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, ctx->map_mv
-                                   , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, ctx->map_tidx, boundary_filtering
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
+                xevd_deblock_cu_hor(ctx, pic, x, y, cuw, cuh >> 1, boundary_filtering);
+                xevd_deblock_cu_hor(ctx, pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, boundary_filtering);
             }
             else
             {
-                xevd_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,ctx->map_mv
-                                  , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, ctx->map_tidx, boundary_filtering
-                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
+                xevd_deblock_cu_hor(ctx, pic, x, y, cuw, cuh, boundary_filtering);
             }
         }
         else
         {
             if (cuw > MAX_TR_SIZE)
             {
-                xevd_deblock_cu_ver(pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
-                                  , ctx->map_cu_mode, ctx->refp, ctx->map_tidx, boundary_filtering
-                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
-                xevd_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
-                                  , ctx->map_cu_mode, ctx->refp, ctx->map_tidx, boundary_filtering
-                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
-                                  , ctx->sps.chroma_format_idc);
+                xevd_deblock_cu_ver(ctx, pic, x, y, cuw >> 1, cuh, boundary_filtering);
+                xevd_deblock_cu_ver(ctx, pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, boundary_filtering);
             }
             else
             {
-                xevd_deblock_cu_ver(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, ctx->map_mv, ctx->w_scu, ctx->log2_max_cuwh
-                                  , ctx->map_cu_mode, ctx->refp, ctx->map_tidx, boundary_filtering
-                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
+                xevd_deblock_cu_ver(ctx, pic, x, y, cuw, cuh, boundary_filtering);
             }
         }
     }
@@ -1945,6 +1932,8 @@ int xevd_platform_init(XEVD_CTX *ctx)
         xevd_func_average_no_clip = &xevd_average_16b_no_clip_sse;
         ctx->fn_itxb   = &xevd_tbl_itxb_avx;
         ctx->fn_recon = &xevd_recon_avx;
+        ctx->fn_dbk = &xevd_tbl_dbk_sse;
+        ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma_sse;
     }
     else if (support_sse)
     {
@@ -1953,7 +1942,8 @@ int xevd_platform_init(XEVD_CTX *ctx)
         xevd_func_average_no_clip = &xevd_average_16b_no_clip_sse;
         ctx->fn_itxb   = &xevd_tbl_itxb_sse;
         ctx->fn_recon = &xevd_recon_sse;
-
+        ctx->fn_dbk = &xevd_tbl_dbk_sse;
+        ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma_sse;
     }
     else
     {
@@ -1962,6 +1952,8 @@ int xevd_platform_init(XEVD_CTX *ctx)
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
         ctx->fn_itxb   = &xevd_tbl_itxb;
         ctx->fn_recon = &xevd_recon;
+        ctx->fn_dbk = &xevd_tbl_dbk;
+        ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma;
     }
 #else
     {
@@ -1970,6 +1962,8 @@ int xevd_platform_init(XEVD_CTX *ctx)
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
         ctx->fn_itxb   = &xevd_tbl_itxb;
         ctx->fn_recon = &xevd_recon;
+        ctx->fn_dbk = &xevd_tbl_dbk;
+        ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma;
     }
 #endif
 

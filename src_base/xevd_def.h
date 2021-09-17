@@ -168,6 +168,11 @@ extern int fp_trace_started;
 #define REFP_1                             1
 #define REFP_NUM                           2
 
+/* Deblock directions */
+#define DBK_VER 0
+#define DBK_HOR 1
+#define DBK_MAX 2
+
 /* X direction motion vector indicator */
 #define MV_X                               0
 /* Y direction motion vector indicator */
@@ -359,6 +364,8 @@ extern int fp_trace_started;
 typedef void(*XEVD_ITXB)(void* coef, void* t, int shift, int line, int step);
 #define PI                                (3.14159265358979323846)
 
+typedef void(*XEVD_DBK)(pel *buf, int st, int stride, int bit_depth_minus8, int chroma_format_idc);
+typedef void(*XEVD_DBK_CH)(pel *u, pel *v, int st_u, int st_v, int stride, int bit_depth_minus8, int chroma_format_idc);
 /*****************************************************************************
  * reference index
  *****************************************************************************/
@@ -1413,6 +1420,8 @@ struct _XEVD_CTX
     void (* fn_picbuf_expand)(XEVD_CTX * ctx, XEVD_PIC * pic);
     const XEVD_ITXB ( * fn_itxb)[MAX_TR_LOG2];
     void  ( * fn_recon) (s16 *coef, pel *pred, int is_coef, int cuw, int cuh, int s_rec, pel *rec,int bit_depth);
+    const XEVD_DBK (*fn_dbk)[2];
+    const XEVD_DBK_CH(*fn_dbk_chroma)[2];
     /* platform specific data, if needed */
     void                  * pf;
 
@@ -1451,5 +1460,5 @@ int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
 #include "xevd_itdq_avx.h"
 #include "xevd_recon_avx.h"
 #include "xevd_recon_sse.h"
-
+#include "xevd_dbk_sse.h"
 #endif /* _XEVD_DEF_H_ */
