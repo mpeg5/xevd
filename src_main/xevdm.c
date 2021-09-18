@@ -38,9 +38,8 @@
 #include "xevdm_def.h"
 #include "xevdm_eco.h"
 #include "xevdm_df.h"
-
-
 #include "xevdm_alf.h"
+
 
 /* convert XEVD into XEVD_CTX */
 #define XEVD_ID_TO_CTX_R(id, ctx) \
@@ -1871,18 +1870,18 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
         {
             if (cuh > MAX_TR_SIZE)
             {
-                xevdm_deblock_cu_hor(pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                xevdm_deblock_cu_hor(ctx, pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
+                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
 
-                xevdm_deblock_cu_hor(pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv
+                xevdm_deblock_cu_hor(ctx, pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv
                                    , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering
                                    , ctx->sps.tool_addb, mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
                                    , ctx->sps.chroma_format_idc);
             }
             else
             {
-                xevdm_deblock_cu_hor(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
+                xevdm_deblock_cu_hor(ctx, pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
                                    , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
                                    , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
             }
@@ -1891,17 +1890,17 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
         {
             if (cuw > MAX_TR_SIZE)
             {
-                xevdm_deblock_cu_ver(pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
+                xevdm_deblock_cu_ver(ctx, pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
                                    , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb
                                    , mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
 
-                xevdm_deblock_cu_ver(pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
+                xevdm_deblock_cu_ver(ctx, pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
                                    , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
                                    , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
             }
             else
             {
-                xevdm_deblock_cu_ver(pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
+                xevdm_deblock_cu_ver(ctx, pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
                                    , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb
                                    , mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
             }
@@ -3235,6 +3234,8 @@ int xevdm_platform_init(XEVD_CTX *ctx)
         xevd_func_mc_c       = xevd_tbl_mc_c_avx;
         xevd_func_average_no_clip = xevd_average_16b_no_clip_sse;
         ctx->fn_itxb         = &xevd_tbl_itxb_avx;
+        ctx->fn_dbk          = &xevd_tbl_dbk_sse;
+        ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma_sse;
     }
     else if (support_sse)
     {
@@ -3246,6 +3247,8 @@ int xevdm_platform_init(XEVD_CTX *ctx)
         xevd_func_mc_c       = xevd_tbl_mc_c_sse;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip_sse;
         ctx->fn_itxb         = &xevd_tbl_itxb_sse;
+        ctx->fn_dbk          = &xevd_tbl_dbk_sse;
+        ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma_sse;
     }
     else
     {
@@ -3257,6 +3260,8 @@ int xevdm_platform_init(XEVD_CTX *ctx)
         xevd_func_mc_c       = xevd_tbl_mc_c;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
         ctx->fn_itxb         = &xevd_tbl_itxb;
+        ctx->fn_dbk          = &xevd_tbl_dbk;
+        ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma;
     }
 #else
     {
@@ -3268,6 +3273,8 @@ int xevdm_platform_init(XEVD_CTX *ctx)
         xevd_func_mc_c       = xevd_tbl_mc_c;
         xevd_func_average_no_clip = &xevd_average_16b_no_clip;
         ctx->fn_itxb         = &xevd_tbl_itxb;
+        ctx->fn_dbk          = &xevd_tbl_dbk;
+        ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma;
     }
 #endif
     ctx->fn_ready         = xevdm_ready;

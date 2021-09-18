@@ -31,6 +31,12 @@
 #ifndef _XEVD_H_
 #define _XEVD_H_
 
+#ifdef __cplusplus
+
+extern "C"
+{
+#endif
+
 #include <stdint.h>
 #include <xevd_exports.h>
 
@@ -321,5 +327,9 @@ void XEVD_EXPORT xevd_delete(XEVD id);
 int  XEVD_EXPORT xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat);
 int  XEVD_EXPORT xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl);
 int  XEVD_EXPORT xevd_config(XEVD id, int cfg, void * buf, int * size);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* _XEVD_H_ */
