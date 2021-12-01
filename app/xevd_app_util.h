@@ -231,8 +231,16 @@ static int imgb_write(char * fname, XEVD_IMGB * img)
         logv0("cannot open file = %s\n", fname);
         return -1;
     }
-    cs_w_off = 2;
-    cs_h_off = 2;
+    if ((img->cs & 0xff) != XEVD_CF_YCBCR400)
+    {
+        cs_w_off = 2;
+        cs_h_off = 2;
+    }
+    else
+    {
+         cs_w_off = 1;
+         cs_h_off = 1;
+    }
     if((XEVD_CS_GET_BIT_DEPTH(img->cs)) == 8)
         bd = 1;
     else if((XEVD_CS_GET_BIT_DEPTH(img->cs)) >= 10)
@@ -390,7 +398,7 @@ static void imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
 
     if(src->cs == dst->cs)
     {
-        if(src->cs == XEVD_CS_YCBCR420_10LE) bd = 2;
+        if(src->cs == XEVD_CS_YCBCR420_10LE || src->cs == XEVD_CS_YCBCR400_10LE) bd = 2;
         else bd = 1;
 
         for(i = 0; i < src->np; i++)
@@ -400,11 +408,11 @@ static void imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
 
         }
     }
-    else if(src->cs == XEVD_CS_YCBCR420 && dst->cs == XEVD_CS_YCBCR420_10LE)
+    else if((src->cs == XEVD_CS_YCBCR420 && dst->cs == XEVD_CS_YCBCR420_10LE) || (src->cs == XEVD_CS_YCBCR400 && dst->cs == XEVD_CS_YCBCR400_10LE) )
     {
         imgb_conv_8b_to_16b(dst, src, 2);
     }
-    else if(src->cs == XEVD_CS_YCBCR420_10LE && dst->cs == XEVD_CS_YCBCR420)
+    else if((src->cs == XEVD_CS_YCBCR420_10LE && dst->cs == XEVD_CS_YCBCR420) ||  (src->cs == XEVD_CS_YCBCR400_10LE && dst->cs == XEVD_CS_YCBCR400))
     {
         imgb_conv_16b_to_8b(dst, src, 2);
     }
