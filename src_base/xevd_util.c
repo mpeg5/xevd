@@ -49,14 +49,14 @@ int fp_trace_counter = 0;
 #ifndef _XCR_XFEATURE_ENABLED_MASK
 #define _XCR_XFEATURE_ENABLED_MASK 0
 #endif
-void __cpuid(int* info, int i)
+static void __cpuid(int* info, int i)
 {
     __asm__ __volatile__(
         "cpuid" : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
                 : "a" (i), "c" (0));
 }
 
-unsigned long long __xgetbv(unsigned int i)
+static unsigned long long __xgetbv(unsigned int i)
 {
     unsigned int eax, edx;
     __asm__ __volatile__(
