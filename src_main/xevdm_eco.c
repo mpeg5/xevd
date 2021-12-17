@@ -2112,7 +2112,7 @@ int xevdm_eco_aps_gen(XEVD_BSR * bs, XEVD_APS_GEN * aps, int  bit_depth)
     }
     else
     {
-        xevd_trace("This version of ETM doesn't support APS Type %d\n", aps->aps_type_id);
+        xevd_trace("This version of XEVD doesn't support APS Type %d\n", aps->aps_type_id);
     }
 
     u32 aps_extension_flag, aps_extension_data_flag, t0;
