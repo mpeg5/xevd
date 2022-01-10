@@ -429,6 +429,8 @@ typedef void(*XEVD_DBK_CH)(pel *u, pel *v, int st_u, int st_v, int stride, int b
 #define MCU_SET_IF_COD_SN_QP(m, i, sn, qp) \
     (m) = (((m)&0xFF807F80)|((sn)&0x7F)|((qp)<<16)|((i)<<15)|(1<<31))
 
+#define MCU_SET_IF_SN_QP(m, i, sn, qp) \
+    (m) = (((m)&0xFF807F80)|((sn)&0x7F)|((qp)<<16)|((i)<<15))
 #define MCU_IS_COD_NIF(m)      ((((m)>>15) & 0x10001) == 0x10000)
 
 /* set log2_cuw & log2_cuh to map */
@@ -1315,6 +1317,7 @@ struct _XEVD_CTX
     /* MAPS *******************************************************************/
     /* SCU map for CU information */
     u32                   * map_scu;
+    u8                    * cod_eco;
     /* LCU split information */
     s8                   (* map_split)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
 
@@ -1401,6 +1404,7 @@ struct _XEVD_CTX
 
     int                     parallel_rows; //Number of parallel rows which can be encoded
     volatile s32          * sync_flag;
+    volatile s32          * sync_row;
     SYNC_OBJ                sync_block; //has to be initialized at context creation and has to be released on context destruction
     /* mximum number of coding delay */
     s32                     max_coding_delay;

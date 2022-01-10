@@ -694,9 +694,7 @@ void xevd_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw
                     }
 
                     
-                    {
-                        scale = xevd_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
-                    }
+                    scale = xevd_tbl_dq_scale_b[qp[c] % 6] << (qp[c] / 6);
 
                     if (c == 0)
                     {

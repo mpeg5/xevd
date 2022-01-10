@@ -1067,7 +1067,7 @@ int xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
-    core->avail_lr = xevd_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
+    core->avail_lr = xevd_check_eco_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->cod_eco, ctx->map_tidx);
 
     if (ctx->sh.slice_type != SLICE_I)
     {
@@ -1145,7 +1145,7 @@ int xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
         }
         else if (core->pred_mode == MODE_INTRA)
         {
-            xevd_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu
+            xevd_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu,ctx->cod_eco, ctx->map_ipm, core->scup, ctx->w_scu
                          , &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
 
             int luma_ipm = IPD_DC_B;

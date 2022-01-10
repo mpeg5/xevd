@@ -675,16 +675,16 @@ void xevd_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *d
     }
 }
 
-void xevd_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
+void xevd_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, u8 *cod_eco, s8 *map_ipm, int scup, int w_scu,
                    u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */, u8 * map_tidx)
 {
     u8 ipm_l = IPD_DC, ipm_u = IPD_DC;
 
-    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1]) && (map_tidx[scup] == map_tidx[scup - 1]))
+    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && cod_eco[scup - 1] && (map_tidx[scup] == map_tidx[scup - 1]))
     {
         ipm_l = map_ipm[scup - 1] + 1;
     }
-    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu]) && (map_tidx[scup] == map_tidx[scup - w_scu]))
+    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && cod_eco[scup - w_scu] && (map_tidx[scup] == map_tidx[scup - w_scu]))
     {
         ipm_u = map_ipm[scup - w_scu] + 1;
     }
