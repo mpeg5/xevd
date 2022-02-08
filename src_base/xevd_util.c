@@ -412,9 +412,9 @@ void xevd_picbuf_lc_expand(XEVD_PIC *pic, int exp_l, int exp_c)
     picbuf_expand(pic->v, pic->s_c, pic->w_c, pic->h_c, exp_c);
 }
 
-void xevd_poc_derivation(XEVD_SPS sps, int tid, XEVD_POC *poc)
+void xevd_poc_derivation(XEVD_SPS * sps, int tid, XEVD_POC *poc)
 {
-    int sub_gop_length = (int)pow(2.0, sps.log2_sub_gop_length);
+    int sub_gop_length = (int)pow(2.0, sps->log2_sub_gop_length);
     int expected_tid = 0;
     int doc_offset, poc_offset;
 

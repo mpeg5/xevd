@@ -637,11 +637,11 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
             if (cbf_all)
             {
                 int is_coded_cbf_zero = eco_cbf(bs, sbac, core->pred_mode, cbf, b_no_cbf, is_sub, j + i, &cbf_all
-                                              , ctx->sps.chroma_format_idc);
+                                              , ctx->sps->chroma_format_idc);
                 if (is_coded_cbf_zero)
                 {
                     core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, 0);
-                    core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+                    core->qp_y = GET_LUMA_QP(core->qp, ctx->sps->bit_depth_luma_minus8);
                     return XEVD_OK;
                 }
             }
@@ -657,7 +657,7 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
             {
                 dqp = xevd_eco_dqp(bs);
                 core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, dqp);
-                core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+                core->qp_y = GET_LUMA_QP(core->qp, ctx->sps->bit_depth_luma_minus8);
                 core->cu_qp_delta_is_coded = 1;
                 ctx->tile[core->tile_num].qp_prev_eco = core->qp;
             }
@@ -665,20 +665,20 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
             {
                 dqp = 0;
                 core->qp = GET_QP(ctx->tile[core->tile_num].qp_prev_eco, dqp);
-                core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
+                core->qp_y = GET_LUMA_QP(core->qp, ctx->sps->bit_depth_luma_minus8);
             }
 
-            qp_i_cb = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
-            qp_i_cr = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
-            core->qp_u = xevd_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps.bit_depth_chroma_minus8;
-            core->qp_v = xevd_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps.bit_depth_chroma_minus8;
+            qp_i_cb = XEVD_CLIP3(-6 * ctx->sps->bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
+            qp_i_cr = XEVD_CLIP3(-6 * ctx->sps->bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
+            core->qp_u = xevd_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps->bit_depth_chroma_minus8;
+            core->qp_v = xevd_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps->bit_depth_chroma_minus8;
 
             for (c = 0; c < N_C; c++)
             {
                 if (cbf[c])
                 {
-                    int pos_sub_x = c == 0 ? (i * (1 << (log2_w_sub))) : (i * (1 << (log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)))));
-                    int pos_sub_y = c == 0 ? j * (1 << (log2_h_sub)) * (stride) : j * (1 << (log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)))) * (stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)));
+                    int pos_sub_x = c == 0 ? (i * (1 << (log2_w_sub))) : (i * (1 << (log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)))));
+                    int pos_sub_y = c == 0 ? j * (1 << (log2_h_sub)) * (stride) : j * (1 << (log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc)))) * (stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)));
 
                     if (is_sub)
                     {
@@ -688,8 +688,8 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
                         }
                         else
                         {
-                            xevd_block_copy(core->coef[c] + pos_sub_x + pos_sub_y, stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), coef_temp_buf[c], sub_stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))
-                                          , log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)));
+                            xevd_block_copy(core->coef[c] + pos_sub_x + pos_sub_y, stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)), coef_temp_buf[c], sub_stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))
+                                          , log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc)));
                         }
 
                         coef_temp[c] = coef_temp_buf[c];
@@ -705,7 +705,7 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
                     }
                     else
                     {
-                        xevd_eco_xcoef(ctx, bs, sbac, coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))
+                        xevd_eco_xcoef(ctx, bs, sbac, coef_temp[c], log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))
                                      , c, core->pred_mode == MODE_INTRA);
                     }
 
@@ -720,8 +720,8 @@ int xevd_eco_coef(XEVD_CTX * ctx, XEVD_CORE * core)
                         }
                         else
                         {
-                            xevd_block_copy(coef_temp_buf[c], sub_stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), core->coef[c] + pos_sub_x + pos_sub_y, stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))
-                                          , log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc)));
+                            xevd_block_copy(coef_temp_buf[c], sub_stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)), core->coef[c] + pos_sub_x + pos_sub_y, stride >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))
+                                          , log2_w_sub - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)), log2_h_sub - (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc)));
                         }
                     }
                 }
@@ -1091,22 +1091,22 @@ int xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
             int qp_i_cb, qp_i_cr;
             core->qp = ctx->tile[core->tile_num].qp_prev_eco;
 
-            core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
-            qp_i_cb = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
-            qp_i_cr = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
-            core->qp_u = xevd_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps.bit_depth_chroma_minus8;
-            core->qp_v = xevd_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps.bit_depth_chroma_minus8;
+            core->qp_y = GET_LUMA_QP(core->qp, ctx->sps->bit_depth_luma_minus8);
+            qp_i_cb = XEVD_CLIP3(-6 * ctx->sps->bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
+            qp_i_cr = XEVD_CLIP3(-6 * ctx->sps->bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
+            core->qp_u = xevd_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps->bit_depth_chroma_minus8;
+            core->qp_v = xevd_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps->bit_depth_chroma_minus8;
         }
         else
         {
             int qp_i_cb, qp_i_cr;
             core->qp = ctx->sh.qp;
 
-            core->qp_y = GET_LUMA_QP(core->qp, ctx->sps.bit_depth_luma_minus8);
-            qp_i_cb = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
-            qp_i_cr = XEVD_CLIP3(-6 * ctx->sps.bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
-            core->qp_u = xevd_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps.bit_depth_chroma_minus8;
-            core->qp_v = xevd_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps.bit_depth_chroma_minus8;
+            core->qp_y = GET_LUMA_QP(core->qp, ctx->sps->bit_depth_luma_minus8);
+            qp_i_cb = XEVD_CLIP3(-6 * ctx->sps->bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_u_offset);
+            qp_i_cr = XEVD_CLIP3(-6 * ctx->sps->bit_depth_chroma_minus8, 57, core->qp + ctx->sh.qp_v_offset);
+            core->qp_u = xevd_qp_chroma_dynamic[0][qp_i_cb] + 6 * ctx->sps->bit_depth_chroma_minus8;
+            core->qp_v = xevd_qp_chroma_dynamic[1][qp_i_cr] + 6 * ctx->sps->bit_depth_chroma_minus8;
         }
     }
     else
@@ -1164,8 +1164,8 @@ int xevd_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
 
         /* clear coefficient buffer */
         xevd_mset(core->coef[Y_C], 0, cuw * cuh * sizeof(s16));
-        xevd_mset(core->coef[U_C], 0, (cuw >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) * (cuh >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * sizeof(s16));
-        xevd_mset(core->coef[V_C], 0, (cuw >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) * (cuh >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * sizeof(s16));
+        xevd_mset(core->coef[U_C], 0, (cuw >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) * (cuh >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * sizeof(s16));
+        xevd_mset(core->coef[V_C], 0, (cuw >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) * (cuh >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * sizeof(s16));
 
         /* parse coefficients */
         ret = xevd_eco_coef(ctx, core);

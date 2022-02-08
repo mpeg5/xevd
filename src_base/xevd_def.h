@@ -1287,7 +1287,12 @@ struct _XEVD_CTX
     /* create descriptor */
     XEVD_CDSC               cdsc;
     /* sequence parameter set */
-    XEVD_SPS                 sps;
+    XEVD_SPS                  * sps;
+
+    XEVD_SPS                 sps_array[64];
+
+    int                      sps_id;
+
     /* picture parameter set */
     XEVD_PPS                 pps;
 

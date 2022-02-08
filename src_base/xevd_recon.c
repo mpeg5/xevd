@@ -72,8 +72,8 @@ void xevd_recon_yuv(XEVD_CTX * ctx, XEVD_CORE* core, int x, int y, int cuw, int 
     pel * rec;
     int s_rec, off;
     XEVD_PIC * pic = ctx->pic;
-    int bit_depth = ctx->sps.bit_depth_luma_minus8 + 8; 
-    int chroma_format_idc = ctx->sps.chroma_format_idc;
+    int bit_depth = ctx->sps->bit_depth_luma_minus8 + 8; 
+    int chroma_format_idc = ctx->sps->chroma_format_idc;
     /* Y */
     s_rec = pic->s_l;
     rec = pic->y + (y * s_rec) + x;

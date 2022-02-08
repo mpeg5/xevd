@@ -940,31 +940,31 @@ int alf_process_tile(void * arg)
     pel * tmpYuv = alf->temp_buf;
     tmpYuv += (y_loc * 7)* s + x_loc * 7;
     tmpYuv += s * m + m;
-    const int s1 = (w >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (7 * alf->num_ctu_in_widht);
+    const int s1 = (w >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (7 * alf->num_ctu_in_widht);
     pel * recYuv1 = cs->pic->u;
     pel * tmpYuv1 = alf->temp_buf1 + s1 * m + m + (y_loc * 7)* s1 + x_loc * 7;
     pel * recYuv2 = cs->pic->v;
     pel * tmpYuv2 = alf->temp_buf2 + s1 * m + m + (y_loc * 7)* s1 + x_loc * 7;
     pel * recLuma0_tile = tmpYuv + x_l + y_l * s;
-    pel * recLuma1_tile = tmpYuv1 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * (s1);
-    pel * recLuma2_tile = tmpYuv2 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * (s1);
+    pel * recLuma1_tile = tmpYuv1 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * (s1);
+    pel * recLuma2_tile = tmpYuv2 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * (s1);
     pel * recoYuv0_tile = recYuv + x_l + y_l * cs->pic->s_l;
-    pel * recoYuv1_tile = recYuv1 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * cs->pic->s_c;
-    pel * recoYuv2_tile = recYuv2 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * cs->pic->s_c;
+    pel * recoYuv1_tile = recYuv1 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * cs->pic->s_c;
+    pel * recoYuv2_tile = recYuv2 + (x_l >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (y_l >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * cs->pic->s_c;
 
     alf_copy_and_extend_tile(recLuma0_tile, s, recoYuv0_tile, cs->pic->s_l, w_tile, h_tile, m);
-    if (ctx->sps.chroma_format_idc)
+    if (ctx->sps->chroma_format_idc)
     {
-        alf_copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pic->s_c, (w_tile >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))), (h_tile >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))), m);
-        alf_copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pic->s_c, (w_tile >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))), (h_tile >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))), m);
+        alf_copy_and_extend_tile(recLuma1_tile, s1, recoYuv1_tile, cs->pic->s_c, (w_tile >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))), (h_tile >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))), m);
+        alf_copy_and_extend_tile(recLuma2_tile, s1, recoYuv2_tile, cs->pic->s_c, (w_tile >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))), (h_tile >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))), m);
     }
 
     int l_zero_offset = (MAX_CU_SIZE + m + m) * m + m;
     int l_stride = MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
     pel l_buffer[(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1)) *(MAX_CU_SIZE + 2 * (MAX_ALF_FILTER_LENGTH >> 1))];
     pel *p_buffer = l_buffer + l_zero_offset;
-    int l_zero_offset_chroma = ((MAX_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m) * m + m;
-    int l_stride_chroma = (MAX_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
+    int l_zero_offset_chroma = ((MAX_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m + m) * m + m;
+    int l_stride_chroma = (MAX_CU_SIZE >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + 2 * (MAX_ALF_FILTER_LENGTH >> 1);
     pel l_buffer_cb[((MAX_CU_SIZE)+2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE)+2 * (MAX_ALF_FILTER_LENGTH >> 1))];
     pel l_buffer_cr[((MAX_CU_SIZE)+2 * (MAX_ALF_FILTER_LENGTH >> 1)) *((MAX_CU_SIZE)+2 * (MAX_ALF_FILTER_LENGTH >> 1))];
     pel *p_buffer_cr = l_buffer_cr + l_zero_offset_chroma;
@@ -987,7 +987,7 @@ int alf_process_tile(void * arg)
             else
             {
                 tile_boundary_check(&availableL, &availableR, &availableT, &availableB, width, height, xPos, yPos,
-                    0, ctx->sps.pic_width_in_luma_samples - 1, 0, ctx->sps.pic_height_in_luma_samples - 1);
+                    0, ctx->sps->pic_width_in_luma_samples - 1, 0, ctx->sps->pic_height_in_luma_samples - 1);
             }
             for (int i = m; i < height + m; i++)
             {
@@ -1049,13 +1049,13 @@ int alf_process_tile(void * arg)
                 alf->filter_7x7_blk(classifier_tmp, recYuv + xPos + yPos * (cs->pic->s_l), cs->pic->s_l, p_buffer, l_stride, &blk, Y_C, alf->coef_final, &(alf->clip_ranges.comp[Y_C]));
             }
 
-            if (ctx->sps.chroma_format_idc)
+            if (ctx->sps->chroma_format_idc)
             {
-                for (int i = m; i < ((height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) + m); i++)
+                for (int i = m; i < ((height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) + m); i++)
                 {
                     int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                    int srcPos_offset = (xPos >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
-                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
+                    int srcPos_offset = (xPos >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (yPos >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * s1;
+                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m + m);
                     xevd_mcpy(p_buffer_cb + dstPos + m, tmpYuv1 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
                     xevd_mcpy(p_buffer_cr + dstPos + m, tmpYuv2 + srcPos_offset + (i - m) * s1, sizeof(pel) * (stride - 2 * m));
                     for (int j = 0; j < m; j++)
@@ -1072,13 +1072,13 @@ int alf_process_tile(void * arg)
                         }
                         if (availableR)
                         {
-                            p_buffer_cb[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + j];
-                            p_buffer_cr[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + j];
+                            p_buffer_cb[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + j];
+                            p_buffer_cr[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + j];
                         }
                         else
                         {
-                            p_buffer_cb[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - j - 2];
-                            p_buffer_cr[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - j - 2];
+                            p_buffer_cb[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m] = tmpYuv1[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) - j - 2];
+                            p_buffer_cr[dstPos + j + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m] = tmpYuv2[srcPos_offset + (i - m) * s1 + (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) - j - 2];
                         }
                     }
                 }
@@ -1086,8 +1086,8 @@ int alf_process_tile(void * arg)
                 for (int i = 0; i < m; i++)
                 {
                     int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                    int srcPos_offset = (xPos >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
-                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
+                    int srcPos_offset = (xPos >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (yPos >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * s1;
+                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m + m);
                     if (availableT)
                     {
                         xevd_mcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset - (m - i) * s1 - m, sizeof(pel) * stride);
@@ -1105,18 +1105,18 @@ int alf_process_tile(void * arg)
                         xevd_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos + (2 * m - 2 * i) * l_stride_chroma, sizeof(pel) * stride);
                     }
                 }
-                for (int i = ((height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) + m); i < ((height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) + m + m); i++)
+                for (int i = ((height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) + m); i < ((height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) + m + m); i++)
                 {
                     int dstPos = i * l_stride_chroma - l_zero_offset_chroma;
-                    int srcPos_offset = (xPos >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + (yPos >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) * s1;
-                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) + m + m);
+                    int srcPos_offset = (xPos >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + (yPos >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) * s1;
+                    int stride = (width == ctx->max_cuwh ? l_stride_chroma : (width >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) + m + m);
                     if (availableB)
                     {
                         xevd_mcpy(p_buffer_cb + dstPos, tmpYuv1 + srcPos_offset + (i - m) * s1 - m, sizeof(pel) * stride);
                     }
                     else
                     {
-                        xevd_mcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                        xevd_mcpy(p_buffer_cb + dstPos, p_buffer_cb + dstPos - (2 * (i - (height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
                     }
                     if (availableB)
                     {
@@ -1124,15 +1124,15 @@ int alf_process_tile(void * arg)
                     }
                     else
                     {
-                        xevd_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
+                        xevd_mcpy(p_buffer_cr + dstPos, p_buffer_cr + dstPos - (2 * (i - (height >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) - m) + 2) * l_stride_chroma, sizeof(pel) * stride);
                     }
                 }
             }
             for (int compIdx = 1; compIdx < N_C; compIdx++)
             {
                 COMPONENT_ID compID = (COMPONENT_ID)(compIdx);
-                const int chromaScaleX = (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
-                const int chromaScaleY = (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
+                const int chromaScaleX = (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc));
+                const int chromaScaleY = (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc));
                 if (alf_slice_param->enable_flag[compIdx])
                 {
                     xevd_assert(alf->ctu_enable_flag[compIdx][ctuIdx] == 1);
