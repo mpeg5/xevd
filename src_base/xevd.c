@@ -1087,7 +1087,11 @@ int xevd_deblock(void * arg)
             }
             else
             {
-
+                core->lcu_num = core->x_lcu + core->y_lcu * ctx->w_lcu;
+                if (core->y_lcu != 0)
+                {
+                    xevd_spinlock_wait(&ctx->sync_flag[core->lcu_num - ctx->w_lcu], THREAD_TERMINATED);
+                }
                 for (j = t_scu; j < b_scu; j++)
                 {
                     for (i = l_scu; i < r_scu; i++)
@@ -1105,6 +1109,8 @@ int xevd_deblock(void * arg)
                             , core, boundary_filtering);
                     }
                 }
+                xevd_threadsafe_assign(&ctx->sync_flag[core->lcu_num], THREAD_TERMINATED);
+                core->x_lcu++;
             }
             core->y_lcu = core->y_lcu + ctx->tc.task_num_in_tile[0];
             core->x_lcu = 0;           
@@ -1805,6 +1811,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
                 ret = ctx->tc.join(ctx->thread_pool[i], &res);
             }
 
+            xevd_mset((void *)ctx->sync_flag, 0, ctx->f_lcu * sizeof(ctx->sync_flag[0]));
             /* Vertical filtering*/
 
             for (j = 1; j < ctx->tc.task_num_in_tile[0]; j++)

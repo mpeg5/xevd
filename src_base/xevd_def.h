@@ -1289,7 +1289,7 @@ struct _XEVD_CTX
     /* sequence parameter set */
     XEVD_SPS                  * sps;
 
-    XEVD_SPS                 sps_array[64];
+    XEVD_SPS                 sps_array[16];
 
     int                      sps_id;
 

@@ -2744,9 +2744,9 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     {
         ret = xevdm_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+        ctx->sps = &ctx->sps_array[pps->pps_seq_parameter_set_id];
         int pps_id = pps->pps_pic_parameter_set_id;
         xevd_mcpy(&(ctx->pps_array[pps_id]), pps, sizeof(XEVD_PPS));
-        ctx->sps = &ctx->sps_array[pps->pps_seq_parameter_set_id];
         ret = picture_init(ctx);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
