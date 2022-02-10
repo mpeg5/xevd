@@ -142,7 +142,7 @@ int  xevd_get_split_mode(s8* split_mode, int cud, int cup, int cuw, int cuh, int
 
 void xevd_set_split_mode(s8  split_mode, int cud, int cup, int cuw, int cuh, int lcu_s, s8 (*split_mode_buf)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU]);
 u16 xevd_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu, u8* map_tidx);
-
+u16 xevd_check_eco_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u8 * cod_eco, u8* map_tidx);
 /* MD5 structure */
 typedef struct _XEVD_MD5
 {

@@ -1225,11 +1225,11 @@ s8 xevdm_eco_split_mode(XEVD_CTX * c, XEVD_BSR *bs, XEVD_SBAC *sbac, int cuw, in
             avail[0] = y_scu > 0  && (c->map_tidx[scup] == c->map_tidx[scup - w_scu]);  //up
             if (x_scu > 0)
             {
-                avail[1] = MCU_GET_COD(c->map_scu[scup - 1]) && (c->map_tidx[scup] == c->map_tidx[scup - 1]); //left
+                avail[1] = c->cod_eco[scup - 1] && (c->map_tidx[scup] == c->map_tidx[scup - 1]); //left
             }
             if (x_scu + scuw < w_scu)
             {
-                avail[2] = MCU_GET_COD(c->map_scu[scup + scuw]) && (c->map_tidx[scup] == c->map_tidx[scup + scuw]); //right
+                avail[2] = c->cod_eco[scup + scuw] && (c->map_tidx[scup] == c->map_tidx[scup + scuw]); //right
             }
             scun[0] = scup - w_scu;
             scun[1] = scup - 1;
@@ -1496,15 +1496,16 @@ int xevdm_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
 
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
-    core->avail_lr = xevd_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
+    core->avail_lr = xevd_check_eco_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->cod_eco, ctx->map_tidx);
 
     if (!xevd_check_all(ctx, core))
     {
         xevd_assert(xevd_check_only_intra(ctx, core));
     }
 
-    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
-                         , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx);
+
+    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
+                         , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 1);
 
     if ( !xevd_check_only_intra(ctx, core) )
     {
@@ -1724,12 +1725,12 @@ int xevdm_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
         {
             if (ctx->sps->tool_eipd)
             {
-                xevdm_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
+                xevdm_get_mpm(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->cod_eco, ctx->map_ipm, core->scup, ctx->w_scu,
                     core->mpm, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
             }
             else
             {
-                xevd_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->map_ipm, core->scup, ctx->w_scu,
+                xevd_get_mpm_b(core->x_scu, core->y_scu, cuw, cuh, ctx->map_scu, ctx->cod_eco, ctx->map_ipm, core->scup, ctx->w_scu,
                     &core->mpm_b_list, core->avail_lr, core->mpm_ext, core->pims, ctx->map_tidx);
             }
 
