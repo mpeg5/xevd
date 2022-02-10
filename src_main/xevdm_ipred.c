@@ -316,7 +316,7 @@ static int intra_mode_list[IPD_CNT] = {
     IPD_HOR + 5, IPD_HOR + 4,
 };
 
-void xevdm_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map_ipm, int scup, int w_scu,
+void xevdm_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, u8* cod_eco, s8 *map_ipm, int scup, int w_scu,
                  u8 mpm[2], u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT] /* 10 third MPM */, u8 * map_tidx)
 {
     u8 ipm_l = IPD_DC, ipm_u = IPD_DC;
@@ -332,19 +332,19 @@ void xevdm_get_mpm(int x_scu, int y_scu, int cuw, int cuh, u32 *map_scu, s8 *map
 
     xevd_mset(included_mode, 0, sizeof(included_mode));
 
-    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && MCU_GET_COD(map_scu[scup - 1]) && (map_tidx[scup] == map_tidx[scup - 1]))
+    if(x_scu > 0 && MCU_GET_IF(map_scu[scup - 1]) && cod_eco[scup - 1] && (map_tidx[scup] == map_tidx[scup - 1]))
     {
         ipm_l = map_ipm[scup - 1];
         valid_l = 1;
     }
 
-    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && MCU_GET_COD(map_scu[scup - w_scu]) && (map_tidx[scup] == map_tidx[scup - w_scu]))
+    if(y_scu > 0 && MCU_GET_IF(map_scu[scup - w_scu]) && cod_eco[scup - w_scu] && (map_tidx[scup] == map_tidx[scup - w_scu]))
     {
         ipm_u = map_ipm[scup - w_scu];
         valid_u = 1;
     }
 
-    if(x_scu + scuw < w_scu && MCU_GET_IF(map_scu[scup + scuw]) && MCU_GET_COD(map_scu[scup + scuw]) && (map_tidx[scup] == map_tidx[scup + scuw]))
+    if(x_scu + scuw < w_scu && MCU_GET_IF(map_scu[scup + scuw]) && cod_eco[scup + scuw] && (map_tidx[scup] == map_tidx[scup + scuw]))
     {
         ipm_r = map_ipm[scup + scuw];
 

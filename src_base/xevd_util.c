@@ -1122,6 +1122,22 @@ void xevd_set_split_mode(s8 split_mode, int cud, int cup, int cuw, int cuh, int 
         (*split_mode_buf)[cud][shape][pos] = split_mode;
 }
 
+u16 xevd_check_eco_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u8 * cod_eco, u8* map_tidx)
+{
+    int scup = y_scu *  w_scu + x_scu;
+    int scuw = cuw >> MIN_CU_LOG2;
+    u16 avail_lr = 0;
+    int curr_scup = x_scu + y_scu * w_scu;
+    if (x_scu > 0 && cod_eco[scup - 1] && (map_tidx[curr_scup] == map_tidx[scup - 1]))
+    {
+        avail_lr += 1;
+    }
+    if (x_scu + scuw < w_scu && cod_eco[scup + scuw] && (map_tidx[curr_scup] == map_tidx[scup + scuw]))
+    {
+        avail_lr += 2;
+    }
+    return avail_lr;
+}
 
 u16 xevd_check_nev_avail(int x_scu, int y_scu, int cuw, int cuh, int w_scu, int h_scu, u32 * map_scu, u8* map_tidx)
 {
@@ -1539,24 +1555,22 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
 
     MCU_SET_LOGW(map_cu_mode[0], core->log2_cuw);
     MCU_SET_LOGH(map_cu_mode[0], core->log2_cuh);
-    MCU_SET_IF_COD_SN_QP(map_scu[0], flag, ctx->slice_num, core->qp);
+    MCU_SET_IF_SN_QP(map_scu[0], flag, ctx->slice_num, core->qp);
+    map_refi[0][REFP_0] = core->refi[REFP_0];
+    map_refi[0][REFP_1] = core->refi[REFP_1];
 
+    map_mv[0][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
+    map_mv[0][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
+    map_mv[0][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
+    map_mv[0][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
 
-    temp1 = map_scu[0];
-    temp2 = map_cu_mode[0];
-
-    for (j = 0; j < w_cu; j++)
+    for (i = 1; i < w_cu; i = i << 1)
     {
-        map_scu[j] = temp1;
-        map_cu_mode[j] = temp2;
+        xevd_mcpy(map_scu + i, map_scu, i * sizeof(map_scu[0]));
+        xevd_mcpy(map_cu_mode + i, map_cu_mode, i * sizeof(map_cu_mode[0]));
+        xevd_mcpy(map_mv + i, map_mv, 4 * i * sizeof(s16));
+        xevd_mcpy(map_refi + i, map_refi, 2 * i * sizeof(s8));
 
-        map_refi[j][REFP_0] = core->refi[REFP_0];
-        map_refi[j][REFP_1] = core->refi[REFP_1];
-
-        map_mv[j][REFP_0][MV_X] = core->mv[REFP_0][MV_X];
-        map_mv[j][REFP_0][MV_Y] = core->mv[REFP_0][MV_Y];
-        map_mv[j][REFP_1][MV_X] = core->mv[REFP_1][MV_X];
-        map_mv[j][REFP_1][MV_Y] = core->mv[REFP_1][MV_Y];
     }
 
      xevd_mset(map_ipm, core->ipm[0], w_cu*sizeof(core->ipm[0]));

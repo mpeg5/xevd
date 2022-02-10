@@ -1726,8 +1726,8 @@ u8 xevdm_check_suco_cond(int cuw, int cuh, s8 split_mode, int boundary, u8 log2_
     return 1;
 }
 
-void xevdm_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u32* map_cu_mode, u8* ctx, u8 slice_type
-    , int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size, u8* map_tidx)
+void xevdm_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu, u32* map_scu, u8* cod_eco, u32* map_cu_mode, u8* ctx, u8 slice_type
+    , int sps_cm_init_flag, u8 ibc_flag, u8 ibc_log_max_size, u8* map_tidx, int eco_flag)
 {
     int nev_info[NUM_CNID][3];
     int scun[3], avail[3];
@@ -1750,9 +1750,17 @@ void xevdm_get_ctx_some_flags(int x_scu, int y_scu, int cuw, int cuh, int w_scu,
     scun[0] = scup - w_scu;
     scun[1] = scup - 1 + (scuh - 1)*w_scu;
     scun[2] = scup + scuw + (scuh - 1)*w_scu;
+    if(eco_flag){
+        avail[0] = y_scu == 0 ? 0 : ((map_tidx[scup] == map_tidx[scun[0]]) && cod_eco[scun[0]]);
+        avail[1] = x_scu == 0 ? 0 : ((map_tidx[scup] == map_tidx[scun[1]]) && cod_eco[scun[1]]);
+        avail[2] = x_scu + scuw >= w_scu ? 0 : ((map_tidx[scup] == map_tidx[scun[2]]) && cod_eco[scun[2]]);
+    }
+    else
+    {
     avail[0] = y_scu == 0 ? 0 : ((map_tidx[scup] == map_tidx[scun[0]]) && MCU_GET_COD(map_scu[scun[0]]));
     avail[1] = x_scu == 0 ? 0 : ((map_tidx[scup] == map_tidx[scun[1]]) && MCU_GET_COD(map_scu[scun[1]]));
     avail[2] = x_scu + scuw >= w_scu ? 0 : ((map_tidx[scup] == map_tidx[scun[2]]) && MCU_GET_COD(map_scu[scun[2]]));
+    }
     num_pos_avail = 0;
 
     for (j = 0; j < 3; j++)
@@ -4300,12 +4308,12 @@ void xevdm_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
             if(ctx->pps.cu_qp_delta_enabled_flag)
             {
                 MCU_RESET_QP(map_scu[j]);
-                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
+                MCU_SET_IF_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
                 
             }
             else
             {
-                MCU_SET_IF_COD_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
+                MCU_SET_IF_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
                 
             }
 

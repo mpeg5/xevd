@@ -125,6 +125,7 @@ static void sequence_deinit(XEVD_CTX * ctx)
 {
     XEVDM_CTX *mctx = (XEVDM_CTX *)ctx;
     xevd_mfree(ctx->map_scu);
+    xevd_mfree(ctx->cod_eco);
     xevd_mfree(ctx->map_split);
     xevd_mfree(ctx->map_ipm);
     xevd_mfree(mctx->map_suco);
@@ -134,7 +135,7 @@ static void sequence_deinit(XEVD_CTX * ctx)
     xevd_mfree_fast(ctx->map_tidx);
     xevdm_picman_deinit(&mctx->dpm);
     xevd_mfree((void*)ctx->sync_flag);
-
+    xevd_mfree((void*)ctx->sync_row);
     XEVDM_SH  *msh = &mctx->sh;
     if (msh->alf_sh_param.alf_ctu_enable_flag != NULL)
     {
@@ -256,6 +257,13 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
         xevd_mset_x64a(ctx->map_scu, 0, size);
     }
 
+    if (ctx->cod_eco == NULL)
+    {
+        size = sizeof(u8) * ctx->f_scu;
+        ctx->cod_eco = (u8 *)xevd_malloc(size);
+        xevd_assert_gv(ctx->cod_eco, ret, XEVD_ERR_OUT_OF_MEMORY, ERR);
+        xevd_mset_x64a(ctx->cod_eco, 0, size);
+    }
     /* alloc affine SCU map */
     if (mctx->map_affine == NULL)
     {
@@ -365,19 +373,16 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     }
 
     ctx->sync_flag = (volatile s32 *)xevd_malloc(ctx->f_lcu * sizeof(int));
-    for (int i = 0; i < (int)ctx->f_lcu; i++)
-    {
-        for (s32 i = 0; i < ctx->f_lcu; i++)
-        {
-            ctx->sync_flag[i] = 0;
-        }
-    }
+    xevd_mset((void *)ctx->sync_flag, 0, ctx->f_lcu * sizeof(ctx->sync_flag[0]));
+
+    ctx->sync_row = (volatile s32 *)xevd_malloc(ctx->h_lcu * sizeof(int));
+    xevd_mset((void *)ctx->sync_row, 0, ctx->h_lcu * sizeof(ctx->sync_row[0]));
 
     if (sps->vui_parameters_present_flag && sps->vui_parameters.bitstream_restriction_flag)
     {
         ctx->max_coding_delay = sps->vui_parameters.num_reorder_pics;
     }
-
+    xevd_mset_x64a(ctx->cod_eco, 0, sizeof(u8) * ctx->f_scu);
     return XEVD_OK;
 ERR:
     sequence_deinit(ctx);
@@ -402,10 +407,8 @@ static int slice_init(XEVD_CTX * ctx, XEVD_CORE * core, XEVD_SH * sh)
 
     if (ctx->tc.max_task_cnt > 1)
     {
-        for (s32 i = 0; i < ctx->f_lcu; i++)
-        {
-            ctx->sync_flag[i] = 0;
-        }
+        xevd_mset((void *)ctx->sync_flag, 0, ctx->f_lcu * sizeof(ctx->sync_flag[0]));
+        xevd_mset((void *)ctx->sync_row, 0, ctx->h_lcu * sizeof(ctx->sync_row[0]));
     }
 
     if(ctx->sh.slice_type == SLICE_I)
@@ -1119,8 +1122,8 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
 
     core->avail_lr = xevd_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
 
-    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
+    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
+                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx, 0);
 
     /* inverse transform and dequantization */
     if(core->pred_mode != MODE_SKIP)
@@ -1306,10 +1309,10 @@ static int xevd_entropy_dec_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y,
     XEVD_TRACE_STR("\n");
 
     mcore->ats_intra_cu = mcore->ats_intra_mode_h = mcore->ats_intra_mode_v = 0;
-    core->avail_lr = xevd_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
+    core->avail_lr = xevd_check_eco_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->cod_eco, ctx->map_tidx);
 
-    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
+    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
+                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx, 1);
 
     /* parse CU info */
     ret = xevdm_eco_cu(ctx, core);
@@ -1317,6 +1320,12 @@ static int xevd_entropy_dec_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y,
 
     copy_to_cu_data(ctx, core, cud);
     xevdm_set_dec_info(ctx, core);
+    u8 *cod_eco = ctx->cod_eco + core->scup;
+    xevd_mset(cod_eco, 1, (cuw >> MIN_CU_LOG2) * sizeof(u8));
+    for (int i = 1; i < cuh >> MIN_CU_LOG2; i++)
+    {
+        xevd_mcpy(cod_eco + i*ctx->w_scu, cod_eco, (cuw >> MIN_CU_LOG2) * sizeof(u8));
+    }
 
     return XEVD_OK;
 ERR:
@@ -1657,8 +1666,8 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
                     core->x_scu = PEL2SCU(x0);
                     core->y_scu = PEL2SCU(y0);
 
-                    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx);
+                    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
+                                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx, 1);
 
                     mode_cons_for_child = xevdm_eco_mode_constr(core->bs, core->ctx_flags[CNID_MODE_CONS]);
                 }
@@ -2199,7 +2208,7 @@ void clear_tile_cod_map(XEVD_CTX  * ctx, XEVD_CORE * core)
     core->y_lcu = (ctx->tile[core->tile_num].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
     update_core_loc_param(ctx, core);
 
-    u32 * map_scu = ctx->map_scu + core->y_scu * ctx->w_scu + core->x_scu;
+    u8 * cod_eco = ctx->cod_eco + core->y_scu * ctx->w_scu + core->x_scu;
     int ex, ey;
 
     if (core->x_scu + (ctx->tile[core->tile_num].w_ctb << (ctx->log2_max_cuwh - MIN_CU_LOG2)) < ctx->w_scu)
@@ -2222,11 +2231,8 @@ void clear_tile_cod_map(XEVD_CTX  * ctx, XEVD_CORE * core)
 
     for (int sy = 0; sy < ey; sy++)
     {
-        for (int sx = 0; sx < ex; sx++)
-        {
-            MCU_CLR_COD(map_scu[sx]); // nedd to check, tile map
-        }
-        map_scu += ctx->w_scu;
+        xevd_mset(cod_eco, 0, ex * sizeof(u8));
+        cod_eco += ctx->w_scu;
     }
 }
 
@@ -2303,6 +2309,7 @@ int xevd_tile_eco(void * arg)
         lcu_cnt_in_tile--;
         if (lcu_cnt_in_tile == 0)
         {
+            xevd_threadsafe_assign(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
             xevd_assert_gv(xevd_eco_tile_end_flag(bs, sbac) == 1, ret, XEVD_ERR, ERR);
             ret = xevd_eco_cabac_zero_word(bs);
             xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
@@ -2311,6 +2318,7 @@ int xevd_tile_eco(void * arg)
         core->x_lcu++;
         if (core->x_lcu >= ctx->tile[tile_idx].w_ctb + col_bd)
         {
+            xevd_threadsafe_assign(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
             core->x_lcu = (tile->ctba_rs_first) % ctx->w_lcu;
             core->y_lcu++;
         }
@@ -2347,6 +2355,10 @@ int xevd_ctu_row_rec_mt(void * arg)
     //LCU decoding with in a tile
     while (ctx->tile[tile_idx].f_ctb > 0)
     {
+        if (ctx->num_tiles_in_slice == 1 && ctx->tc.max_task_cnt > 2) 
+        {
+            xevd_spinlock_wait(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
+        }
         if (core->y_lcu != sp_y_lcu && core->x_lcu < (sp_x_lcu + ctx->tile[tile_idx].w_ctb - 1))
         {
             /* up-right CTB */
@@ -2368,7 +2380,14 @@ int xevd_ctu_row_rec_mt(void * arg)
         xevd_threadsafe_assign(&ctx->sync_flag[core->lcu_num], THREAD_TERMINATED);
         xevd_threadsafe_decrement(ctx->sync_block, (volatile s32 *)&ctx->tile[tile_idx].f_ctb);
 
+        if (ctx->tc.max_task_cnt > 2 && ctx->num_tiles_in_slice == 1)
+        {
+            core->lcu_num = mt_get_next_ctu_num(ctx, core, ctx->tc.task_num_in_tile[0] - 1);
+        }
+        else
+        {
         core->lcu_num = mt_get_next_ctu_num(ctx, core, ctx->tc.task_num_in_tile[core->tile_num]);
+        }
         if (core->lcu_num == -1)
         {
             break;
@@ -2385,6 +2404,40 @@ int xevd_tile_mt(void * arg)
     XEVD_CTX   * ctx = core->ctx;
     int          res, ret = XEVD_OK;
     int          thread_idx = core->thread_idx + ctx->tc.tile_task_num;
+    xevd_mset((void *)ctx->sync_row, 0, ctx->tile[core->tile_num].h_ctb * sizeof(ctx->sync_row[0]));
+    if (ctx->tc.max_task_cnt > 2 && ctx->num_tiles_in_slice == 1)
+    {
+        for (int thread_cnt = 1; thread_cnt < ctx->tc.task_num_in_tile[0]; thread_cnt++)
+        {
+            if (thread_cnt < ctx->tile[0].h_ctb)
+            {
+                xevd_mcpy(ctx->core_mt[thread_idx], core, sizeof(XEVD_CORE));
+                ctx->core_mt[thread_idx]->x_lcu = ((ctx->tile[0].ctba_rs_first) % ctx->w_lcu);               //entry point lcu's x location
+                ctx->core_mt[thread_idx]->y_lcu = ((ctx->tile[0].ctba_rs_first) / ctx->w_lcu) + thread_cnt - 1; // entry point lcu's y location //MULTICORE_ENT_RECON
+                ctx->core_mt[thread_idx]->lcu_num = ctx->core_mt[thread_idx]->y_lcu * ctx->w_lcu + ctx->core_mt[thread_idx]->x_lcu;
+                ctx->core_mt[thread_idx]->thread_idx = thread_idx;
+                ctx->tc.run(ctx->thread_pool[thread_idx], xevd_ctu_row_rec_mt, (void*)ctx->core_mt[thread_idx]);
+            }
+            thread_idx += ctx->tc.tile_task_num;
+        }
+        ret = xevd_tile_eco(arg);
+        xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+        thread_idx = core->thread_idx + ctx->tc.tile_task_num;
+        for (int thread_cnt = 1; thread_cnt < ctx->tc.task_num_in_tile[0]; thread_cnt++)
+        {
+            if (thread_cnt < ctx->tile[0].h_ctb)
+            {
+                ctx->tc.join(ctx->thread_pool[thread_idx], &res);
+                if (XEVD_FAILED(res))
+                {
+                    ret = res;
+                }
+            }
+            thread_idx += ctx->tc.tile_task_num;
+        }
+    }
+    else
+    {
 
     xevd_tile_eco(arg);
     xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -2420,7 +2473,7 @@ int xevd_tile_mt(void * arg)
         }
         thread_idx += ctx->tc.tile_task_num;
     }
-
+    }
     return ret;
 }
 
