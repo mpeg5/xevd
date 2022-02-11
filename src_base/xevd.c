@@ -555,7 +555,7 @@ static void coef_rect_to_series(XEVD_CTX * ctx, s16 *coef_src[N_C], int x, int y
         xevd_mcpy(&coef_dst[U_C][didx], &coef_src[U_C][sidx], cuw * sizeof(16));
         xevd_mcpy(&coef_dst[V_C][didx], &coef_src[V_C][sidx], cuw * sizeof(16));
         didx += cuw;
-        sidx += (ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)));
+        sidx += (ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)));
     }
 }
 
