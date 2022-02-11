@@ -155,7 +155,7 @@ static int xevdm_hmvp_init(XEVD_CORE * core);
 /* set decoded information, such as MVs, inter_dir, etc. */
 void xevdm_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core);
 
-void xevdm_split_tbl_init(XEVD_CTX *ctx);
+void xevdm_split_tbl_init(XEVD_CTX *ctx, XEVD_SPS * sps);
 
 #if USE_DRAW_PARTITION_DEC
 void xevd_draw_partition(XEVD_CTX * ctx, XEVD_PIC * pic);

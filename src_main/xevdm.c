@@ -132,10 +132,14 @@ static void sequence_deinit(XEVD_CTX * ctx)
     xevd_mfree(mctx->map_affine);
     xevd_mfree(ctx->map_cu_mode);
     xevd_mfree(mctx->map_ats_inter);
+    xevd_mfree(ctx->map_cu_data);
     xevd_mfree_fast(ctx->map_tidx);
     xevdm_picman_deinit(&mctx->dpm);
-    xevd_mfree((void*)ctx->sync_flag);
-    xevd_mfree((void*)ctx->sync_row);
+    free((void*)ctx->sync_flag);
+	  ctx->sync_flag = NULL;
+    free((void*)ctx->sync_row);
+	  ctx->sync_row = NULL;
+
     XEVDM_SH  *msh = &mctx->sh;
     if (msh->alf_sh_param.alf_ctu_enable_flag != NULL)
     {
@@ -214,7 +218,7 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
         ctx->w = sps->pic_width_in_luma_samples;
         ctx->h = sps->pic_height_in_luma_samples;
 
-        if (ctx->sps.sps_btt_flag)
+        if (sps->sps_btt_flag)
         {
             ctx->max_cuwh = 1 << (sps->log2_ctu_size_minus5 + 5);
             ctx->min_cuwh = 1 << (sps->log2_min_cb_size_minus2 + 2);
@@ -238,7 +242,7 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
     mctx->alf              = new_alf(ctx->internal_codec_bit_depth);
     ADAPTIVE_LOOP_FILTER* alf = (ADAPTIVE_LOOP_FILTER*)(mctx->alf);
-    alf_create(alf, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5, ctx->sps.chroma_format_idc, ctx->internal_codec_bit_depth);
+    alf_create(alf, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5, sps->chroma_format_idc, ctx->internal_codec_bit_depth);
 
     XEVDM_SH  *msh = &mctx->sh;
     if (msh->alf_sh_param.alf_ctu_enable_flag == NULL)
@@ -350,10 +354,10 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     ret = xevdm_picman_init(&mctx->dpm, MAXM_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
     xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
 
-    xevdm_split_tbl_init(ctx);
+    xevdm_split_tbl_init(ctx, sps);
 
-    xevd_set_chroma_qp_tbl_loc(ctx->sps.bit_depth_luma_minus8 + 8);
-    if(ctx->sps.tool_iqt == 0)
+    xevd_set_chroma_qp_tbl_loc(sps->bit_depth_luma_minus8 + 8);
+    if(sps->tool_iqt == 0)
     {
         xevd_tbl_qp_chroma_adjust = xevd_tbl_qp_chroma_adjust_base;
     }
@@ -401,9 +405,9 @@ static int slice_init(XEVD_CTX * ctx, XEVD_CORE * core, XEVD_SH * sh)
     core->y_lcu = 0;
     core->x_pel = 0;
     core->y_pel = 0;
-    core->qp_y = ctx->sh.qp + 6 * ctx->sps.bit_depth_luma_minus8;
-    core->qp_u = xevd_qp_chroma_dynamic[0][sh->qp_u] + 6 * ctx->sps.bit_depth_chroma_minus8;
-    core->qp_v = xevd_qp_chroma_dynamic[1][sh->qp_v] + 6 * ctx->sps.bit_depth_chroma_minus8;
+    core->qp_y = ctx->sh.qp + 6 * ctx->sps->bit_depth_luma_minus8;
+    core->qp_u = xevd_qp_chroma_dynamic[0][sh->qp_u] + 6 * ctx->sps->bit_depth_chroma_minus8;
+    core->qp_v = xevd_qp_chroma_dynamic[1][sh->qp_v] + 6 * ctx->sps->bit_depth_chroma_minus8;
 
     if (ctx->tc.max_task_cnt > 1)
     {
@@ -416,7 +420,7 @@ static int slice_init(XEVD_CTX * ctx, XEVD_CORE * core, XEVD_SH * sh)
         ctx->last_intra_poc = ctx->poc.poc_val;
     }
 
-    if (ctx->sps.tool_hmvp)
+    if (ctx->sps->tool_hmvp)
     {
         xevdm_hmvp_init(core);
     }
@@ -472,7 +476,7 @@ static void make_stat(XEVD_CTX * ctx, int btype, XEVD_STAT * stat)
 static void xevdm_itdq_main(XEVD_CTX * ctx, XEVD_CORE * core)
 {
     XEVDM_CORE * mcore = (XEVDM_CORE *)core;
-    xevdm_sub_block_itdq(ctx, core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps.tool_iqt, core->pred_mode == MODE_IBC ? 0 : mcore->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((mcore->ats_intra_mode_h << 1) | mcore->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : mcore->ats_inter_info, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+    xevdm_sub_block_itdq(ctx, core->coef, core->log2_cuw, core->log2_cuh, core->qp_y, core->qp_u, core->qp_v, core->is_coef, core->is_coef_sub, ctx->sps->tool_iqt, core->pred_mode == MODE_IBC ? 0 : mcore->ats_intra_cu, core->pred_mode == MODE_IBC ? 0 : ((mcore->ats_intra_mode_h << 1) | mcore->ats_intra_mode_v), core->pred_mode == MODE_IBC ? 0 : mcore->ats_inter_info, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->chroma_format_idc);
 }
 
 static void get_nbr_yuv(int x, int y, int cuw, int cuh, XEVD_CTX * ctx, XEVD_CORE * core)
@@ -486,43 +490,43 @@ static void get_nbr_yuv(int x, int y, int cuw, int cuh, XEVD_CTX * ctx, XEVD_COR
         /* Y */
         s_rec = ctx->pic->s_l;
         rec = ctx->pic->y + (y * s_rec) + x;
-        if (ctx->sps.tool_eipd)
+        if (ctx->sps->tool_eipd)
         {
-            xevdm_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag, ctx->map_tidx, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+            xevdm_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag, ctx->map_tidx, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->chroma_format_idc);
         }
         else
         {
-            xevd_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag,ctx->map_tidx, ctx->sps.bit_depth_luma_minus8+8, ctx->sps.chroma_format_idc);
+            xevd_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, Y_C, constrained_intra_flag,ctx->map_tidx, ctx->sps->bit_depth_luma_minus8+8, ctx->sps->chroma_format_idc);
         }
     }
-    if (xevd_check_chroma(ctx, core) && ctx->sps.chroma_format_idc)
+    if (xevd_check_chroma(ctx, core) && ctx->sps->chroma_format_idc)
     {
-        cuw >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
-        cuh >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
-        x >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
-        y >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
+        cuw >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc));
+        cuh >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc));
+        x >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc));
+        y >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc));
         s_rec = ctx->pic->s_c;
 
         /* U */
         rec = ctx->pic->u + (y * s_rec) + x;
-        if (ctx->sps.tool_eipd)
+        if (ctx->sps->tool_eipd)
         {
-            xevdm_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+            xevdm_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->chroma_format_idc);
         }
         else
         {
-            xevd_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+            xevd_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, U_C, constrained_intra_flag, ctx->map_tidx, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->chroma_format_idc);
         }
 
         /* V */
         rec = ctx->pic->v + (y * s_rec) + x;
-        if (ctx->sps.tool_eipd)
+        if (ctx->sps->tool_eipd)
         {
-            xevdm_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+            xevdm_get_nbr(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->chroma_format_idc);
         }
         else
         {
-            xevd_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.chroma_format_idc);
+            xevd_get_nbr_b(x, y, cuw, cuh, rec, s_rec, core->avail_cu, core->nb, core->scup, ctx->map_scu, ctx->w_scu, ctx->h_scu, V_C, constrained_intra_flag, ctx->map_tidx, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->chroma_format_idc);
         }
     }
 }
@@ -679,7 +683,7 @@ void xevd_get_direct_motion(XEVD_CTX * ctx, XEVD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
     XEVDM_CORE *mcore = (XEVDM_CORE *)core;
-    if (ctx->sps.tool_admvp == 0)
+    if (ctx->sps->tool_admvp == 0)
     {
         xevdm_get_motion_skip_baseline(ctx->sh.slice_type, core->scup, ctx->map_refi, ctx->map_mv, ctx->refp[0], cuw, cuh, ctx->w_scu, srefi, smvp, core->avail_cu);
     }
@@ -718,13 +722,13 @@ void xevd_get_skip_motion(XEVD_CTX * ctx, XEVD_CORE * core)
     cuw = (1 << core->log2_cuw);
     cuh = (1 << core->log2_cuh);
     XEVDM_CORE *mcore = (XEVDM_CORE *)core;
-    if (ctx->sps.tool_mmvd && mcore->mmvd_flag)
+    if (ctx->sps->tool_mmvd && mcore->mmvd_flag)
     {
         xevdm_get_mmvd_motion(ctx, core);
     }
     else
     {
-        if(ctx->sps.tool_admvp == 0)
+        if(ctx->sps->tool_admvp == 0)
         {
             xevdm_get_motion(core->scup, REFP_0, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, srefi[REFP_0], smvp[REFP_0]);
 
@@ -770,7 +774,7 @@ void xevd_get_inter_motion(XEVD_CTX * ctx, XEVD_CORE * core)
         /* 0: forward, 1: backward */
         if (((core->inter_dir + 1) >> inter_dir_idx) & 1)
         {
-            if(ctx->sps.tool_admvp == 0)
+            if(ctx->sps->tool_admvp == 0)
             {
                 xevdm_get_motion(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, ctx->refp, cuw, cuh, ctx->w_scu, core->avail_cu, refi, mvp);
                 core->mv[inter_dir_idx][MV_X] = mvp[core->mvp_idx[inter_dir_idx]][MV_X] + core->mvd[inter_dir_idx][MV_X];
@@ -781,11 +785,11 @@ void xevd_get_inter_motion(XEVD_CTX * ctx, XEVD_CORE * core)
                 if (core->bi_idx == BI_FL0 || core->bi_idx == BI_FL1)
                 {
                     core->refi[inter_dir_idx] = xevdm_get_first_refi(core->scup, inter_dir_idx, ctx->map_refi, ctx->map_mv, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, core->mvr_idx, core->avail_lr
-                        , mctx->map_unrefined_mv, core->history_buffer, ctx->sps.tool_hmvp, ctx->map_tidx);
+                        , mctx->map_unrefined_mv, core->history_buffer, ctx->sps->tool_hmvp, ctx->map_tidx);
                 }
 
                 xevdm_get_motion_from_mvr(core->mvr_idx, ctx->poc.poc_val, core->scup, inter_dir_idx, core->refi[inter_dir_idx], mctx->dpm.num_refp[inter_dir_idx], ctx->map_mv, ctx->map_refi, ctx->refp, \
-                    cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, refi, ctx->map_scu, core->avail_lr, mctx->map_unrefined_mv, core->history_buffer, ctx->sps.tool_hmvp, ctx->map_tidx);
+                    cuw, cuh, ctx->w_scu, ctx->h_scu, core->avail_cu, mvp, refi, ctx->map_scu, core->avail_lr, mctx->map_unrefined_mv, core->history_buffer, ctx->sps->tool_hmvp, ctx->map_tidx);
 
                 core->mvp_idx[inter_dir_idx] = 0;
 
@@ -923,7 +927,7 @@ static int cu_init(XEVD_CTX *ctx, XEVD_CORE *core, int x, int y, int cuw, int cu
     core->qp_y = cu_data->qp_y[cup];
     core->qp_u = cu_data->qp_u[cup];
     core->qp_v = cu_data->qp_v[cup];
-    core->qp = core->qp_y - (6 * ctx->sps.bit_depth_luma_minus8);
+    core->qp = core->qp_y - (6 * ctx->sps->bit_depth_luma_minus8);
 
     for (int c = Y_C; c < N_C; c++)
     {
@@ -1074,14 +1078,14 @@ static void coef_rect_to_series(XEVD_CTX * ctx, s16 *coef_src[N_C], int x, int y
         }
 
     }
-    if (xevd_check_chroma(ctx, core) && ctx->sps.chroma_format_idc)
+    if (xevd_check_chroma(ctx, core) && ctx->sps->chroma_format_idc)
     {
-        x >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
-        y >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
-        cuw >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc));
-        cuh >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc));
+        x >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc));
+        y >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc));
+        cuw >>= (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc));
+        cuh >>= (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc));
 
-        sidx = (x & ((ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))) - 1)) + ((y & ((ctx->max_cuwh >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps.chroma_format_idc))) - 1)) << (ctx->log2_max_cuwh - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc))));
+        sidx = (x & ((ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))) - 1)) + ((y & ((ctx->max_cuwh >> (XEVD_GET_CHROMA_H_SHIFT(ctx->sps->chroma_format_idc))) - 1)) << (ctx->log2_max_cuwh - (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc))));
 
         didx = 0;
 
@@ -1093,7 +1097,7 @@ static void coef_rect_to_series(XEVD_CTX * ctx, s16 *coef_src[N_C], int x, int y
                 coef_dst[V_C][didx] = coef_src[V_C][sidx + i];
                 didx++;
             }
-            sidx += (ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps.chroma_format_idc)));
+            sidx += (ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)));
 
         }
     }
@@ -1116,15 +1120,15 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
 
-    int chroma_format_idc = ctx->sps.chroma_format_idc;
+    int chroma_format_idc = ctx->sps->chroma_format_idc;
 
     cu_init(ctx, core, x, y, cuw, cuh);
 
     core->avail_lr = xevd_check_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->map_scu, ctx->map_tidx);
 
-    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx, 0);
-
+    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
+                         , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 0);
+    
     /* inverse transform and dequantization */
     if(core->pred_mode != MODE_SKIP)
     {
@@ -1137,13 +1141,13 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
     {
         core->avail_cu = xevdm_get_avail_ibc(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu, ctx->map_tidx);
 
-        xevdm_IBC_mc(x, y, log2_cuw, log2_cuh, core->mv[0], ctx->pic, core->pred[0], mcore->tree_cons, ctx->sps.chroma_format_idc);
+        xevdm_IBC_mc(x, y, log2_cuw, log2_cuh, core->mv[0], ctx->pic, core->pred[0], mcore->tree_cons, ctx->sps->chroma_format_idc);
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
     }
     else if(core->pred_mode != MODE_INTRA)
     {
         core->avail_cu = xevdm_get_avail_inter(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, cuw, cuh, ctx->map_scu, ctx->map_tidx);
-        if (ctx->sps.tool_dmvr)
+        if (ctx->sps->tool_dmvr)
         {
             mcore->dmvr_enable = 0;
             if (core->pred_mode == MODE_SKIP && !mcore->mmvd_flag)
@@ -1164,7 +1168,7 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
         {
             xevd_get_affine_motion(ctx, core);
 
-            xevdm_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, mcore->affine_mv, ctx->refp, core->pred, mcore->affine_flag + 1, core->eif_tmp_buffer, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8,  ctx->sps.chroma_format_idc);
+            xevdm_affine_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, mcore->affine_mv, ctx->refp, core->pred, mcore->affine_flag + 1, core->eif_tmp_buffer, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8,  ctx->sps->chroma_format_idc);
         }
         else
         {
@@ -1176,10 +1180,10 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
             {
                 if (core->inter_dir == PRED_DIR)
                 {
-                    if(ctx->sps.tool_admvp == 0)
+                    if(ctx->sps->tool_admvp == 0)
                     {
                         xevdm_get_mv_dir(ctx->refp[0], ctx->poc.poc_val, core->scup + ((1 << (core->log2_cuw - MIN_CU_LOG2)) - 1) + ((1 << (core->log2_cuh - MIN_CU_LOG2)) - 1) * ctx->w_scu, core->scup, ctx->w_scu, ctx->h_scu, core->mv
-                            , ctx->sps.tool_admvp
+                            , ctx->sps->tool_admvp
                         );
                         core->refi[REFP_0] = 0;
                         core->refi[REFP_1] = 0;
@@ -1199,15 +1203,15 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
                 }
             }
             xevdm_mc(x, y, ctx->w, ctx->h, cuw, cuh, core->refi, core->mv, ctx->refp, core->pred, ctx->poc.poc_val, mcore->dmvr_template, mcore->dmvr_ref_pred_interpolated
-                   , mcore->dmvr_half_pred_interpolated, (mcore->dmvr_enable == 1) && ctx->sps.tool_dmvr, mcore->dmvr_padding_buf, &mcore->dmvr_flag, mcore->dmvr_mv
-                   , ctx->sps.tool_admvp, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8+8, ctx->sps.chroma_format_idc);
+                   , mcore->dmvr_half_pred_interpolated, (mcore->dmvr_enable == 1) && ctx->sps->tool_dmvr, mcore->dmvr_padding_buf, &mcore->dmvr_flag, mcore->dmvr_mv
+                   , ctx->sps->tool_admvp, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8+8, ctx->sps->chroma_format_idc);
         }
 
         xevdm_set_dec_info(ctx, core);
 
         if (core->pred_mode != MODE_INTRA && core->pred_mode != MODE_IBC
              && xevd_check_luma(ctx, core)
-            && ctx->sps.tool_hmvp
+            && ctx->sps->tool_hmvp
 
             )
         {
@@ -1220,16 +1224,16 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
         core->avail_cu = xevd_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, core->log2_cuw, core->log2_cuh, ctx->map_scu, ctx->map_tidx);
         get_nbr_yuv(x, y, cuw, cuh, ctx, core);
 
-        if (ctx->sps.tool_eipd)
+        if (ctx->sps->tool_eipd)
         {
             if (xevd_check_luma(ctx, core))
             {
-                xevdm_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, ctx->sps.bit_depth_luma_minus8 + 8);
+                xevdm_ipred(core->nb[0][0] + 2, core->nb[0][1] + cuh, core->nb[0][2] + 2, core->avail_lr, core->pred[0][Y_C], core->ipm[0], cuw, cuh, ctx->sps->bit_depth_luma_minus8 + 8);
             }
             if (xevd_check_chroma(ctx, core))
             {
-                xevdm_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, ctx->sps.bit_depth_chroma_minus8 + 8);
-                xevdm_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, ctx->sps.bit_depth_chroma_minus8 + 8);
+                xevdm_ipred_uv(core->nb[1][0] + 2, core->nb[1][1] + (cuh >> 1), core->nb[1][2] + 2, core->avail_lr, core->pred[0][U_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, ctx->sps->bit_depth_chroma_minus8 + 8);
+                xevdm_ipred_uv(core->nb[2][0] + 2, core->nb[2][1] + (cuh >> 1), core->nb[2][2] + 2, core->avail_lr, core->pred[0][V_C], core->ipm[1], core->ipm[0], cuw >> 1, cuh >> 1, ctx->sps->bit_depth_chroma_minus8 + 8);
             }
         }
         else
@@ -1249,17 +1253,17 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
     }
 
     /* reconstruction */
-    xevdm_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : mcore->ats_inter_info, mcore->tree_cons, ctx->sps.bit_depth_luma_minus8 + 8 , ctx->sps.chroma_format_idc);
+    xevdm_recon_yuv(x, y, cuw, cuh, core->coef, core->pred[0], core->is_coef, ctx->pic, core->pred_mode == MODE_IBC ? 0 : mcore->ats_inter_info, mcore->tree_cons, ctx->sps->bit_depth_luma_minus8 + 8 , ctx->sps->chroma_format_idc);
 
     if (core->pred_mode != MODE_IBC)
     {
-        if (ctx->sps.tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA) && xevd_check_luma(ctx, core))
+        if (ctx->sps->tool_htdf == 1 && (core->is_coef[Y_C] || core->pred_mode == MODE_INTRA) && xevd_check_luma(ctx, core))
         {
             u16 avail_cu = xevd_get_avail_intra(core->x_scu, core->y_scu, ctx->w_scu, ctx->h_scu, core->scup, log2_cuw, log2_cuh, ctx->map_scu, ctx->map_tidx);
 
             int constrained_intra_flag = core->pred_mode == MODE_INTRA && ctx->pps.constrained_intra_pred_flag;
 
-            xevdm_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA, ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu, core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag, ctx->sps.bit_depth_luma_minus8 + 8);
+            xevdm_htdf(ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->sh.qp, cuw, cuh, ctx->pic->s_l, core->pred_mode == MODE_INTRA, ctx->pic->y + (y * ctx->pic->s_l) + x, ctx->pic->s_l, avail_cu, core->scup, ctx->w_scu, ctx->h_scu, ctx->map_scu, constrained_intra_flag, ctx->sps->bit_depth_luma_minus8 + 8);
         }
     }
 
@@ -1293,7 +1297,7 @@ static int xevd_entropy_dec_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y,
     core->y = y;
     cuw = 1 << log2_cuw;
     cuh = 1 << log2_cuh;
-    int chroma_format_idc = ctx->sps.chroma_format_idc;
+    int chroma_format_idc = ctx->sps->chroma_format_idc;
 
     XEVD_TRACE_COUNTER;
     XEVD_TRACE_STR("poc: ");
@@ -1311,9 +1315,9 @@ static int xevd_entropy_dec_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y,
     mcore->ats_intra_cu = mcore->ats_intra_mode_h = mcore->ats_intra_mode_v = 0;
     core->avail_lr = xevd_check_eco_nev_avail(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->h_scu, ctx->cod_eco, ctx->map_tidx);
 
-    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx, 1);
-
+    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
+                         , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 1);
+    
     /* parse CU info */
     ret = xevdm_eco_cu(ctx, core);
     xevd_assert_g(ret == XEVD_OK, ERR);
@@ -1563,12 +1567,12 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
             int boundary_b = boundary && (y0 + cuh > ctx->h) && !(x0 + cuw > ctx->w);
             int boundary_r = boundary && (x0 + cuw > ctx->w) && !(y0 + cuh > ctx->h);
 
-            if (ctx->sps.sps_btt_flag)
+            if (ctx->sps->sps_btt_flag)
             {
                 xevdm_check_split_mode(split_allow, log2_cuw, log2_cuh, boundary, boundary_b, boundary_r, ctx->log2_max_cuwh
                     , parent_split, same_layer_split, node_idx, parent_split_allow, qt_depth, btt_depth
                     , x0, y0, ctx->w, ctx->h
-                    , NULL, ctx->sps.sps_btt_flag
+                    , NULL, ctx->sps->sps_btt_flag
                     , mode_cons);
 
                 if (split_allow[SPLIT_BI_VER])
@@ -1609,7 +1613,7 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
         split_mode = NO_SPLIT;
     }
 
-    if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps.dquant_flag)
+    if(ctx->pps.cu_qp_delta_enabled_flag && ctx->sps->dquant_flag)
     {
         if (split_mode == NO_SPLIT && (log2_cuh + log2_cuw >= ctx->pps.cu_qp_delta_area) && cu_qp_delta_code != 2)
         {
@@ -1649,14 +1653,14 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
 
         BOOL mode_constraint_changed = FALSE;
 
-        if ( ctx->sps.sps_btt_flag && ctx->sps.tool_admvp )       // TODO: Tim create the specific variable for local dual tree ON/OFF
+        if ( ctx->sps->sps_btt_flag && ctx->sps->tool_admvp )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
              /* should be updated for 4:2:2 and 4:4:4 */
-            mode_constraint_changed = mode_cons == eAll && ctx->sps.chroma_format_idc != 0 && !xevd_is_chroma_split_allowed(cuw, cuh, split_mode);
+            mode_constraint_changed = mode_cons == eAll && ctx->sps->chroma_format_idc != 0 && !xevd_is_chroma_split_allowed(cuw, cuh, split_mode);
 
             if ( mode_constraint_changed )
             {
-                if ( ctx->sh.slice_type == SLICE_I || xevdm_get_mode_cons_by_split(split_mode, cuw, cuh) == eOnlyIntra || ctx->sps.chroma_format_idc != 1)
+                if ( ctx->sh.slice_type == SLICE_I || xevdm_get_mode_cons_by_split(split_mode, cuw, cuh) == eOnlyIntra || ctx->sps->chroma_format_idc != 1)
                 {
                     mode_cons_for_child = eOnlyIntra;
                 }
@@ -1666,9 +1670,9 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
                     core->x_scu = PEL2SCU(x0);
                     core->y_scu = PEL2SCU(y0);
 
-                    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps.tool_cm_init
-                                         , ctx->sps.ibc_flag, ctx->sps.ibc_log_max_size, ctx->map_tidx, 1);
-
+                    xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
+                                         , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 1);
+                  
                     mode_cons_for_child = xevdm_eco_mode_constr(core->bs, core->ctx_flags[CNID_MODE_CONS]);
                 }
             }
@@ -1709,9 +1713,9 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
     {
         core->cu_qp_delta_code = cu_qp_delta_code;
         TREE_TYPE tree_type = mode_cons == eOnlyIntra ? TREE_L : TREE_LC;
-        assert( mode_cons != eOnlyInter || !( ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) );
+        assert( mode_cons != eOnlyInter || !( ctx->sps->tool_admvp && log2_cuw == 2 && log2_cuh == 2 ) );
 
-        if (ctx->sh.slice_type == SLICE_I || (ctx->sps.tool_admvp && log2_cuw == 2 && log2_cuh == 2))
+        if (ctx->sh.slice_type == SLICE_I || (ctx->sps->tool_admvp && log2_cuw == 2 && log2_cuh == 2))
         {
             mode_cons = eOnlyIntra;
         }
@@ -1745,7 +1749,7 @@ static int xevd_recon_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int c
         TREE_CONS_NEW tree_constrain_for_child = tree_cons;
         BOOL mode_cons_changed = FALSE;
 
-        if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
+        if ( ctx->sps->tool_admvp && ctx->sps->sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
             mode_cons_changed = tree_cons.mode_cons == eAll && !xevd_is_chroma_split_allowed( cuw, cuh, split_mode );
 
@@ -1791,9 +1795,9 @@ static int xevd_recon_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int c
     if (split_mode == NO_SPLIT)
     {
         TREE_TYPE tree_type = tree_cons.mode_cons == eOnlyIntra ? (tree_cons.tree_type == TREE_C ? TREE_C : TREE_L) : TREE_LC;
-        assert(tree_cons.mode_cons != eOnlyInter || !(ctx->sps.tool_admvp && XEVD_CONV_LOG2(cuw) == 2 && XEVD_CONV_LOG2(cuh) == 2));
+        assert(tree_cons.mode_cons != eOnlyInter || !(ctx->sps->tool_admvp && XEVD_CONV_LOG2(cuw) == 2 && XEVD_CONV_LOG2(cuh) == 2));
 
-        if (ctx->sh.slice_type == SLICE_I || (ctx->sps.tool_admvp && XEVD_CONV_LOG2(cuw) == 2 && XEVD_CONV_LOG2(cuh) == 2))
+        if (ctx->sh.slice_type == SLICE_I || (ctx->sps->tool_admvp && XEVD_CONV_LOG2(cuw) == 2 && XEVD_CONV_LOG2(cuh) == 2))
         {
             tree_cons.mode_cons = eOnlyIntra;
         }
@@ -1828,10 +1832,10 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
 
         BOOL mode_cons_changed = FALSE;
 
-        if ( ctx->sps.tool_admvp && ctx->sps.sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
+        if ( ctx->sps->tool_admvp && ctx->sps->sps_btt_flag )       // TODO: Tim create the specific variable for local dual tree ON/OFF
         {
             /* should be updated for 4:2:2 and 4:4:4 */
-            mode_cons_changed = tree_cons.mode_cons == eAll && ctx->sps.chroma_format_idc != 0 && !xevd_is_chroma_split_allowed(cuw, cuh, split_mode);
+            mode_cons_changed = tree_cons.mode_cons == eAll && ctx->sps->chroma_format_idc != 0 && !xevd_is_chroma_split_allowed(cuw, cuh, split_mode);
             if (mode_cons_changed)
             {
                 tree_constrain_for_child.mode_cons = xevd_derive_mode_cons(ctx, PEL2SCU(x) + PEL2SCU(y) * ctx->w_scu);
@@ -1880,19 +1884,19 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
             if (cuh > MAX_TR_SIZE)
             {
                 xevdm_deblock_cu_hor(ctx, pic, x, y, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                                   , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
-                                  , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
+                                   , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps->tool_addb, mctx->map_ats_inter
+                                  , ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8, ctx->sps->chroma_format_idc);
 
                 xevdm_deblock_cu_hor(ctx, pic, x, y + MAX_TR_SIZE, cuw, cuh >> 1, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv
                                    , ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering
-                                   , ctx->sps.tool_addb, mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8
-                                   , ctx->sps.chroma_format_idc);
+                                   , ctx->sps->tool_addb, mctx->map_ats_inter, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8
+                                   , ctx->sps->chroma_format_idc);
             }
             else
             {
                 xevdm_deblock_cu_hor(ctx, pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi,mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh, ctx->refp, 0
-                                   , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
+                                   , mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps->tool_addb, mctx->map_ats_inter
+                                   , ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8, ctx->sps->chroma_format_idc);
             }
         }
         else
@@ -1900,18 +1904,18 @@ static void deblock_tree(XEVD_CTX * ctx, XEVD_PIC * pic, int x, int y, int cuw, 
             if (cuw > MAX_TR_SIZE)
             {
                 xevdm_deblock_cu_ver(ctx, pic, x, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
-                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb
-                                   , mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
+                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps->tool_addb
+                                   , mctx->map_ats_inter, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8 , ctx->sps->chroma_format_idc);
 
                 xevdm_deblock_cu_ver(ctx, pic, x + MAX_TR_SIZE, y, cuw >> 1, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
-                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb, mctx->map_ats_inter
-                                   , ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8, ctx->sps.chroma_format_idc);
+                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps->tool_addb, mctx->map_ats_inter
+                                   , ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8, ctx->sps->chroma_format_idc);
             }
             else
             {
                 xevdm_deblock_cu_ver(ctx, pic, x, y, cuw, cuh, ctx->map_scu, ctx->map_refi, mctx->map_unrefined_mv, ctx->w_scu, ctx->log2_max_cuwh
-                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps.tool_addb
-                                   , mctx->map_ats_inter, ctx->sps.bit_depth_luma_minus8 + 8, ctx->sps.bit_depth_chroma_minus8 + 8 , ctx->sps.chroma_format_idc);
+                                   , ctx->map_cu_mode, ctx->refp, 0, mcore->tree_cons, ctx->map_tidx, boundary_filtering, ctx->sps->tool_addb
+                                   , mctx->map_ats_inter, ctx->sps->bit_depth_luma_minus8 + 8, ctx->sps->bit_depth_chroma_minus8 + 8 , ctx->sps->chroma_format_idc);
             }
         }
     }
@@ -2268,7 +2272,7 @@ int xevd_tile_eco(void * arg)
         col_bd = 0;
     }
 
-    xevdm_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps.tool_cm_init);
+    xevdm_eco_sbac_reset(bs, ctx->sh.slice_type, ctx->sh.qp, ctx->sps->tool_cm_init);
     tile = &(ctx->tile[tile_idx]);
     core->x_lcu = (ctx->tile[tile_idx].ctba_rs_first) % ctx->w_lcu; //entry point lcu's x location
     core->y_lcu = (ctx->tile[tile_idx].ctba_rs_first) / ctx->w_lcu; // entry point lcu's y location
@@ -2367,7 +2371,7 @@ int xevd_ctu_row_rec_mt(void * arg)
 
         xevd_assert_rv(core->lcu_num < ctx->f_lcu, XEVD_ERR_UNEXPECTED);
 
-        if (ctx->sps.tool_hmvp && core->x_lcu == sp_x_lcu) //This condition will reset history buffer
+        if (ctx->sps->tool_hmvp && core->x_lcu == sp_x_lcu) //This condition will reset history buffer
         {
             ret = xevdm_hmvp_init(core);
             xevd_assert_rv(ret == XEVD_OK, ret);
@@ -2747,7 +2751,7 @@ static int clear_map(XEVD_CTX * ctx)
 int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 {
     XEVD_BSR  *bs = &ctx->bs;
-    XEVD_SPS  *sps = &ctx->sps;
+    XEVD_SPS  *sps = &ctx->sps_array[ctx->sps_id];
     XEVD_PPS  *pps = &ctx->pps;
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     XEVD_APS_GEN  *aps_array = mctx->aps_gen_array;
@@ -2789,11 +2793,13 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         msh->alf_on = sps->tool_alf;
 
         msh->mmvd_group_enable_flag = sps->tool_mmvd;
+        ctx->sps_id++;
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
         ret = xevdm_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+        ctx->sps = &ctx->sps_array[pps->pps_seq_parameter_set_id];
         int pps_id = pps->pps_pic_parameter_set_id;
         xevd_mcpy(&(ctx->pps_array[pps_id]), pps, sizeof(XEVD_PPS));
         ret = picture_init(ctx);
@@ -2812,7 +2818,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         aps_array[1].aps_data = (void*)&dra_control;
 
         XEVD_APS_GEN *local_aps_gen = aps_array;
-        ret = xevdm_eco_aps_gen(bs, local_aps_gen, ctx->sps.bit_depth_luma_minus8+8);
+        ret = xevdm_eco_aps_gen(bs, local_aps_gen, ctx->sps->bit_depth_luma_minus8+8);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
         if( (aps_array[0].aps_id != -1) && (aps_array[1].aps_id == -1))
@@ -2872,7 +2878,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         /* decode slice header */
         sh->num_ctb = ctx->f_lcu;
 
-        ret = xevdm_eco_sh(bs, &ctx->sps, &ctx->pps, sh, msh, ctx->nalu.nal_unit_type_plus1 - 1);
+        ret = xevdm_eco_sh(bs, ctx->sps, &ctx->pps, sh, msh, ctx->nalu.nal_unit_type_plus1 - 1);
 
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         set_active_pps_info(ctx);
@@ -2896,12 +2902,12 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
                 sh->poc_lsb = 0;
                 ctx->poc.prev_doc_offset = -1;
                 ctx->poc.prev_poc_val = 0;
-                ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps.log2_sub_gop_length);
+                ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps->log2_sub_gop_length);
                 ctx->poc.poc_val = 0;
             }
             else
             {
-                ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps.log2_sub_gop_length);
+                ctx->slice_ref_flag = (ctx->nalu.nuh_temporal_id == 0 || ctx->nalu.nuh_temporal_id < ctx->sps->log2_sub_gop_length);
                 xevd_poc_derivation(ctx->sps, ctx->nalu.nuh_temporal_id, &ctx->poc);
                 sh->poc_lsb = ctx->poc.poc_val;
             }
@@ -2958,7 +2964,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         if (!sps->tool_rpl)
         {
             /* initialize reference pictures */
-            ret = xevdm_picman_refp_init(&mctx->dpm, ctx->sps.max_num_ref_pics, sh->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
+            ret = xevdm_picman_refp_init(&mctx->dpm, ctx->sps->max_num_ref_pics, sh->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
         }
         else
         {
@@ -2991,7 +2997,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             xevd_mset_x64a(mctx->map_unrefined_mv, 0, size);
 
             ctx->pic->imgb->imgb_active_pps_id = ctx->pps.pps_pic_parameter_set_id;
-            if (ctx->sps.tool_dra)
+            if (ctx->sps->tool_dra)
             {
                 if (ctx->pps.pic_dra_enabled_flag == 1)
                     ctx->pic->imgb->imgb_active_aps_id = ctx->pps.pic_dra_aps_id;
@@ -3206,7 +3212,7 @@ int xevd_apply_filter(XEVD_CTX *ctx, XEVD_IMGB *imgb)
         {
             g_dra_control_effective.flag_enabled = 0;
         }
-        int sps_dra_enable_flag = ctx->sps.tool_dra;
+        int sps_dra_enable_flag = ctx->sps->tool_dra;
 
         if ((sps_dra_enable_flag == 1) && (pps_dra_id >= 0))
         {
@@ -3244,16 +3250,16 @@ int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
         /* increase reference count */
         pic->imgb->addref(pic->imgb);
         *imgb = pic->imgb;
-        if (ctx->sps.picture_cropping_flag)
+        if (ctx->sps->picture_cropping_flag)
         {
             (*imgb)->crop_idx = 1;
-            (*imgb)->crop_l = ctx->sps.picture_crop_left_offset;
-            (*imgb)->crop_r = ctx->sps.picture_crop_right_offset;
-            (*imgb)->crop_t = ctx->sps.picture_crop_top_offset;
-            (*imgb)->crop_b = ctx->sps.picture_crop_bottom_offset;
+            (*imgb)->crop_l = ctx->sps->picture_crop_left_offset;
+            (*imgb)->crop_r = ctx->sps->picture_crop_right_offset;
+            (*imgb)->crop_t = ctx->sps->picture_crop_top_offset;
+            (*imgb)->crop_b = ctx->sps->picture_crop_bottom_offset;
         }
 
-        if (ctx->sps.tool_dra) {
+        if (ctx->sps->tool_dra) {
             XEVD_IMGB * imgb_dra = NULL;
             imgb_dra = xevd_imgb_generate(ctx->w, ctx->h, ctx->pa.pad_l, ctx->pa.pad_c, ctx->pa.idc, ctx->internal_codec_bit_depth);
             xevd_imgb_cpy(imgb_dra, *imgb);
@@ -3544,15 +3550,15 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_WIDTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps.picture_crop_left_offset + ctx->sps.picture_crop_right_offset;
-        if(ctx->sps.chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps->picture_crop_left_offset + ctx->sps->picture_crop_right_offset;
+        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->w - t0;
         break;
 
     case XEVD_CFG_GET_HEIGHT:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps.picture_crop_top_offset + ctx->sps.picture_crop_bottom_offset;
-        if(ctx->sps.chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps->picture_crop_top_offset + ctx->sps->picture_crop_bottom_offset;
+        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->h - t0;
         break;
 
@@ -3568,7 +3574,7 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_COLOR_SPACE:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps.chroma_format_idc];
+        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps->chroma_format_idc];
         break;
 
     case XEVD_CFG_GET_MAX_CODING_DELAY:
@@ -3594,7 +3600,7 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
 
     XEVD_APS_GEN *aps_gen_array = mctx->aps_gen_array;
 
-    if (ctx->sps.tool_dra)
+    if (ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].tool_dra)
     {
         // check if new DRA APS recieved, update buffer
         if ((aps_gen_array + 1)->aps_id != -1)

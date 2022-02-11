@@ -96,7 +96,7 @@ u16 xevd_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, i
 XEVD_PIC* xevd_picbuf_lc_alloc(int w, int h, int pad_l, int pad_c, int *err, int idc, int bit_depth);
 void xevd_picbuf_lc_free(XEVD_PIC *pic);
 void xevd_picbuf_lc_expand(XEVD_PIC *pic, int exp_l, int exp_c);
-void xevd_poc_derivation(XEVD_SPS sps, int tid, XEVD_POC *poc);
+void xevd_poc_derivation(XEVD_SPS * sps, int tid, XEVD_POC *poc);
 void xevd_get_motion(int scup, int lidx, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP(*refp)[REFP_NUM], int cuw, int cuh, int w_scu, u16 avail, s8 refi[MAX_NUM_MVP], s16 mvp[MAX_NUM_MVP][MV_D]);
 void xevd_get_motion_skip_baseline(int slice_type, int scup, s8(*map_refi)[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], XEVD_REFP refp[REFP_NUM], int cuw, int cuh, int w_scu,
     s8 refi[REFP_NUM][MAX_NUM_MVP], s16 mvp[REFP_NUM][MAX_NUM_MVP][MV_D], u16 avail_lr);

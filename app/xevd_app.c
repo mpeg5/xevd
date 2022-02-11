@@ -371,6 +371,7 @@ int main(int argc, const char **argv)
     FILE             * fp_bs = NULL;
     int                decod_frames = 0;
     int                is_y4m = 0;
+    int                dim_changed = 0;
 
 
     /* parse options */
@@ -545,14 +546,29 @@ int main(int argc, const char **argv)
 
         if(imgb)
         {
+            if (w != imgb->aw[0] || h != imgb->ah[0])
+            {
+                dim_changed = 1;
+            }
+            else
+            {
+                dim_changed = 0;
+            }
+            
             w = imgb->aw[0];
             h = imgb->ah[0];
 
 
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
-                if(imgb_t == NULL)
+                
+                if(imgb_t == NULL || dim_changed)
                 {
+                    if(imgb_t)
+                    {
+                        free(imgb_t);
+                        imgb_t = NULL;
+                    }
                     imgb_t = imgb_alloc(w, h, XEVD_CS_SET(XEVD_CS_GET_FORMAT(imgb->cs), op_out_bit_depth, 0));
                     if(imgb_t == NULL)
                     {

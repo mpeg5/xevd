@@ -4389,16 +4389,16 @@ void xevdm_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
     }
 }
 
-void xevdm_split_tbl_init(XEVD_CTX *ctx)
+void xevdm_split_tbl_init(XEVD_CTX *ctx, XEVD_SPS * sps)
 {
     xevd_split_tbl[BLOCK_11][IDX_MAX] = ctx->log2_max_cuwh;
-    xevd_split_tbl[BLOCK_11][IDX_MIN] = ctx->sps.log2_min_cb_size_minus2 + 2;
+    xevd_split_tbl[BLOCK_11][IDX_MIN] = sps->log2_min_cb_size_minus2 + 2;
     xevd_split_tbl[BLOCK_12][IDX_MAX] = ctx->log2_max_cuwh;
     xevd_split_tbl[BLOCK_12][IDX_MIN] = xevd_split_tbl[BLOCK_11][IDX_MIN] + 1;
-    xevd_split_tbl[BLOCK_14][IDX_MAX] = XEVD_MIN(ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_14_cb_size, 6);
+    xevd_split_tbl[BLOCK_14][IDX_MAX] = XEVD_MIN(ctx->log2_max_cuwh - sps->log2_diff_ctu_max_14_cb_size, 6);
     xevd_split_tbl[BLOCK_14][IDX_MIN] = xevd_split_tbl[BLOCK_12][IDX_MIN] + 1;
-    xevd_split_tbl[BLOCK_TT][IDX_MAX] = XEVD_MIN(ctx->log2_max_cuwh - ctx->sps.log2_diff_ctu_max_tt_cb_size, 6);
-    xevd_split_tbl[BLOCK_TT][IDX_MIN] = xevd_split_tbl[BLOCK_11][IDX_MIN] + ctx->sps.log2_diff_min_cb_min_tt_cb_size_minus2 + 2;
+    xevd_split_tbl[BLOCK_TT][IDX_MAX] = XEVD_MIN(ctx->log2_max_cuwh - sps->log2_diff_ctu_max_tt_cb_size, 6);
+    xevd_split_tbl[BLOCK_TT][IDX_MIN] = xevd_split_tbl[BLOCK_11][IDX_MIN] + sps->log2_diff_min_cb_min_tt_cb_size_minus2 + 2;
 }
 
 #if USE_DRAW_PARTITION_DEC
@@ -4697,7 +4697,7 @@ void xevdm_get_mmvd_motion(XEVD_CTX * ctx, XEVD_CORE * core)
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     xevdm_get_mmvd_mvp_list(ctx->map_refi, ctx->refp[0], ctx->map_mv, ctx->w_scu, ctx->h_scu, core->scup, core->avail_cu, core->log2_cuw, core->log2_cuh, ctx->sh.slice_type, real_mv, ctx->map_scu, REF_SET, core->avail_lr
         , ctx->poc.poc_val, mctx->dpm.num_refp
-        , core->history_buffer, ctx->sps.tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, mcore->mmvd_idx);
+        , core->history_buffer, ctx->sps->tool_admvp, &ctx->sh, ctx->log2_max_cuwh, ctx->map_tidx, mcore->mmvd_idx);
 
     core->mv[REFP_0][MV_X] = real_mv[mcore->mmvd_idx][0][MV_X];
     core->mv[REFP_0][MV_Y] = real_mv[mcore->mmvd_idx][0][MV_Y];

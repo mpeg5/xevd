@@ -79,7 +79,7 @@ typedef s32                     double_pel;
 #define xevd_malloc(size)          malloc((size))
 #define xevd_malloc_fast(size)     xevd_malloc((size))
 
-#define xevd_mfree(m)              if(m){free(m);}
+#define xevd_mfree(m)              if(m){free(m); m = NULL;}
 #define xevd_mfree_fast(m)         if(m){xevd_mfree(m);}
 
 #define xevd_mcpy(dst,src,size)    memcpy((dst), (src), (size))

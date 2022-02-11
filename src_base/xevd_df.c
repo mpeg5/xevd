@@ -304,9 +304,9 @@ void xevd_deblock_cu_hor(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int
     u32         *map_scu = ctx->map_scu;
     int          w_scu = ctx->w_scu;
     u8          *map_tidx = ctx->map_tidx;
-    int          bit_depth_chroma = ctx->sps.bit_depth_chroma_minus8 + 8;
-    int          bit_depth_luma = ctx->sps.bit_depth_luma_minus8 + 8;
-    int          chroma_format_idc = ctx->sps.chroma_format_idc;
+    int          bit_depth_chroma = ctx->sps->bit_depth_chroma_minus8 + 8;
+    int          bit_depth_luma = ctx->sps->bit_depth_luma_minus8 + 8;
+    int          chroma_format_idc = ctx->sps->chroma_format_idc;
 
     map_refi = ctx->map_refi;
     map_mv = ctx->map_mv;
@@ -395,9 +395,9 @@ void xevd_deblock_cu_ver(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int
     u32         *map_scu = ctx->map_scu;
     int          w_scu = ctx->w_scu;
     u8          *map_tidx = ctx->map_tidx;
-    int          bit_depth_chroma = ctx->sps.bit_depth_chroma_minus8 + 8;
-    int          bit_depth_luma = ctx->sps.bit_depth_luma_minus8 + 8;
-    int          chroma_format_idc = ctx->sps.chroma_format_idc;
+    int          bit_depth_chroma = ctx->sps->bit_depth_chroma_minus8 + 8;
+    int          bit_depth_luma = ctx->sps->bit_depth_luma_minus8 + 8;
+    int          chroma_format_idc = ctx->sps->chroma_format_idc;
     s16          (*map_mv_tmp)[REFP_NUM][MV_D];
     s8           (*map_refi_tmp)[REFP_NUM];
     map_refi = ctx->map_refi;
