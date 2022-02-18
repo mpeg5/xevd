@@ -3550,15 +3550,15 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_WIDTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps->picture_crop_left_offset + ctx->sps->picture_crop_right_offset;
-        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_left_offset + ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_right_offset;
+        if(ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->w - t0;
         break;
 
     case XEVD_CFG_GET_HEIGHT:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps->picture_crop_top_offset + ctx->sps->picture_crop_bottom_offset;
-        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_top_offset + ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_bottom_offset;
+        if(ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->h - t0;
         break;
 
@@ -3574,7 +3574,7 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_COLOR_SPACE:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps->chroma_format_idc];
+        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc];
         break;
 
     case XEVD_CFG_GET_MAX_CODING_DELAY:
