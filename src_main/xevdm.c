@@ -2779,7 +2779,14 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     mctx->aps_temp = -1;
     if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
-        ret = xevdm_eco_sps(bs, sps);
+        XEVD_SPS s_sps;
+
+        memset( &s_sps, 0, sizeof( s_sps ) ) ;
+        ret = xevdm_eco_sps(bs, &s_sps);
+
+        ctx->sps_array[ s_sps.sps_seq_parameter_set_id % 16 ] = s_sps;
+        sps = &ctx->sps_array[ s_sps.sps_seq_parameter_set_id % 16 ];
+        ctx->sps_id = s_sps.sps_seq_parameter_set_id;
 
         ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
         ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
@@ -2793,13 +2800,14 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         msh->alf_on = sps->tool_alf;
 
         msh->mmvd_group_enable_flag = sps->tool_mmvd;
-        ctx->sps_id++;
+        //ctx->sps_id++; no
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
         ret = xevdm_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        ctx->sps = &ctx->sps_array[pps->pps_seq_parameter_set_id];
+        ctx->sps_id = pps->pps_seq_parameter_set_id % 16;
+        sps = ctx->sps = &ctx->sps_array[ ctx->sps_id ];
         int pps_id = pps->pps_pic_parameter_set_id;
         xevd_mcpy(&(ctx->pps_array[pps_id]), pps, sizeof(XEVD_PPS));
         ret = picture_init(ctx);

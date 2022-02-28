@@ -119,11 +119,26 @@ static void pic_marking_no_rpl(XEVDM_PM * pm, int ref_pic_gap_length)
 static void picman_flush_pb(XEVDM_PM * pm)
 {
     int i;
+    XEVD_PIC *pic;
 
     /* mark all frames unused */
-    for(i = 0; i < MAXM_PB_SIZE; i++)
+    while( pm->cur_num_ref_pics > 0 )
     {
-        if(pm->pic[i]) SET_REF_UNMARK(pm->pic[i]);
+        for( i = 0; i < MAX_PB_SIZE; i++ )
+        {
+            if( pm->pic[ i ] && IS_REF( pm->pic[ i ] ) )
+            {
+                pic = pm->pic[ i ];
+
+                /* unmark for reference */
+                SET_REF_UNMARK( pic );
+                picman_move_pic( pm, i, MAX_PB_SIZE - 1 );
+
+                pm->cur_num_ref_pics--;
+
+                break;
+            }
+        }
     }
     pm->cur_num_ref_pics = 0;
 }

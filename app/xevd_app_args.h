@@ -327,6 +327,7 @@ static int  op_out_chroma_format = 1;
 typedef enum _STATES
 {
     STATE_DECODING,
+    STATE_BUMPING_IDR,
     STATE_BUMPING
 } STATES;
 

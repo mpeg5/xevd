@@ -372,6 +372,9 @@ int main(int argc, const char **argv)
     int                decod_frames = 0;
     int                is_y4m = 0;
     int                dim_changed = 0;
+    int                has_idr_slice = 0;
+    int                iterate = 0;
+    int                i_la_read_pos = 0;
 
 
     /* parse options */
@@ -473,6 +476,8 @@ int main(int argc, const char **argv)
     bs_cnt  = 0;
     w = h   = 0;
     proc_ret = 0;
+    has_idr_slice = 0;
+    iterate = 0;
 
     while(1)
     {
@@ -480,9 +485,53 @@ int main(int argc, const char **argv)
         {
             memset(&stat, 0, sizeof(XEVD_STAT));
 
-            bs_size = read_bitstream(fp_bs, &bs_read_pos, bs_buf);
+            if( bs_read_pos  == i_la_read_pos )
+            {
+                iterate = 0;
+                do
+                {
+                    int nal_unit_type;
 
-            if (bs_size <= 0)
+                    bs_size = read_bitstream( fp_bs, &i_la_read_pos, bs_buf );
+                    if( bs_size <= 0 )
+                    {
+                        break;
+                    }
+                    i_la_read_pos += XEVD_NAL_UNIT_LENGTH_BYTE + bs_size;
+
+                    nal_unit_type = ( ( bs_buf[ 0 ] >> 1 ) & 0x3f ) - 1;
+
+                    if( nal_unit_type == 1 )
+                    {
+                        if( has_idr_slice == 1 )
+                        {
+                            logv2( "idr encountered, bumping process starting...\n" );
+                            state = STATE_BUMPING_IDR;
+                            iterate = 1;
+                            i_la_read_pos -= XEVD_NAL_UNIT_LENGTH_BYTE + bs_size;
+                            has_idr_slice = 0;
+                            break;
+                        }
+                        else
+                        {
+                            has_idr_slice = 1;
+                            break;
+                        }
+                    }
+                    else if( nal_unit_type < XEVD_NUT_SPS )
+                    {
+                        break;
+                    }
+                } while( 1 );
+                if( iterate == 1 )
+                {
+                    continue;
+                }
+            }
+
+            bs_size = read_bitstream( fp_bs, &bs_read_pos, bs_buf );
+
+            if( bs_size <= 0 )
             {
                 state = STATE_BUMPING;
                 logv2("bumping process starting...\n");
@@ -522,15 +571,22 @@ int main(int argc, const char **argv)
             //get_extra_config(id);
 
         }
-        if(stat.fnum >= 0 || state == STATE_BUMPING)
+        if(stat.fnum >= 0 || state == STATE_BUMPING || state == STATE_BUMPING_IDR )
         {
             ret = xevd_pull(id, &imgb, &opl);
 
             if(ret == XEVD_ERR_UNEXPECTED)
             {
                 logv2("bumping process completed\n");
-				proc_ret = 0;
-                goto END;
+                if( state == STATE_BUMPING )
+                {
+                    proc_ret = 0;
+                    goto END;
+                }
+                else
+                {
+                    state = STATE_DECODING;
+                }
             }
             else if(XEVD_FAILED(ret))
             {
