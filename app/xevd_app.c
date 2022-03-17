@@ -33,6 +33,12 @@
 #include "xevd_app_util.h"
 #include "xevd_app_args.h"
 
+#if (defined(_WIN64) || defined(_WIN32)) && !defined(__GNUC__)
+#include <winsock.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 #define MAX_BS_BUF                 16*1024*1024 /* byte */
 
 static void print_usage(void)
@@ -62,6 +68,8 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
         /* read size first */
         if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(&bs_size, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
         {
+            // Reorder the bytes of a 32-bit unsigned value from network order to processor order
+            bs_size = ntohl(bs_size); 
             if(bs_size <= 0)
             {
                 logv0("Invalid bitstream size![%d]\n", bs_size);
