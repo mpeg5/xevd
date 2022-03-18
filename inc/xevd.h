@@ -40,6 +40,38 @@ extern "C"
 #include <stdint.h>
 #include <xevd_exports.h>
 
+#define is_bigendian() (!*(unsigned char *)&(uint16_t){1})
+
+#define XEVD_REVERSE_BYTE_ORDER_SHORT(data) ((unsigned short) \
+( (((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00) )  )
+
+#define XEVD_REVERSE_BYTE_ORDER_LONG(data) ((unsigned long)  \
+( (((data) >> 24) & 0x000000FF) | (((data) >>  8) & 0x0000FF00) | \
+  (((data) <<  8) & 0x00FF0000) | (((data) << 24) & 0xFF000000) ) )
+
+#define XEVD_REVERSE_BYTE_ORDER_LONG_LONG(data) ((unsigned long long)  \
+( (((data) >> 56) & 0x00000000000000FF) | (((data) >> 40) & 0x000000000000FF00) | \
+  (((data) >> 24) & 0x0000000000FF0000) | (((data) >>  8) & 0x00000000FF000000) | \
+  (((data) <<  8) & 0x000000FF00000000) | (((data) << 24) & 0x0000FF0000000000) | \
+  (((data) << 40) & 0x00FF000000000000) | (((data) << 56) & 0xFF00000000000000) ) )
+
+
+#ifdef LITTLE_ENDIAN_BYTE_ORDER
+#    define XEVD_LITTLE_ENDIAN_SHORT(n) (n)
+#    define XEVD_LITTLE_ENDIAN_LONG(n) (n)
+#    define XEVD_LITTLE_ENDIAN_LONG_LONG(n) (n)
+#    define XEVD_BIG_ENDIAN_SHORT(n) XEVD_REVERSE_BYTE_ORDER_SHORT(n)
+#    define XEVD_BIG_ENDIAN_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
+#    define XEVD_BIG_ENDIAN_LONG_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG_LONG(n)
+#else
+#    define XEVD_LITTLE_ENDIAN_SHORT(n) XEVD_REVERSE_BYTE_ORDER_SHORT(n)
+#    define XEVD_LITTLE_ENDIAN_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
+#    define XEVD_LITTLE_ENDIAN_LONG_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
+#    define XEVD_BIG_ENDIAN_SHORT(n) (n)
+#    define XEVD_BIG_ENDIAN_LONG(n) (n)
+#    define XEVD_BIG_ENDIAN_LONG_LONG(n) (n)
+#endif
+
 /* xevd decoder const */
 #define XEVD_MAX_TASK_CNT                  8
 

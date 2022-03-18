@@ -25,6 +25,15 @@ project (XEVD VERSION 1.0.0)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set compiler flags and options.
+
+message("Processor byte order: ${CMAKE_C_BYTE_ORDER}")
+
+if( ${CMAKE_C_BYTE_ORDER} STREQUAL "LITTLE_ENDIAN")
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DLITTLE_ENDIAN_BYTE_ORDER)
+else()
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DBIG_ENDIAN_BYTE_ORDER)
+endif()
+
 if( MSVC )
 elseif( UNIX OR MINGW )
     if(NOT CMAKE_BUILD_TYPE)
