@@ -55,21 +55,24 @@ extern "C"
   (((data) <<  8) & 0x000000FF00000000) | (((data) << 24) & 0x0000FF0000000000) | \
   (((data) << 40) & 0x00FF000000000000) | (((data) << 56) & 0xFF00000000000000) ) )
 
-
 #ifdef LITTLE_ENDIAN_BYTE_ORDER
-#    define XEVD_LITTLE_ENDIAN_SHORT(n) (n)
-#    define XEVD_LITTLE_ENDIAN_LONG(n) (n)
-#    define XEVD_LITTLE_ENDIAN_LONG_LONG(n) (n)
-#    define XEVD_BIG_ENDIAN_SHORT(n) XEVD_REVERSE_BYTE_ORDER_SHORT(n)
-#    define XEVD_BIG_ENDIAN_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
-#    define XEVD_BIG_ENDIAN_LONG_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG_LONG(n)
+/* Convert 16, 32, 64-bits data from Litle-endian to Host byte order */
+#    define XEVD_LE_TO_HOST_SHORT(n) (n)
+#    define XEVD_LE_TO_HOST_LONG(n) (n)
+#    define XEVD_LE_TO_HOST_LONG_LONG(n) (n)
+/* Convert 16, 32, 64-bits data from Big-endian to Host byte order */
+#    define XEVD_BE_TO_HOST_SHORT(n) XEVD_REVERSE_BYTE_ORDER_SHORT(n)
+#    define XEVD_BE_TO_HOST_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
+#    define XEVD_BE_TO_HOST_LONG_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG_LONG(n)
 #else
-#    define XEVD_LITTLE_ENDIAN_SHORT(n) XEVD_REVERSE_BYTE_ORDER_SHORT(n)
-#    define XEVD_LITTLE_ENDIAN_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
-#    define XEVD_LITTLE_ENDIAN_LONG_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
-#    define XEVD_BIG_ENDIAN_SHORT(n) (n)
-#    define XEVD_BIG_ENDIAN_LONG(n) (n)
-#    define XEVD_BIG_ENDIAN_LONG_LONG(n) (n)
+/* Convert 16, 32, 64-bits data from Little-endian to Host byte order */
+#    define XEVD_LE_TO_HOST_SHORT(n) XEVD_REVERSE_BYTE_ORDER_SHORT(n)
+#    define XEVD_LE_TO_HOST_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
+#    define XEVD_LE_TO_HOST_LONG_LONG(n) XEVD_REVERSE_BYTE_ORDER_LONG(n)
+/* Convert 16, 32, 64-bits data from Big-endian to Host byte order */
+#    define XEVD_BE_TO_HOST_SHORT(n) (n)
+#    define XEVD_BE_TO_HOST_LONG(n) (n)
+#    define XEVD_BE_TO_HOST_LONG_LONG(n) (n)
 #endif
 
 /* xevd decoder const */

@@ -68,8 +68,8 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
         /* read size first */
         if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(&bs_size, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
         {
-            // Reorder the bytes of a 32-bit unsigned value from network order to processor order
-            bs_size = XEVD_BIG_ENDIAN_LONG(bs_size); 
+            // Reorder the bytes of a 32-bit unsigned value from Big-endian to processor byte order
+            bs_size = XEVD_BE_TO_HOST_LONG(bs_size); 
             if(bs_size <= 0)
             {
                 logv0("Invalid bitstream size![%d]\n", bs_size);
