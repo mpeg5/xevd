@@ -49,10 +49,21 @@ static void print_usage(void)
     }
 }
 
+/* read 'nal_unit_length' syntax in Annex-B of EVC standard */
+static int read_nalu_len(void * buf)
+{
+    int i, len = 0;
+    unsigned char * p = (unsigned char *)buf;
+    for(i=0; i<4; i++) {
+        len = (len << 8) | p[i];
+    }
+    return len;
+}
+
 static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
 {
     int read_size, bs_size;
-    unsigned char b = 0;
+    unsigned char nalu_len_buf[4], b = 0;
 
     bs_size = 0;
     read_size = 0;
@@ -60,8 +71,10 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
     if(!fseek(fp, *pos, SEEK_SET))
     {
         /* read size first */
-        if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(&bs_size, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
+        if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(nalu_len_buf, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
         {
+            bs_size = read_nalu_len(nalu_len_buf);
+
             if(bs_size <= 0)
             {
                 logv0("Invalid bitstream size![%d]\n", bs_size);
@@ -554,14 +567,14 @@ int main(int argc, const char **argv)
             {
                 dim_changed = 0;
             }
-            
+
             w = imgb->aw[0];
             h = imgb->ah[0];
 
 
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
-                
+
                 if(imgb_t == NULL || dim_changed)
                 {
                     if(imgb_t)
