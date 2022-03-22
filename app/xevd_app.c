@@ -51,8 +51,9 @@ static void print_usage(void)
 
 static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
 {
-    int read_size, bs_size;
-    unsigned char b = 0;
+    int ret, read_size, bs_size;
+    unsigned char nalu_len_buf[4], b = 0;
+    XEVD_INFO info;
 
     bs_size = 0;
     read_size = 0;
@@ -60,8 +61,15 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
     if(!fseek(fp, *pos, SEEK_SET))
     {
         /* read size first */
-        if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(&bs_size, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
+        if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(nalu_len_buf, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
         {
+            ret = xevd_info(nalu_len_buf, XEVD_NAL_UNIT_LENGTH_BYTE, 1, &info);
+            if (XEVD_FAILED(ret)) {
+                logv0("Cannot get bitstream information\n");
+                return -1;
+            }
+            bs_size = info.nalu_len;
+
             if(bs_size <= 0)
             {
                 logv0("Invalid bitstream size![%d]\n", bs_size);
@@ -554,14 +562,14 @@ int main(int argc, const char **argv)
             {
                 dim_changed = 0;
             }
-            
+
             w = imgb->aw[0];
             h = imgb->ah[0];
 
 
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
-                
+
                 if(imgb_t == NULL || dim_changed)
                 {
                     if(imgb_t)
