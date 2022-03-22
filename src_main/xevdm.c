@@ -240,7 +240,12 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     ctx->w_scu = (ctx->w + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
     ctx->h_scu = (ctx->h + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
-    mctx->alf              = new_alf(ctx->internal_codec_bit_depth);
+
+    ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
+    ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
+    ctx->internal_codec_bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+
+    mctx->alf = new_alf(ctx->internal_codec_bit_depth);
     ADAPTIVE_LOOP_FILTER* alf = (ADAPTIVE_LOOP_FILTER*)(mctx->alf);
     alf_create(alf, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5, sps->chroma_format_idc, ctx->internal_codec_bit_depth);
 
@@ -2779,21 +2784,19 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     mctx->aps_temp = -1;
     if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
-        ret = xevdm_eco_sps(bs, sps);
-
-        ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
-        ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
-        ctx->internal_codec_bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
-
+        XEVD_SPS sps_temp;
+        xevd_mset(&sps_temp, 0, sizeof(XEVD_SPS));
+        ret = xevdm_eco_sps(bs, &sps_temp);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
-        ret = sequence_init(ctx, sps);
-        xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        //TDB: check if should be here
-        msh->alf_on = sps->tool_alf;
+        ctx->sps_id = sps_temp.sps_seq_parameter_set_id;
+        xevd_mcpy(&ctx->sps_array[ctx->sps_id], &sps_temp, sizeof(XEVD_SPS));
+        ctx->sps = &ctx->sps_array[ctx->sps_id];
 
-        msh->mmvd_group_enable_flag = sps->tool_mmvd;
-        ctx->sps_id++;
+        ret = sequence_init(ctx, ctx->sps);
+        xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+
+        ctx->sps_num++;
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {

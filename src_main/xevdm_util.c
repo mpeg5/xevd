@@ -4709,6 +4709,10 @@ void xevdm_get_mmvd_motion(XEVD_CTX * ctx, XEVD_CORE * core)
         core->mv[REFP_1][MV_X] = real_mv[mcore->mmvd_idx][1][MV_X];
         core->mv[REFP_1][MV_Y] = real_mv[mcore->mmvd_idx][1][MV_Y];
     }
+    else if(ctx->sh.slice_type == SLICE_P)
+    {
+        core->refi[REFP_1] = REFI_INVALID;
+    }
 
 }
 

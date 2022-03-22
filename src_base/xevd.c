@@ -157,6 +157,10 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     ctx->h_scu = (ctx->h + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
 
+    ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
+    ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
+    ctx->internal_codec_bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+
     /* alloc SCU map */
     if(ctx->map_scu == NULL)
     {
@@ -1691,16 +1695,18 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
-        ret = xevd_eco_sps(bs, sps);
+        XEVD_SPS sps_temp;
+        xevd_mset(&sps_temp, 0, sizeof(XEVD_SPS));
+        ret = xevd_eco_sps(bs, &sps_temp);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
-        ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
-        ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
-        ctx->internal_codec_bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+        ctx->sps_id = sps_temp.sps_seq_parameter_set_id;
+        xevd_mcpy(&ctx->sps_array[ctx->sps_id], &sps_temp, sizeof(XEVD_SPS));
+        ctx->sps = &ctx->sps_array[ctx->sps_id];
 
-        ret = sequence_init(ctx, sps);
+        ret = sequence_init(ctx, ctx->sps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        ctx->sps_id++;
+        ctx->sps_num++;
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
