@@ -442,16 +442,16 @@ static int xevdm_hmvp_init(XEVD_CORE * core)
     return core->history_buffer.currCnt;
 }
 
-static void make_stat(XEVD_CTX * ctx, int btype, XEVD_STAT * stat)
+static void make_stat(XEVD_CTX * ctx, int nalu_type, XEVD_STAT * stat)
 {
     int i, j;
-    stat->nalu_type = btype;
+    stat->nalu_type = nalu_type;
     stat->stype = 0;
     stat->fnum = -1;
     if(ctx)
     {
         stat->read += XEVD_BSR_GET_READ_BYTE(&ctx->bs);
-        if(btype < XEVD_NUT_SPS)
+        if(nalu_type < XEVD_NUT_SPS)
         {
             stat->fnum = ctx->pic_cnt;
             stat->stype = ctx->sh.slice_type;
@@ -1128,7 +1128,7 @@ static int xevd_recon_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y, int l
 
     xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
                          , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 0);
-    
+
     /* inverse transform and dequantization */
     if(core->pred_mode != MODE_SKIP)
     {
@@ -1317,7 +1317,7 @@ static int xevd_entropy_dec_unit(XEVD_CTX * ctx, XEVD_CORE * core, int x, int y,
 
     xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
                          , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 1);
-    
+
     /* parse CU info */
     ret = xevdm_eco_cu(ctx, core);
     xevd_assert_g(ret == XEVD_OK, ERR);
@@ -1672,7 +1672,7 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
 
                     xevdm_get_ctx_some_flags(core->x_scu, core->y_scu, cuw, cuh, ctx->w_scu, ctx->map_scu, ctx->cod_eco, ctx->map_cu_mode, core->ctx_flags, ctx->sh.slice_type, ctx->sps->tool_cm_init
                                          , ctx->sps->ibc_flag, ctx->sps->ibc_log_max_size, ctx->map_tidx, 1);
-                  
+
                     mode_cons_for_child = xevdm_eco_mode_constr(core->bs, core->ctx_flags[CNID_MODE_CONS]);
                 }
             }
@@ -2359,7 +2359,7 @@ int xevd_ctu_row_rec_mt(void * arg)
     //LCU decoding with in a tile
     while (ctx->tile[tile_idx].f_ctb > 0)
     {
-        if (ctx->num_tiles_in_slice == 1 && ctx->tc.max_task_cnt > 2) 
+        if (ctx->num_tiles_in_slice == 1 && ctx->tc.max_task_cnt > 2)
         {
             xevd_spinlock_wait(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
         }

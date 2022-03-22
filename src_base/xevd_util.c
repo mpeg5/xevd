@@ -1534,7 +1534,7 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
 
 
     u32 temp1, temp2;
-    
+
     if (core->pred_mode == MODE_SKIP)
     {
         MCU_SET_SF(map_scu[0]);
@@ -1574,16 +1574,16 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
     }
 
      xevd_mset(map_ipm, core->ipm[0], w_cu*sizeof(core->ipm[0]));
-      
+
     for (i = 1; i < h_cu; i++)
     {
         xevd_mcpy(map_mv + i*w_scu, map_mv, 4*w_cu*sizeof(s16));
         xevd_mcpy(map_refi + i*w_scu, map_refi, 2*w_cu*sizeof(s8));
         xevd_mcpy(map_scu + i*w_scu, map_scu, w_cu*sizeof(map_scu[0]));
         xevd_mcpy(map_cu_mode + i*w_scu, map_cu_mode, w_cu*sizeof(map_cu_mode[0]));
-        xevd_mcpy(map_ipm + i*w_scu, map_ipm, w_cu*sizeof(core->ipm[0]));       
-    } 
-          
+        xevd_mcpy(map_ipm + i*w_scu, map_ipm, w_cu*sizeof(core->ipm[0]));
+    }
+
 #if MVF_TRACE
     // Trace MVF in decoder
     {
@@ -1620,3 +1620,42 @@ void xevd_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
     }
 #endif
 }
+
+
+int xevd_info(void * bits, int bits_size, int is_annexb, XEVD_INFO * info)
+{
+    int i, t = 0;
+    unsigned char * p = (unsigned char *)bits;
+
+    // default negative value in case of missing of syntax
+    info->nalu_len = -1;
+    info->nalu_type = -1;
+    info->nalu_tid = -1;
+
+    // Annex-B parsing
+    if(is_annexb && (bits_size >= 4))
+    {
+        for(i=0; i<4; i++) {
+            t = (t << 8) | p[i];
+        }
+        info->nalu_len = t;
+
+        bits_size -= 4;
+        p += 4;
+    }
+
+    // nal header parsing
+    if(bits_size >= 2) {
+        // forbidden_zero_bit
+        if ((p[0] & 0x80) != 0) return XEVD_ERR_MALFORMED_BITSTREAM;
+        // nal_unit_type
+        info->nalu_type = (p[0] >> 1) & 0x3F;
+        // nuh_tempral_id
+        info->nalu_tid = ((p[0] & 0x01) << 2) | ((p[1] >> 6) & 0x03);
+
+        bits_size -= 2;
+        p += 2;
+    }
+    return XEVD_OK;
+}
+

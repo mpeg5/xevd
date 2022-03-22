@@ -49,21 +49,11 @@ static void print_usage(void)
     }
 }
 
-/* read 'nal_unit_length' syntax in Annex-B of EVC standard */
-static int read_nalu_len(void * buf)
-{
-    int i, len = 0;
-    unsigned char * p = (unsigned char *)buf;
-    for(i=0; i<4; i++) {
-        len = (len << 8) | p[i];
-    }
-    return len;
-}
-
 static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
 {
-    int read_size, bs_size;
+    int ret, read_size, bs_size;
     unsigned char nalu_len_buf[4], b = 0;
+    XEVD_INFO info;
 
     bs_size = 0;
     read_size = 0;
@@ -73,7 +63,12 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
         /* read size first */
         if(XEVD_NAL_UNIT_LENGTH_BYTE == fread(nalu_len_buf, 1, XEVD_NAL_UNIT_LENGTH_BYTE, fp))
         {
-            bs_size = read_nalu_len(nalu_len_buf);
+            ret = xevd_info(nalu_len_buf, XEVD_NAL_UNIT_LENGTH_BYTE, 1, &info);
+            if (XEVD_FAILED(ret)) {
+                logv0("Cannot get bitstream information\n");
+                return -1;
+            }
+            bs_size = info.nalu_len;
 
             if(bs_size <= 0)
             {
