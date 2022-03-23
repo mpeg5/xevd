@@ -356,7 +356,7 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     ctx->ref_pic_gap_length = (int)pow(2.0, sps->log2_ref_pic_gap_length);
     ctx->pa.idc = sps->chroma_format_idc;
 
-    ret = xevdm_picman_init(&mctx->dpm, MAXM_PB_SIZE, MAX_NUM_REF_PICS, &ctx->pa);
+    ret = xevdm_picman_init(&mctx->dpm, MAXM_PB_SIZE, XEVD_MAX_NUM_REF_PICS, &ctx->pa);
     xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
 
     xevdm_split_tbl_init(ctx, sps);
@@ -719,7 +719,7 @@ void xevd_get_direct_motion(XEVD_CTX * ctx, XEVD_CORE * core)
 
 void xevd_get_skip_motion(XEVD_CTX * ctx, XEVD_CORE * core)
 {
-    int REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
+    int REF_SET[3][XEVD_MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
     int cuw, cuh, inter_dir = 0;
     s8            srefi[REFP_NUM][MAXM_NUM_MVP];
     s16           smvp[REFP_NUM][MAXM_NUM_MVP][MV_D];
@@ -3091,41 +3091,6 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             /* expand pixels to padding area */
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 
-            if (ctx->use_opl)
-            {
-                int compare_md5 = 0;
-                SIG_PARAM_DRA *effective_dra_control;
-                if (ctx->pps.pic_dra_enabled_flag)
-                {
-                    assert(ctx->pic->imgb->imgb_active_aps_id == ctx->pps.pic_dra_aps_id);
-                    effective_dra_control = mctx->dra_array + ctx->pps.pic_dra_aps_id;
-                }
-                else
-                {
-                    assert(ctx->pic->imgb->imgb_active_aps_id == -1);
-                    effective_dra_control = NULL;
-                }
-
-                XEVD_IMGB *imgb_sig = NULL;
-                imgb_sig = xevd_imgb_generate(ctx->w, ctx->h, ctx->pa.pad_l, ctx->pa.pad_c, ctx->pa.idc, ctx->internal_codec_bit_depth);
-                xevd_imgb_cpy(imgb_sig, ctx->pic->imgb);  // store copy of the reconstructed picture in DPB
-
-                if (ctx->pps.pic_dra_enabled_flag)
-                {
-                    DRA_CONTROL l_dra_control;
-                    DRA_CONTROL *local_g_dra_control = &l_dra_control;
-                    xevd_mcpy(&(local_g_dra_control->signalled_dra), effective_dra_control, sizeof(SIG_PARAM_DRA));
-
-                    xevd_init_dra(local_g_dra_control, ctx->internal_codec_bit_depth);
-                    xevd_apply_dra_chroma_plane(imgb_sig, imgb_sig, local_g_dra_control, 1, TRUE);
-                    xevd_apply_dra_chroma_plane(imgb_sig, imgb_sig, local_g_dra_control, 2, TRUE);
-                    xevd_apply_dra_luma_plane(imgb_sig, imgb_sig, local_g_dra_control, 0, TRUE);
-                }
-                ret = xevdm_picbuf_check_signature(ctx->pic, ctx->pic_sign, imgb_sig, compare_md5);
-                xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-                xevd_imgb_destroy(imgb_sig);
-            }
-
             /* put decoded picture to DPB */
             ret = xevdm_picman_put_pic(&mctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -3236,7 +3201,7 @@ int xevd_apply_filter(XEVD_CTX *ctx, XEVD_IMGB *imgb)
     return XEVD_OK;
 }
 
-int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
+int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb)
 {
     int ret;
     XEVD_PIC *pic;
@@ -3269,8 +3234,6 @@ int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
             xevd_apply_filter(ctx, imgb_dra);
             *imgb = imgb_dra;
         }
-        opl->poc = pic->poc;
-        xevd_mcpy(opl->digest, pic->digest, N_C * 16);
     }
     return ret;
 }
@@ -3540,10 +3503,6 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
         ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
         break;
 
-    case XEVD_CFG_SET_USE_OPL_OUTPUT:
-        ctx->use_opl = (*((int *)buf)) ? 1 : 0;
-        break;
-
     /* get config ************************************************************/
     case XEVD_CFG_GET_CODEC_BIT_DEPTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
@@ -3629,12 +3588,12 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
     return ctx->fn_dec_cnk(ctx, bitb, stat);
 }
 
-int xevd_pull(XEVD id, XEVD_IMGB ** imgb, XEVD_OPL * opl)
+int xevd_pull(XEVD id, XEVD_IMGB ** imgb)
 {
     XEVD_CTX *ctx;
 
     XEVD_ID_TO_CTX_RV(id, ctx, XEVD_ERR_INVALID_ARGUMENT);
     xevd_assert_rv(ctx->fn_pull, XEVD_ERR_UNKNOWN);
 
-    return ctx->fn_pull(ctx, imgb, opl);
+    return ctx->fn_pull(ctx, imgb);
 }

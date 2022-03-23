@@ -1871,12 +1871,6 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             /* expand pixels to padding area */
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 
-            if (ctx->use_opl)
-            {
-                ret = xevd_picbuf_signature(ctx->pic, ctx->pic->digest);
-                xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-            }
-
             /* put decoded picture to DPB */
             ret = xevd_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -1914,7 +1908,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     return ret;
 }
 
-int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
+int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb)
 {
     int ret;
     XEVD_PIC *pic;
@@ -1942,9 +1936,6 @@ int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
                 (*imgb)->w[i] = (*imgb)->aw[i] - (ctx->sps->picture_crop_left_offset + ctx->sps->picture_crop_right_offset) * cs_offset;
             }
         }
-
-        opl->poc = pic->poc;
-        memcpy(opl->digest, pic->digest, N_C * 16);
     }
     return ret;
 }
@@ -2159,10 +2150,6 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
         ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
         break;
 
-    case XEVD_CFG_SET_USE_OPL_OUTPUT:
-        ctx->use_opl = (*((int *)buf)) ? 1 : 0;
-        break;
-
     /* get config ************************************************************/
     case XEVD_CFG_GET_CODEC_BIT_DEPTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
@@ -2221,12 +2208,12 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
     return ctx->fn_dec_cnk(ctx, bitb, stat);
 }
 
-int xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl)
+int xevd_pull(XEVD id, XEVD_IMGB ** img)
 {
     XEVD_CTX *ctx;
 
     XEVD_ID_TO_CTX_RV(id, ctx, XEVD_ERR_INVALID_ARGUMENT);
     xevd_assert_rv(ctx->fn_pull, XEVD_ERR_UNKNOWN);
 
-    return ctx->fn_pull(ctx, img, opl);
+    return ctx->fn_pull(ctx, img);
 }

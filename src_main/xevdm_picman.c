@@ -96,7 +96,7 @@ static void pic_marking_no_rpl(XEVDM_PM * pm, int ref_pic_gap_length)
             i--;
         }
     }
-    while(pm->cur_num_ref_pics >= MAX_NUM_ACTIVE_REF_FRAME) // TODO: change to signalled num ref pics
+    while(pm->cur_num_ref_pics >= XEVD_MAX_NUM_ACTIVE_REF_FRAME) // TODO: change to signalled num ref pics
     {
         for(i = 0; i < MAXM_PB_SIZE; i++) /* this is coding order */
         {
@@ -146,7 +146,7 @@ static void picman_update_pic_ref(XEVDM_PM * pm)
         }
     }
     cnt = j;
-    while(j < MAX_NUM_REF_PICS) pic_ref[j++] = NULL;
+    while(j < XEVD_MAX_NUM_REF_PICS) pic_ref[j++] = NULL;
 
     /* descending order sort based on POC */
     for(i = 0; i < cnt - 1; i++)
@@ -288,7 +288,7 @@ int xevdm_picman_refp_rpl_based_init(XEVDM_PM *pm, XEVD_SH *sh, int poc_val, XEV
     picman_update_pic_ref(pm);
     xevd_assert_rv(pm->cur_num_ref_pics > 0, XEVD_ERR_UNEXPECTED);
 
-    for (int i = 0; i < MAX_NUM_REF_PICS; i++)
+    for (int i = 0; i < XEVD_MAX_NUM_REF_PICS; i++)
         refp[i][REFP_0].pic = refp[i][REFP_1].pic = NULL;
     pm->num_refp[REFP_0] = pm->num_refp[REFP_1] = 0;
 
@@ -344,7 +344,7 @@ int xevdm_picman_refp_init(XEVDM_PM *pm, int max_num_ref_pics, int slice_type, u
     picman_update_pic_ref(pm);
     xevd_assert_rv(pm->cur_num_ref_pics > 0, XEVD_ERR_UNEXPECTED);
 
-    for(i = 0; i < MAX_NUM_REF_PICS; i++)
+    for(i = 0; i < XEVD_MAX_NUM_REF_PICS; i++)
     {
         refp[i][REFP_0].pic = refp[i][REFP_1].pic = NULL;
     }
@@ -664,7 +664,7 @@ int xevdm_picman_deinit(XEVDM_PM * pm)
 int xevdm_picman_init(XEVDM_PM * pm, int max_pb_size, int max_num_ref_pics,
                           PICBUF_ALLOCATOR * pa)
 {
-    if(max_num_ref_pics > MAX_NUM_REF_PICS || max_pb_size > MAXM_PB_SIZE)
+    if(max_num_ref_pics > XEVD_MAX_NUM_REF_PICS || max_pb_size > MAXM_PB_SIZE)
     {
         return XEVD_ERR_UNSUPPORTED;
     }

@@ -190,7 +190,7 @@ void scaling_mv(int ratio, s16 mvp[MV_D], s16 mv[MV_D])
 }
 
 void xevdm_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], XEVD_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int log2_cuw, int log2_cuh, int slice_t
-    , int real_mv[][2][3], u32 *map_scu, int REF_SET[][MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
+    , int real_mv[][2][3], u32 *map_scu, int REF_SET[][XEVD_MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
     , u32 curr_ptr, u8 num_refp[REFP_NUM]
     , XEVD_HISTORY_BUFFER history_buffer, int admvp_flag, XEVD_SH* sh, int log2_max_cuwh, u8* map_tidx, int mmvd_idx)
 {
@@ -873,7 +873,7 @@ void xevdm_get_motion_from_mvr(u8 mvr_idx, int poc, int scup, int lidx, s8 cur_r
 )
 {
     int i, t0, poc_refi_cur;
-    int ratio[MAX_NUM_REF_PICS];
+    int ratio[XEVD_MAX_NUM_REF_PICS];
     int neb_addr[MAX_NUM_POSSIBLE_SCAND], valid_flag[MAX_NUM_POSSIBLE_SCAND];
     int rounding = mvr_idx > 0 ? 1 << (mvr_idx - 1) : 0;
     s8 default_refi;
@@ -4683,10 +4683,10 @@ void xevd_draw_partition(XEVD_CTX * ctx, XEVD_PIC * pic)
 void xevdm_get_mmvd_motion(XEVD_CTX * ctx, XEVD_CORE * core)
 {
     int real_mv[MMVD_GRP_NUM * MMVD_BASE_MV_NUM * MMVD_MAX_REFINE_NUM][2][3];
-    int REF_SET[REFP_NUM][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
+    int REF_SET[REFP_NUM][XEVD_MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
     int cuw, cuh;
     XEVDM_CORE * mcore = (XEVDM_CORE *)core;
-    for (int k = 0; k < MAX_NUM_ACTIVE_REF_FRAME; k++)
+    for (int k = 0; k < XEVD_MAX_NUM_ACTIVE_REF_FRAME; k++)
     {
         REF_SET[0][k] = ctx->refp[k][0].poc;
         REF_SET[1][k] = ctx->refp[k][1].poc;

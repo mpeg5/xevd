@@ -1472,7 +1472,7 @@ int xevdm_eco_cu(XEVD_CTX * ctx, XEVD_CORE * core)
     int          ret, cuw, cuh, mvp_idx[REFP_NUM] = { 0, 0 };
     int          mmvd_flag = 0;
     int          direct_idx = -1;
-    int          REF_SET[3][MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
+    int          REF_SET[3][XEVD_MAX_NUM_ACTIVE_REF_FRAME] = { {0,0,}, };
     u8           bi_idx = BI_NON;
     XEVDM_CORE * mcore = (XEVDM_CORE *)core;
     core->pred_mode = MODE_INTRA;

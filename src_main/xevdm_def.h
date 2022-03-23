@@ -274,7 +274,7 @@ typedef struct _XEVD_ALF_FILTER_SHAPE
 
 /* maximum picture buffer size */
 #define DRA_FRAME 1
-#define MAXM_PB_SIZE                       (MAX_NUM_REF_PICS + EXTRA_FRAME + DRA_FRAME)
+#define MAXM_PB_SIZE                       (XEVD_MAX_NUM_REF_PICS + EXTRA_FRAME + DRA_FRAME)
 
 #define MODE_SKIP_MMVD                     4
 #define MODE_DIR_MMVD                      5
@@ -374,7 +374,7 @@ typedef struct _XEVDM_PM
     /* picture store (including reference and non-reference) */
     XEVD_PIC        * pic[MAXM_PB_SIZE];
     /* address of reference pictures */
-    XEVD_PIC        * pic_ref[MAX_NUM_REF_PICS];
+    XEVD_PIC        * pic_ref[XEVD_MAX_NUM_REF_PICS];
     /* maximum reference picture count */
     u8               max_num_ref_pics;
     /* current count of available reference pictures in PB */
