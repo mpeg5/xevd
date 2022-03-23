@@ -1581,6 +1581,10 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
 
 int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
 {
+#if TRACE_HLS
+    XEVD_TRACE_STR("************ SEI Start   ************\n");
+    XEVD_TRACE_STR("***********************************\n");
+#endif
     u32 payload_type, payload_size;
     u32 pic_sign[N_C][16];
 
@@ -1639,7 +1643,10 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
     default:
         xevd_assert_rv(0, XEVD_ERR_UNEXPECTED);
     }
-
+#if TRACE_HLS
+    XEVD_TRACE_STR("************ SEI End   ************\n");
+    XEVD_TRACE_STR("***********************************\n");
+#endif
     return XEVD_OK;
 }
 
