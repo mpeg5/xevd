@@ -1587,11 +1587,42 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
     /* should be aligned before adding user data */
     xevd_assert_rv(XEVD_BSR_IS_BYTE_ALIGN(bs), XEVD_ERR_UNKNOWN);
 
-    xevd_bsr_read(bs, &payload_type, 8);
-    xevd_bsr_read(bs, &payload_size, 8);
+    payload_type = 0;
+    u32 val = 0;
+
+    do
+    {
+        xevd_bsr_read(bs, &val, 8);
+        payload_type += val;
+    } while (val == 0xFF);
+
+    payload_size = 0;
+    val = 0;
+    do
+    {
+        xevd_bsr_read(bs, &val, 8);
+        payload_size += val;
+    } while (val == 0xFF);
 
     switch (payload_type)
     {
+    case XEVD_USER_DATA_UNREGISTERED:
+        xevd_assert(payload_size >= ISO_IEC_11578_LEN);
+        u32 val;
+
+        for (u32 i = 0; i < ISO_IEC_11578_LEN; i++)
+        {
+            u8 uuid_iso_iec_11578_out[16];
+            xevd_bsr_read(bs, &val, 8);
+            uuid_iso_iec_11578_out[i] = val;
+        }
+
+        u32 sei_resize = payload_size - ISO_IEC_11578_LEN;
+        for (u32 i = 0; i < sei_resize; i++)
+        {
+            xevd_bsr_read(bs, &val, 8);
+        }
+        break;
     case XEVD_UD_PIC_SIGNATURE:
         /* read signature (HASH) from bitstream */
         for (int i = 0; i < ctx->pic[0].imgb->np; ++i)
