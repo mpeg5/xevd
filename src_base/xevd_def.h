@@ -1292,7 +1292,7 @@ struct _XEVD_CTX
     XEVD_SPS               * sps;
     XEVD_SPS                 sps_array[16];
     int                      sps_id;
-    int                      sps_num;
+    int                      sps_count;
 
     /* picture parameter set */
     XEVD_PPS                 pps;

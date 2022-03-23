@@ -1695,18 +1695,18 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
-        XEVD_SPS sps_temp;
-        xevd_mset(&sps_temp, 0, sizeof(XEVD_SPS));
-        ret = xevd_eco_sps(bs, &sps_temp);
+        XEVD_SPS sps_new;
+        xevd_mset(&sps_new, 0, sizeof(XEVD_SPS));
+        ret = xevd_eco_sps(bs, &sps_new);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
-        ctx->sps_id = sps_temp.sps_seq_parameter_set_id;
-        xevd_mcpy(&ctx->sps_array[ctx->sps_id], &sps_temp, sizeof(XEVD_SPS));
+        ctx->sps_id = sps_new.sps_seq_parameter_set_id;
+        xevd_mcpy(&ctx->sps_array[ctx->sps_id], &sps_new, sizeof(XEVD_SPS));
         ctx->sps = &ctx->sps_array[ctx->sps_id];
 
         ret = sequence_init(ctx, ctx->sps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        ctx->sps_num++;
+        ctx->sps_count++;
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
