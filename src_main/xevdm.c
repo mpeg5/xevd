@@ -2802,7 +2802,6 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     {
         ret = xevdm_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        ctx->sps = &ctx->sps_array[pps->pps_seq_parameter_set_id];
         int pps_id = pps->pps_pic_parameter_set_id;
         xevd_mcpy(&(ctx->pps_array[pps_id]), pps, sizeof(XEVD_PPS));
         ret = picture_init(ctx);
@@ -3553,15 +3552,15 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_WIDTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_left_offset + ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_right_offset;
-        if(ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps->picture_crop_left_offset + ctx->sps->picture_crop_right_offset;
+        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->w - t0;
         break;
 
     case XEVD_CFG_GET_HEIGHT:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_top_offset + ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_bottom_offset;
-        if(ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps->picture_crop_top_offset + ctx->sps->picture_crop_bottom_offset;
+        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->h - t0;
         break;
 
@@ -3577,7 +3576,7 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_COLOR_SPACE:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc];
+        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps->chroma_format_idc];
         break;
 
     case XEVD_CFG_GET_MAX_CODING_DELAY:
@@ -3603,7 +3602,7 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
 
     XEVD_APS_GEN *aps_gen_array = mctx->aps_gen_array;
 
-    if (ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].tool_dra)
+    if (ctx->sps && ctx->sps->tool_dra)
     {
         // check if new DRA APS recieved, update buffer
         if ((aps_gen_array + 1)->aps_id != -1)
