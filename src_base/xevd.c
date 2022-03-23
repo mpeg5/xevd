@@ -299,16 +299,16 @@ static int slice_init(XEVD_CTX * ctx, XEVD_CORE * core, XEVD_SH * sh)
     return XEVD_OK;
 }
 
-static void make_stat(XEVD_CTX * ctx, int btype, XEVD_STAT * stat)
+static void make_stat(XEVD_CTX * ctx, int nalu_type, XEVD_STAT * stat)
 {
     int i, j;
-    stat->nalu_type = btype;
+    stat->nalu_type = nalu_type;
     stat->stype = 0;
     stat->fnum = -1;
     if(ctx)
     {
         stat->read += XEVD_BSR_GET_READ_BYTE(&ctx->bs);
-        if(btype < XEVD_NUT_SPS)
+        if(nalu_type < XEVD_NUT_SPS)
         {
             stat->fnum = ctx->pic_cnt;
             stat->stype = ctx->sh.slice_type;
@@ -1124,7 +1124,7 @@ int xevd_deblock(void * arg)
                 core->x_lcu++;
             }
             core->y_lcu = core->y_lcu + ctx->tc.task_num_in_tile[0];
-            core->x_lcu = 0;           
+            core->x_lcu = 0;
         }
     }
     return XEVD_OK;
@@ -1397,11 +1397,11 @@ int xevd_ctu_row_rec_mt(void * arg)
         xevd_threadsafe_assign(&ctx->sync_flag[core->lcu_num], THREAD_TERMINATED);
         xevd_threadsafe_decrement(ctx->sync_block, (volatile s32 *)&ctx->tile[0].f_ctb);
 
-        if (ctx->tc.task_num_in_tile[0] > 2) 
+        if (ctx->tc.task_num_in_tile[0] > 2)
         {
             core->lcu_num = mt_get_next_ctu_num(ctx, core, ctx->tc.task_num_in_tile[0] - 1);
         }
-        else 
+        else
         {
         core->lcu_num = mt_get_next_ctu_num(ctx, core, ctx->tc.task_num_in_tile[0]);
         }
@@ -1422,7 +1422,7 @@ int xevd_tile_mt(void * arg)
     int          res, ret = XEVD_OK;
     int          thread_idx = core->thread_idx + ctx->tc.tile_task_num;
     xevd_mset((void *)ctx->sync_row, 0, ctx->tile[0].h_ctb * sizeof(ctx->sync_row[0]));
-    if (ctx->tc.task_num_in_tile[0] > 2) 
+    if (ctx->tc.task_num_in_tile[0] > 2)
     {
         for (int thread_cnt = 1; thread_cnt < ctx->tc.task_num_in_tile[0]; thread_cnt++)
         {
@@ -1453,7 +1453,7 @@ int xevd_tile_mt(void * arg)
             thread_idx += ctx->tc.tile_task_num;
         }
     }
-    else 
+    else
     {
 
     ret = xevd_tile_eco(arg);

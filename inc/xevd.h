@@ -286,7 +286,7 @@ typedef struct _XEVD_STAT
 {
     /* byte size of decoded bitstream (read size of bitstream) */
     int            read;
-    /* nalu type */
+    /* nal unit type */
     int            nalu_type;
     /* slice type */
     int            stype;
@@ -305,6 +305,19 @@ typedef struct _XEVD_STAT
 } XEVD_STAT;
 
 /*****************************************************************************
+ * brief information of bitstream
+ *****************************************************************************/
+typedef struct _XEVD_INFO
+{
+    /* nal unit length (available for Annex-B format) */
+    int            nalu_len;
+    /* nal unit type */
+    int            nalu_type;
+    /* nal unit temporal id */
+    int            nalu_tid;
+} XEVD_INFO;
+
+/*****************************************************************************
  * API for decoder only
  *****************************************************************************/
 /* XEVD instance identifier for decoder */
@@ -315,6 +328,7 @@ void XEVD_EXPORT xevd_delete(XEVD id);
 int  XEVD_EXPORT xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat);
 int  XEVD_EXPORT xevd_pull(XEVD id, XEVD_IMGB ** img);
 int  XEVD_EXPORT xevd_config(XEVD id, int cfg, void * buf, int * size);
+int  XEVD_EXPORT xevd_info(void * bits, int bits_size, int is_annexb, XEVD_INFO * info);
 
 #ifdef __cplusplus
 } /* extern "C" */
