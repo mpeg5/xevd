@@ -186,18 +186,6 @@ static int set_extra_config(XEVD id)
         }
     }
 
-    if (op_fname_opl[0])
-    {
-        value = 1;
-        size = 4;
-        ret = xevd_config(id, XEVD_CFG_SET_USE_OPL_OUTPUT, &value, &size);
-        if (XEVD_FAILED(ret))
-        {
-            logv0("failed to set config for picture signature\n");
-            return -1;
-        }
-    }
-
     return 0;
 }
 
@@ -370,7 +358,6 @@ int main(int argc, const char **argv)
     /*temporal buffer for video bit depth less than 10bit */
     XEVD_IMGB        *  imgb_t = NULL;
     XEVD_STAT          stat;
-    XEVD_OPL           opl;
     int                ret, proc_ret;
     XEVD_CLK            clk_beg, clk_tot;
     int                bs_cnt, pic_cnt;
@@ -437,22 +424,6 @@ int main(int argc, const char **argv)
             print_usage();
             return -1;
         }
-        fclose(fp);
-    }
-
-    if (op_flag[OP_FLAG_FNAME_OPL])
-    {
-        /* remove opl file contents if exists */
-        FILE * fp;
-        fp = fopen(op_fname_opl, "wb");
-        if (fp == NULL)
-        {
-            logv0("ERROR: cannot create an opl file\n");
-            print_usage();
-            return -1;
-        }
-
-
         fclose(fp);
     }
 
@@ -532,7 +503,7 @@ int main(int argc, const char **argv)
         }
         if(stat.fnum >= 0 || state == STATE_BUMPING)
         {
-            ret = xevd_pull(id, &imgb, &opl);
+            ret = xevd_pull(id, &imgb);
 
             if(ret == XEVD_ERR_UNEXPECTED)
             {
@@ -595,33 +566,6 @@ int main(int argc, const char **argv)
 					}
                 }
                 write_dec_img(id, op_fname_out, imgb, imgb_t, is_y4m);
-            }
-
-            if (op_flag[OP_FLAG_FNAME_OPL])
-            {
-                FILE* fp_opl = fopen(op_fname_opl, "a");
-                if (fp_opl == NULL)
-                {
-                    logv0("ERROR: cannot create an opl file\n");
-                    print_usage();
-                    proc_ret = -1;
-					goto END;
-                }
-
-                fprintf(fp_opl, "%d %d %d ", opl.poc, w, h);
-                for (int i = 0; i < 3; ++i)
-                {
-                    for (int j = 0; j < 16; ++j)
-                    {
-                        unsigned int byte = (unsigned char) opl.digest[i][j];
-                        fprintf(fp_opl, "%02x", byte);
-                    }
-                    fprintf(fp_opl, " ");
-                }
-
-                fprintf(fp_opl, "\n");
-
-                fclose(fp_opl);
             }
 
             imgb->release(imgb);

@@ -157,6 +157,10 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     ctx->h_scu = (ctx->h + ((1 << MIN_CU_LOG2) - 1)) >> MIN_CU_LOG2;
     ctx->f_scu = ctx->w_scu * ctx->h_scu;
 
+    ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
+    ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
+    ctx->internal_codec_bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+
     /* alloc SCU map */
     if(ctx->map_scu == NULL)
     {
@@ -1691,22 +1695,23 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     if(nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SPS)
     {
-        ret = xevd_eco_sps(bs, sps);
+        XEVD_SPS sps_new;
+        xevd_mset(&sps_new, 0, sizeof(XEVD_SPS));
+        ret = xevd_eco_sps(bs, &sps_new);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
-        ctx->internal_codec_bit_depth = sps->bit_depth_luma_minus8 + 8;
-        ctx->internal_codec_bit_depth_luma = sps->bit_depth_luma_minus8 + 8;
-        ctx->internal_codec_bit_depth_chroma = sps->bit_depth_chroma_minus8 + 8;
+        ctx->sps_id = sps_new.sps_seq_parameter_set_id;
+        xevd_mcpy(&ctx->sps_array[ctx->sps_id], &sps_new, sizeof(XEVD_SPS));
+        ctx->sps = &ctx->sps_array[ctx->sps_id];
 
-        ret = sequence_init(ctx, sps);
+        ret = sequence_init(ctx, ctx->sps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        ctx->sps_id++;
+        ctx->sps_count++;
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_PPS)
     {
         ret = xevd_eco_pps(bs, sps, pps);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-        ctx->sps = &ctx->sps_array[pps->pps_seq_parameter_set_id];
         ret = picture_init(ctx);
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
     }
@@ -1866,12 +1871,6 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             /* expand pixels to padding area */
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 
-            if (ctx->use_opl)
-            {
-                ret = xevd_picbuf_signature(ctx->pic, ctx->pic->digest);
-                xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
-            }
-
             /* put decoded picture to DPB */
             ret = xevd_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
@@ -1909,7 +1908,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
     return ret;
 }
 
-int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
+int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb)
 {
     int ret;
     XEVD_PIC *pic;
@@ -1937,9 +1936,6 @@ int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb, XEVD_OPL * opl)
                 (*imgb)->w[i] = (*imgb)->aw[i] - (ctx->sps->picture_crop_left_offset + ctx->sps->picture_crop_right_offset) * cs_offset;
             }
         }
-
-        opl->poc = pic->poc;
-        memcpy(opl->digest, pic->digest, N_C * 16);
     }
     return ret;
 }
@@ -2154,10 +2150,6 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
         ctx->use_pic_sign = (*((int *)buf)) ? 1 : 0;
         break;
 
-    case XEVD_CFG_SET_USE_OPL_OUTPUT:
-        ctx->use_opl = (*((int *)buf)) ? 1 : 0;
-        break;
-
     /* get config ************************************************************/
     case XEVD_CFG_GET_CODEC_BIT_DEPTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
@@ -2166,15 +2158,15 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_WIDTH:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_left_offset + ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_right_offset;
-        if(ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps->picture_crop_left_offset + ctx->sps->picture_crop_right_offset;
+        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->w - t0;
         break;
 
     case XEVD_CFG_GET_HEIGHT:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        t0 = ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_top_offset + ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].picture_crop_bottom_offset;
-        if(ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc) { t0 *= 2; /* unit is chroma */}
+        t0 = ctx->sps->picture_crop_top_offset + ctx->sps->picture_crop_bottom_offset;
+        if(ctx->sps->chroma_format_idc) { t0 *= 2; /* unit is chroma */}
         *((int *)buf) = ctx->h - t0;
         break;
 
@@ -2190,7 +2182,7 @@ int xevd_config(XEVD id, int cfg, void * buf, int * size)
 
     case XEVD_CFG_GET_COLOR_SPACE:
         xevd_assert_rv(*size == sizeof(int), XEVD_ERR_INVALID_ARGUMENT);
-        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps_array[ctx->pps.pps_seq_parameter_set_id].chroma_format_idc];
+        *((int *)buf) = xevd_chroma_format_idc_to_imgb_cs[ctx->sps->chroma_format_idc];
         break;
 
     case XEVD_CFG_GET_MAX_CODING_DELAY:
@@ -2216,12 +2208,12 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
     return ctx->fn_dec_cnk(ctx, bitb, stat);
 }
 
-int xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl)
+int xevd_pull(XEVD id, XEVD_IMGB ** img)
 {
     XEVD_CTX *ctx;
 
     XEVD_ID_TO_CTX_RV(id, ctx, XEVD_ERR_INVALID_ARGUMENT);
     xevd_assert_rv(ctx->fn_pull, XEVD_ERR_UNKNOWN);
 
-    return ctx->fn_pull(ctx, img, opl);
+    return ctx->fn_pull(ctx, img);
 }

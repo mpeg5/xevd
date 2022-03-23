@@ -317,7 +317,6 @@ int xevd_args_parse_all(int argc, const char * argv[],
 
 static char op_fname_inp[256] = "\0";
 static char op_fname_out[256] = "\0";
-static char op_fname_opl[256] = "\0";
 static int  op_max_frm_num = 0;
 static int  op_threads = 1; /* Default value */
 static int  op_use_pic_signature = 0;
@@ -335,7 +334,6 @@ typedef enum _OP_FLAGS
 
     OP_FLAG_FNAME_INP,
     OP_FLAG_FNAME_OUT,
-    OP_FLAG_FNAME_OPL,
     OP_FLAG_MAX_FRM_NUM,
     OP_FLAG_USE_PIC_SIGN,
     OP_FLAG_OUT_BIT_DEPTH,
@@ -359,11 +357,6 @@ static XEVD_ARGS_OPTION options[] = \
         'o', "output", XEVD_ARGS_VAL_TYPE_STRING,
         &op_flag[OP_FLAG_FNAME_OUT], op_fname_out,
         "file name of decoded output"
-    },
-    {
-        XEVD_ARGS_NO_KEY, "opl", XEVD_ARGS_VAL_TYPE_STRING,
-        &op_flag[OP_FLAG_FNAME_OPL], op_fname_opl,
-        "file name of opl file"
     },
     {
         'f',  "frames", XEVD_ARGS_VAL_TYPE_INTEGER,
