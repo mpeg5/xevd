@@ -605,6 +605,9 @@ typedef struct _XEVD_SBAC_CTX
 #define XEVD_MAX_NUM_ACTIVE_REF_FRAME           5
 #define XEVD_MAX_NUM_RPLS                       32
 
+/* SEI UUID ISO Length */
+#define ISO_IEC_11578_LEN                       16
+
 /* rpl structure */
  typedef struct _XEVD_RPL
 {
@@ -1004,6 +1007,32 @@ typedef struct _XEVD_POC
     /* the maximum picture index of the previous picture */
     u32             prev_pic_max_poc_val;
 } XEVD_POC;
+
+
+typedef enum _XEVE_SEI_PAYLOAD_TYPE
+{
+    XEVD_BUFFERING_PERIOD = 0,
+    XEVD_PICTURE_TIMING = 1,
+    XEVD_USER_DATA_REGISTERED_ITU_T_T35 = 4,
+    XEVD_USER_DATA_UNREGISTERED = 5,
+    XEVD_RECOVERY_POINT = 6,
+    XEVD_MASTERING_DISPLAY_INFO = 137,
+    XEVD_CONTENT_LIGHT_LEVEL_INFO = 144,
+    XEVD_AMBIENT_VIEWING_ENVIRONMENT = 148,
+} XEVE_SEI_PAYLOAD_TYPE;
+
+typedef struct _XEVE_SEI_PAYLOAD
+{
+    int payload_size;
+    XEVE_SEI_PAYLOAD_TYPE payload_type;
+    u8* payload;
+} XEVE_SEI_PAYLOAD;
+
+typedef struct _XEVE_SEI
+{
+    int num_payloads;
+    XEVE_SEI_PAYLOAD *payloads;
+} XEVE_SEI;
 
 /*****************************************************************************
  * user data types
