@@ -33,14 +33,14 @@ jobs:
       - name: 'Upload executable Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: xeve_app-linux-artifact
+          name: xevd_app-linux-artifact
           path: build/bin/xevd_app
           retention-days: 5
           
       - name: 'Upload library Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: libxeve-linux-artifact
+          name: libxevd-linux-artifact
           path: build/lib/
           retention-days: 5
 
