@@ -605,6 +605,9 @@ typedef struct _XEVD_SBAC_CTX
 #define XEVD_MAX_NUM_ACTIVE_REF_FRAME           5
 #define XEVD_MAX_NUM_RPLS                       32
 
+/* SEI UUID ISO Length */
+#define ISO_IEC_11578_LEN                       16
+
 /* rpl structure */
  typedef struct _XEVD_RPL
 {
@@ -875,9 +878,9 @@ typedef struct _XEVD_SPS
     /* HLS_RPL  */
     int              rpl1_same_as_rpl0_flag;
     int              num_ref_pic_lists_in_sps0;
-    XEVD_RPL          rpls_l0[MAX_NUM_RPLS];
+    XEVD_RPL          rpls_l0[XEVD_MAX_NUM_RPLS];
     int              num_ref_pic_lists_in_sps1;
-    XEVD_RPL          rpls_l1[MAX_NUM_RPLS];
+    XEVD_RPL          rpls_l1[XEVD_MAX_NUM_RPLS];
 
     int              picture_cropping_flag;
     int              picture_crop_left_offset;
@@ -1004,6 +1007,32 @@ typedef struct _XEVD_POC
     /* the maximum picture index of the previous picture */
     u32             prev_pic_max_poc_val;
 } XEVD_POC;
+
+
+typedef enum _XEVE_SEI_PAYLOAD_TYPE
+{
+    XEVD_BUFFERING_PERIOD = 0,
+    XEVD_PICTURE_TIMING = 1,
+    XEVD_USER_DATA_REGISTERED_ITU_T_T35 = 4,
+    XEVD_USER_DATA_UNREGISTERED = 5,
+    XEVD_RECOVERY_POINT = 6,
+    XEVD_MASTERING_DISPLAY_INFO = 137,
+    XEVD_CONTENT_LIGHT_LEVEL_INFO = 144,
+    XEVD_AMBIENT_VIEWING_ENVIRONMENT = 148,
+} XEVE_SEI_PAYLOAD_TYPE;
+
+typedef struct _XEVE_SEI_PAYLOAD
+{
+    int payload_size;
+    XEVE_SEI_PAYLOAD_TYPE payload_type;
+    u8* payload;
+} XEVE_SEI_PAYLOAD;
+
+typedef struct _XEVE_SEI
+{
+    int num_payloads;
+    XEVE_SEI_PAYLOAD *payloads;
+} XEVE_SEI;
 
 /*****************************************************************************
  * user data types
@@ -1289,11 +1318,10 @@ struct _XEVD_CTX
     /* create descriptor */
     XEVD_CDSC               cdsc;
     /* sequence parameter set */
-    XEVD_SPS                  * sps;
-
+    XEVD_SPS               * sps;
     XEVD_SPS                 sps_array[16];
-
     int                      sps_id;
+    int                      sps_count;
 
     /* picture parameter set */
     XEVD_PPS                 pps;
@@ -1380,8 +1408,6 @@ struct _XEVD_CTX
     u8                      pic_sign[N_C][16];
     /* flag to indicate picture signature existing or not */
     u8                      pic_sign_exist;
-    /* flag to indicate opl decoder output */
-    u8                      use_opl;
     /* tile index map (width in SCU x height in SCU) of
     raster scan order in a frame */
     u8                    * map_tidx;
@@ -1422,7 +1448,7 @@ struct _XEVD_CTX
     /* function address of decoding slice */
     int  (* fn_dec_slice)(XEVD_CTX * ctx, XEVD_CORE * core);
     /* function address of pulling decoded picture */
-    int  (* fn_pull)(XEVD_CTX * ctx, XEVD_IMGB ** img, XEVD_OPL * opl);
+    int  (* fn_pull)(XEVD_CTX * ctx, XEVD_IMGB ** img);
     /* function address of deblocking filter */
     int  ( * fn_deblock)(void * arg);
     /* function address of picture buffer expand */

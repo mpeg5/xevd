@@ -118,7 +118,6 @@ extern "C"
 * config types for decoder
 *****************************************************************************/
 #define XEVD_CFG_SET_USE_PIC_SIGNATURE  (301)
-#define XEVD_CFG_SET_USE_OPL_OUTPUT     (302)
 #define XEVD_CFG_GET_CODEC_BIT_DEPTH    (401)
 #define XEVD_CFG_GET_WIDTH              (402)
 #define XEVD_CFG_GET_HEIGHT             (403)
@@ -287,7 +286,7 @@ typedef struct _XEVD_STAT
 {
     /* byte size of decoded bitstream (read size of bitstream) */
     int            read;
-    /* nalu type */
+    /* nal unit type */
     int            nalu_type;
     /* slice type */
     int            stype;
@@ -305,16 +304,18 @@ typedef struct _XEVD_STAT
     int            refpic[2][16];
 } XEVD_STAT;
 
-typedef struct _XEVD_OPL
+/*****************************************************************************
+ * brief information of bitstream
+ *****************************************************************************/
+typedef struct _XEVD_INFO
 {
-    int  poc;
-    char digest[3][16];
-} XEVD_OPL;
-
-#define MAX_NUM_REF_PICS                   21
-#define MAX_NUM_ACTIVE_REF_FRAME           5
-#define MAX_NUM_RPLS                       32
-
+    /* nal unit length (available for Annex-B format) */
+    int            nalu_len;
+    /* nal unit type */
+    int            nalu_type;
+    /* nal unit temporal id */
+    int            nalu_tid;
+} XEVD_INFO;
 
 /*****************************************************************************
  * API for decoder only
@@ -325,8 +326,9 @@ typedef void  * XEVD;
 XEVD XEVD_EXPORT xevd_create(XEVD_CDSC * cdsc, int * err);
 void XEVD_EXPORT xevd_delete(XEVD id);
 int  XEVD_EXPORT xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat);
-int  XEVD_EXPORT xevd_pull(XEVD id, XEVD_IMGB ** img, XEVD_OPL * opl);
+int  XEVD_EXPORT xevd_pull(XEVD id, XEVD_IMGB ** img);
 int  XEVD_EXPORT xevd_config(XEVD id, int cfg, void * buf, int * size);
+int  XEVD_EXPORT xevd_info(void * bits, int bits_size, int is_annexb, XEVD_INFO * info);
 
 #ifdef __cplusplus
 } /* extern "C" */
