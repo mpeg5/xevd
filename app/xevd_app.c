@@ -480,7 +480,7 @@ int main(int argc, const char **argv)
 
                     nal_unit_type = ( ( bs_buf[ 0 ] >> 1 ) & 0x3f ) - 1;
 
-                    if( nal_unit_type == 1 )
+                    if( nal_unit_type == XEVD_NUT_IDR )
                     {
                         if( has_idr_slice == 1 )
                         {
