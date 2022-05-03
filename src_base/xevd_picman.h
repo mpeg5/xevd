@@ -31,9 +31,9 @@
 #ifndef _XEVD_PICMAN_H_
 #define _XEVD_PICMAN_H_
 
-int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32 poc, u8 layer_id, int last_intra, XEVD_REFP (*refp)[REFP_NUM]);
+int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, s32 poc, u8 layer_id, int last_intra, XEVD_REFP (*refp)[REFP_NUM]);
 XEVD_PIC * xevd_picman_get_empty_pic(XEVD_PM *pm, int *err, int bit_depth);
-int xevd_picman_put_pic(XEVD_PM *pm, XEVD_PIC *pic, int is_idr, u32 poc, u8 layer_id, int need_for_output, XEVD_REFP (*refp)[REFP_NUM], int ref_pic, int ref_pic_gap_length);
+int xevd_picman_put_pic(XEVD_PM *pm, XEVD_PIC *pic, int is_idr, s32 poc, u8 layer_id, int need_for_output, XEVD_REFP (*refp)[REFP_NUM], int ref_pic, int ref_pic_gap_length);
 XEVD_PIC * xevd_picman_out_pic(XEVD_PM *pm, int *err);
 int xevd_picman_deinit(XEVD_PM *pm);
 int xevd_picman_init(XEVD_PM *pm, int max_pb_size, int max_num_ref_pics, PICBUF_ALLOCATOR *pa);

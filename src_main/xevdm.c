@@ -3027,7 +3027,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 
                 for(int is_hor_edge = 0 ; is_hor_edge <= 1 ; is_hor_edge++)
                 {
-                    for (int i = 0; i < ctx->f_scu; i++)
+                    for (u32 i = 0; i < ctx->f_scu; i++)
                     {
                         MCU_CLR_COD(ctx->map_scu[i]);
                     }

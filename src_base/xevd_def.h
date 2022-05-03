@@ -664,7 +664,7 @@ typedef struct _XEVD_PIC
     /* image buffer */
     XEVD_IMGB       * imgb;
     /* presentation temporal reference of this picture */
-    u32              poc;
+    s32              poc;
     /* 0: not used for reference buffer, reference picture type */
     u8               is_ref;
     /* needed for output? */
@@ -724,7 +724,7 @@ typedef struct _XEVD_PM
     /* number of reference pictures */
     u8               num_refp[REFP_NUM];
     /* next output POC */
-    u32              poc_next_output;
+    s32              poc_next_output;
     /* POC increment */
     u8               poc_increase;
     /* max number of picture buffer */
@@ -1001,11 +1001,11 @@ typedef struct _XEVD_POC
     /* current picture order count value */
     int             poc_val;
     /* the picture order count of the previous Tid0 picture */
-    u32             prev_poc_val;
+    s32             prev_poc_val;
     /* the decoding order count of the previous picture */
     int             prev_doc_offset;
     /* the maximum picture index of the previous picture */
-    u32             prev_pic_max_poc_val;
+    s32             prev_pic_max_poc_val;
 } XEVD_POC;
 
 

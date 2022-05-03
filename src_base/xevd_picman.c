@@ -114,10 +114,38 @@ static void picman_flush_pb(XEVD_PM * pm)
     int i;
 
     /* mark all frames unused */
-    for(i = 0; i < MAX_PB_SIZE; i++)
+    int max_poc = 0;
+    for (i = 0; i < MAX_PB_SIZE; i++)
     {
-        if(pm->pic[i]) SET_REF_UNMARK(pm->pic[i]);
+        if (pm->pic[i] && IS_REF(pm->pic[i]))
+        {
+            SET_REF_UNMARK(pm->pic[i]);
+            if (pm->pic[i] && pm->pic[i]->poc > max_poc)
+            {
+                max_poc = pm->pic[i]->poc;
+            }
+            picman_move_pic(pm, i, MAX_PB_SIZE - 1);
+            i--;
+        }
     }
+    max_poc = max_poc == 0 ? max_poc : max_poc + 1;
+
+    /* reorder poc in DPB */
+    int min_poc = max_poc;
+    for (i = 0; i < MAX_PB_SIZE; i++)
+    {
+        if (pm->pic[i] && pm->pic[i]->need_for_out && pm->pic[i]->poc != 0)
+        {
+            SET_REF_UNMARK(pm->pic[i]);
+            pm->pic[i]->poc -= max_poc;
+            if (pm->pic[i]->poc < min_poc)
+            {
+                min_poc = pm->pic[i]->poc;
+            }
+        }
+    }
+    pm->poc_next_output = min_poc;
+
     pm->cur_num_ref_pics = 0;
 }
 
@@ -254,7 +282,7 @@ void copy_refp(XEVD_REFP * refp_dst, XEVD_REFP * refp_src)
     refp_dst->list_poc = refp_src->list_poc;
 }
 
-int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32 poc, u8 layer_id, int last_intra, XEVD_REFP(*refp)[REFP_NUM])
+int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, s32 poc, u8 layer_id, int last_intra, XEVD_REFP(*refp)[REFP_NUM])
 {
     int i, cnt;
     if(slice_type == SLICE_I)
@@ -304,7 +332,7 @@ int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32
         {
             for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
-                if(poc >= (u32)last_intra && pm->pic_ref[i]->poc < (u32)last_intra) continue;
+                if(poc >= last_intra && pm->pic_ref[i]->poc < last_intra) continue;
                 if(pm->pic_ref[i]->poc < poc)
                 {
                     set_refp(&refp[cnt][REFP_0], pm->pic_ref[i]);
@@ -318,7 +346,7 @@ int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32
         int next_layer_id = XEVD_MAX(layer_id - 1, 0);
         for(i = 0, cnt = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
         {
-            if(poc >= (u32)last_intra && pm->pic_ref[i]->poc < (u32)last_intra) continue;
+            if(poc >= last_intra && pm->pic_ref[i]->poc < last_intra) continue;
             if(pm->pic_ref[i]->poc < poc && pm->pic_ref[i]->temporal_id <= next_layer_id)
             {
                 set_refp(&refp[cnt][REFP_0], pm->pic_ref[i]);
@@ -333,7 +361,7 @@ int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32
         int next_layer_id = XEVD_MAX(layer_id - 1, 0);
         for(i = pm->cur_num_ref_pics - 1; i >= 0 && cnt < max_num_ref_pics; i--)
         {
-            if(poc >= (u32)last_intra && pm->pic_ref[i]->poc < (u32)last_intra) continue;
+            if(poc >= last_intra && pm->pic_ref[i]->poc < last_intra) continue;
             if(pm->pic_ref[i]->poc > poc && pm->pic_ref[i]->temporal_id <= next_layer_id)
             {
                 set_refp(&refp[cnt][REFP_0], pm->pic_ref[i]);
@@ -352,7 +380,7 @@ int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32
         int next_layer_id = XEVD_MAX(layer_id - 1, 0);
         for(i = pm->cur_num_ref_pics - 1, cnt = 0; i >= 0 && cnt < max_num_ref_pics; i--)
         {
-            if(poc >= (u32)last_intra && pm->pic_ref[i]->poc < (u32)last_intra) continue;
+            if(poc >= last_intra && pm->pic_ref[i]->poc < last_intra) continue;
             if(pm->pic_ref[i]->poc > poc && pm->pic_ref[i]->temporal_id <= next_layer_id)
             {
                 set_refp(&refp[cnt][REFP_1], pm->pic_ref[i]);
@@ -367,7 +395,7 @@ int xevd_picman_refp_init(XEVD_PM *pm, int max_num_ref_pics, int slice_type, u32
             for(i = 0; i < pm->cur_num_ref_pics && cnt < max_num_ref_pics; i++)
             {
 
-                if(poc >= (u32)last_intra && pm->pic_ref[i]->poc < (u32)last_intra) continue;
+                if(poc >= last_intra && pm->pic_ref[i]->poc < last_intra) continue;
                 if(pm->pic_ref[i]->poc < poc && pm->pic_ref[i]->temporal_id <= next_layer_id)
                 {
                     set_refp(&refp[cnt][REFP_1], pm->pic_ref[i]);
@@ -427,7 +455,7 @@ ERR:
 }
 
 int xevd_picman_put_pic(XEVD_PM * pm, XEVD_PIC * pic, int is_idr,
-                        u32 poc, u8 temporal_id, int need_for_output,
+                        s32 poc, u8 temporal_id, int need_for_output,
                         XEVD_REFP(*refp)[REFP_NUM], int ref_pic, int ref_pic_gap_length)
 {
     /* manage RPB */
