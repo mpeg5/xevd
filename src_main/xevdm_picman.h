@@ -41,7 +41,7 @@
 int xevdm_picman_refp_rpl_based_init(XEVDM_PM *pm, XEVD_SH *sh, int poc, XEVD_REFP(*refp)[REFP_NUM]);
 int xevdm_picman_refpic_marking(XEVDM_PM *pm, XEVD_SH *sh, int poc);
 
-int xevdm_picman_refp_init(XEVDM_PM *pm, int max_num_ref_pics, int slice_type, u32 poc, u8 layer_id, int last_intra, XEVD_REFP (*refp)[REFP_NUM]);
+int xevdm_picman_refp_init(XEVDM_PM *pm, int max_num_ref_pics, int slice_type, s32 poc, u8 layer_id, int last_intra, XEVD_REFP (*refp)[REFP_NUM]);
 
 XEVD_PIC * xevdm_picman_get_empty_pic(XEVDM_PM *pm, int *err, int bitdepth);
 int xevdm_picman_put_pic(XEVDM_PM *pm, XEVD_PIC *pic, int is_idr, u32 poc, u8 layer_id, int need_for_output, XEVD_REFP (*refp)[REFP_NUM], int ref_pic, int pnpf, int ref_pic_gap_length);

@@ -382,7 +382,7 @@ typedef struct _XEVDM_PM
     /* number of reference pictures */
     u8               num_refp[REFP_NUM];
     /* next output POC */
-    u32              poc_next_output;
+    s32              poc_next_output;
     /* POC increment */
     u8               poc_increase;
     /* max number of picture buffer */
