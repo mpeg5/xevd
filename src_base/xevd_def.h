@@ -227,7 +227,7 @@ extern int fp_trace_started;
 /* for GOP 16 test, increase to 32 */
 
 /* DPB Extra size */
-#define EXTRA_FRAME                        XEVD_MAX_NUM_ACTIVE_REF_FRAME
+#define EXTRA_FRAME                       (XEVD_MAX_NUM_ACTIVE_REF_FRAME + 10)
 
 /* maximum picture buffer size */
 
