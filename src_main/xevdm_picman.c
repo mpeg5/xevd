@@ -119,39 +119,45 @@ static void pic_marking_no_rpl(XEVDM_PM * pm, int ref_pic_gap_length)
 static void picman_flush_pb(XEVDM_PM * pm)
 {
     int i;
+    int max_poc = 0;
+    int min_poc = INT_MAX;
 
     /* mark all frames unused */
-    int max_poc = 0;
-    for(i = 0; i < MAXM_PB_SIZE; i++)
+    for (i = 0; i < MAXM_PB_SIZE; i++)
     {
         if (pm->pic[i] && IS_REF(pm->pic[i]))
         {
             SET_REF_UNMARK(pm->pic[i]);
-            if (pm->pic[i] && pm->pic[i]->poc > max_poc)
-            {
-                max_poc = pm->pic[i]->poc;
-            }
-            picman_move_pic(pm, i, MAX_PB_SIZE - 1);
+            picman_move_pic(pm, i, MAXM_PB_SIZE - 1);
             i--;
         }
     }
+
+    for (i = 0; i < MAXM_PB_SIZE; i++)
+    {
+        if (pm->pic[i] && pm->pic[i]->need_for_out && pm->pic[i]->poc != 0 && pm->pic[i]->poc > max_poc)
+        {
+            max_poc = pm->pic[i]->poc;
+        }
+    }
+
     max_poc = max_poc == 0 ? max_poc : max_poc + 1;
 
     /* reorder poc in DPB */
-    int min_poc = max_poc;
+    int reordered_min_poc = INT_MAX;
     for (i = 0; i < MAXM_PB_SIZE; i++)
     {
         if (pm->pic[i] && pm->pic[i]->need_for_out && pm->pic[i]->poc != 0)
         {
             SET_REF_UNMARK(pm->pic[i]);
             pm->pic[i]->poc -= max_poc;
-            if (pm->pic[i]->poc < min_poc)
+            if (pm->pic[i]->poc < reordered_min_poc)
             {
-                min_poc = pm->pic[i]->poc;
+                reordered_min_poc = pm->pic[i]->poc;
             }
         }
     }
-    pm->poc_next_output = min_poc;
+    pm->poc_next_output = max_poc == 0 ? 0 : reordered_min_poc;
 
     pm->cur_num_ref_pics = 0;
 }

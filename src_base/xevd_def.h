@@ -222,15 +222,11 @@ extern int fp_trace_started;
 #endif
 #define MAX_NUM_POSSIBLE_SCAND             13
 
-/* for GOP 16 test, increase to 32 */
-/* maximum reference picture count. Originally, Max. 16 */
-/* for GOP 16 test, increase to 32 */
-
 /* DPB Extra size */
-#define EXTRA_FRAME                        XEVD_MAX_NUM_ACTIVE_REF_FRAME
+#define DELAYED_FRAME                      8 /* Maximum number of delayed frames */
+#define EXTRA_FRAME                       (XEVD_MAX_NUM_ACTIVE_REF_FRAME + DELAYED_FRAME) 
 
 /* maximum picture buffer size */
-
 #define MAX_PB_SIZE                       (XEVD_MAX_NUM_REF_PICS + EXTRA_FRAME)
 
 
