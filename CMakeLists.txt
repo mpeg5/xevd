@@ -46,7 +46,7 @@ cmake_policy(SET CMP0048 NEW)
 set(CMAKE_C_STANDARD 99)
 
 # Maps to a solution file (XEVD.sln).
-project (XEVD VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}))
+project (XEVD VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set compiler flags and options.
@@ -56,7 +56,7 @@ elseif( UNIX OR MINGW )
         set(CMAKE_BUILD_TYPE "Release")
     endif()
     message("CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-    
+
     if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
         set(OPT_LV "O0")
         set(OPT_DBG "-g")
