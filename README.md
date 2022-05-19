@@ -92,22 +92,28 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
 - Requirements
   - NSIS 3.08 or later (download from [https://nsis.sourceforge.io/Download](https://nsis.sourceforge.io/Download))
 
-- Generation of **NSIS windows installer** instructions for **Baseline Profile** or for **Main Profile**
-  - Follow build instruction for **Baseline Profile** or for for **Main Profile** and build generated Visual Studio solution
+- Generation of **NSIS windows installer** instructions
+  - Follow build instruction and build the project
   - Generate **NSIS Windows installer**
-    - Using Command Prompt for VS
+    - Command Prompt for Visual Studio
       - Go to the build directory and issue the following command
       ```
       msbuild /P:Configuration=Release PACKAGE.vcxproj
       ```
 
-    - Using Visual Studio IDE
+    - Visual Studio IDE
       - Open up the generated solution (XEVD.sln)
       - Change build type from Debug to Release
       - Go to the Solution Explorer, then select and mouse right click on the PACKAGE project located in CMakePredefinedTargets folder
       - Choose Build item, when a pop down menu appears
 
-      As a result CPack processing message should appear and NSIS installer as well as as checksum file are generated into build directory.
+      > As a result CPack processing message should appear and NSIS installer as well as as checksum file are generated into build directory.
+
+    - MinGW-64
+      - Go to the build directory and issue the following command
+      ```
+      $make package
+      ```
   - Output:
     - Baseline Profile:
       - xevd-base-1.0.0-win64.exe

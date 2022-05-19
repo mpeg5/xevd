@@ -104,8 +104,8 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
 "eXtra-fast Essential Video Decoder, MPEG-5 EVC (Essential Video Coding), ${PACKAGE_PROFILE_NAME} profile")
 
 # Project homepage
-set(CPACK_PACKAGE_VENDOR "github.com/mpeg5/xevd")
-set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/mpeg5/xevd")
+set(CPACK_PACKAGE_VENDOR "MPEG-5")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/mpeg5/xevd/releases")
 set(CMAKE_PROJECT_HOMEPAGE_URL "https://github.com/mpeg5/xevd")
 
 # Installation directory on the target system
@@ -140,7 +140,7 @@ set(CPACK_COMPONENT_RUNTIME_DEPENDS Libraries)
 include(CPack)
 
 if( MSVC )
-  cpack_add_install_type(Full DISPLAY_NAME "Everything")
+  cpack_add_install_type(Full DISPLAY_NAME "All")
   cpack_add_install_type(Developer DISPLAY_NAME "Developer files")
 endif()
 
@@ -148,7 +148,7 @@ cpack_add_component_group(DevelopmentGroup
   DISPLAY_NAME "Development"
   EXPANDED
   DESCRIPTION
-  "All of the tools you'll ever need to develop software")
+  "All of the tools you'll ever need to develop libxevd dependent software")
 
 cpack_add_component_group(RuntimeGroup
   DISPLAY_NAME "Runtime"
