@@ -1,8 +1,6 @@
 ﻿set( LIB_NAME_BASE xevdb )
 
-set( LIB_SOVERSION 1)
-
-set( LIB_SOVERSION 1)
+set( LIB_SOVERSION ${VERSION_MAJOR})
 
 file (GLOB XEVD_INC "../inc/*.h")
 file (GLOB LIB_API_SRC "xevd.c")
