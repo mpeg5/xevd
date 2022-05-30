@@ -1435,6 +1435,9 @@ struct _XEVD_CTX
     SYNC_OBJ                sync_block; //has to be initialized at context creation and has to be released on context destruction
     /* mximum number of coding delay */
     s32                     max_coding_delay;
+    /* Frame rate */
+	s32                     frame_rate_num;
+	s32                     frame_rate_den;
     /* address of ready function */
     int  (* fn_ready)(XEVD_CTX * ctx);
     /* address of flush function */
