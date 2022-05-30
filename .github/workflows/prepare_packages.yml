@@ -1,0 +1,36 @@
+name: Prepare packages
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+
+jobs:
+
+  package-xevd-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update -qq && sudo apt-get -y install \
+          build-essential \
+          cmake
+        
+      - name: build xevd, generate packages and md5
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TYPE=Release
+          make
+          make package
+        
+      - name: 'Upload xevd artifacts'
+        uses: actions/upload-artifact@v3
+        with:
+          name: xevd-packages-${{ github.event.release.tag_name }}
+          path: |
+            ${{ github.workspace }}/build/*.deb
+            ${{ github.workspace }}/build/*.md5
+          retention-days: 7
