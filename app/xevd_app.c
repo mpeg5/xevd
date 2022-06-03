@@ -362,7 +362,8 @@ int main(int argc, const char **argv)
     XEVD_CLK            clk_beg, clk_tot;
     int                bs_cnt, pic_cnt;
     int                bs_size, bs_read_pos = 0;
-    int                w, h;
+    int                al_w, al_h;
+    int                act_w = 0, act_h = 0;
     FILE             * fp_bs = NULL;
     int                decod_frames = 0;
     int                is_y4m = 0;
@@ -450,7 +451,7 @@ int main(int argc, const char **argv)
     pic_cnt = 0;
     clk_tot = 0;
     bs_cnt  = 0;
-    w = h   = 0;
+    al_w = al_h   = 0;
     proc_ret = 0;
 
     while(1)
@@ -525,7 +526,7 @@ int main(int argc, const char **argv)
 
         if(imgb)
         {
-            if (w != imgb->aw[0] || h != imgb->ah[0])
+            if (al_w != imgb->aw[0] || al_h != imgb->ah[0])
             {
                 dim_changed = 1;
             }
@@ -534,9 +535,11 @@ int main(int argc, const char **argv)
                 dim_changed = 0;
             }
 
-            w = imgb->aw[0];
-            h = imgb->ah[0];
+            al_w = imgb->aw[0];
+            al_h = imgb->ah[0];
 
+            act_w = imgb->w[0];
+            act_h = imgb->h[0];
 
             if(op_flag[OP_FLAG_FNAME_OUT])
             {
@@ -548,12 +551,21 @@ int main(int argc, const char **argv)
                         free(imgb_t);
                         imgb_t = NULL;
                     }
-                    imgb_t = imgb_alloc(w, h, XEVD_CS_SET(XEVD_CS_GET_FORMAT(imgb->cs), op_out_bit_depth, 0));
+                    imgb_t = imgb_alloc(al_w, al_h, XEVD_CS_SET(XEVD_CS_GET_FORMAT(imgb->cs), op_out_bit_depth, 0));
                     if(imgb_t == NULL)
                     {
                         logv0("failed to allocate temporay image buffer\n");
 						proc_ret = -1;
 						goto END;
+                    }
+                    //Copy the actual width and height of input image to temporary image.
+                    int chroma_format = XEVD_CS_GET_FORMAT(imgb->cs);
+                    int np = (chroma_format == XEVD_CF_YCBCR400) ? 1 : 3;
+
+                    for (int i = 0; i < np; i++)
+                    {
+                        imgb_t->w[i] = imgb->w[i];
+                        imgb_t->h[i] = imgb->h[i];
                     }
                 }
 
@@ -577,7 +589,7 @@ int main(int argc, const char **argv)
 
 END:
     logv1_line("Summary");
-    logv1("Resolution                        = %d x %d\n", w, h);
+    logv1("Resolution                        = %d x %d\n", act_w, act_h);
     logv1("Processed NALUs                   = %d\n", bs_cnt);
     logv1("Decoded frame count               = %d\n", pic_cnt);
     if(pic_cnt > 0)

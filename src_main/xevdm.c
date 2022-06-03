@@ -391,6 +391,17 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
     {
         ctx->max_coding_delay = sps->vui_parameters.num_reorder_pics;
     }
+	else
+    {
+        ctx->max_coding_delay = sps->sps_max_dec_pic_buffering_minus1 + 1;
+    }
+
+	if (sps->vui_parameters_present_flag && sps->vui_parameters.timing_info_present_flag)
+	{
+		ctx->frame_rate_num = sps->vui_parameters.num_units_in_tick;
+		ctx->frame_rate_den = sps->vui_parameters.time_scale;
+	}
+
     xevd_mset_x64a(ctx->cod_eco, 0, sizeof(u8) * ctx->f_scu);
     return XEVD_OK;
 ERR:
@@ -2320,8 +2331,12 @@ int xevd_tile_eco(void * arg)
         {
             xevd_threadsafe_assign(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
             xevd_assert_gv(xevd_eco_tile_end_flag(bs, sbac) == 1, ret, XEVD_ERR, ERR);
-            ret = xevd_eco_cabac_zero_word(bs);
-            xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
+            /*Decode zero bits after processing of last tile in slice*/
+            if (core->tile_num == ctx->num_tiles_in_slice - 1)
+            {
+                ret = xevd_eco_cabac_zero_word(bs);
+                xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
+            }
             break;
         }
         core->x_lcu++;
