@@ -32,7 +32,7 @@ set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES VERSION ${PROJECT_VERS
 #endif()
 
 # Generate export macros for libraries
-generate_export_header(${LIB_NAME_BASE}_dynamic           
+generate_export_header(${LIB_NAME_BASE}
                        BASE_NAME XEVD
                        EXPORT_FILE_NAME ${CMAKE_BINARY_DIR}/xevd_exports.h)
 
@@ -56,18 +56,26 @@ set( AVX ${LIB_AVX_SRC} )
 set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES OUTPUT_NAME ${LIB_NAME_BASE})
 
 
-if( MSVC )                      
-  target_compile_definitions( ${LIB_NAME_BASE} PUBLIC ANY _CRT_SECURE_NO_WARNINGS )
-  set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES FOLDER lib
-                                                            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+if( MSVC )
+    target_compile_definitions( ${LIB_NAME_BASE} PUBLIC ANY _CRT_SECURE_NO_WARNINGS )
+    target_compile_definitions( ${LIB_NAME_BASE}_dynamic PUBLIC ANY _CRT_SECURE_NO_WARNINGS )
+
+    # Since both the import library associated with DLL and the static library have the same names
+    # they must be build in different locations to avoid overwriting.
+    #
+    set_target_properties(${LIB_NAME_BASE} PROPERTIES FOLDER lib
+                            ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/static/lib)
+
+    set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES FOLDER lib
+                            ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/import/lib)
 elseif( UNIX OR MINGW )
-  set_property( SOURCE ${SSE} APPEND PROPERTY COMPILE_FLAGS "-msse4.1" )
-  set_property( SOURCE ${AVX} APPEND PROPERTY COMPILE_FLAGS " -mavx2" )
-  
-  set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES FOLDER lib
+    set_property( SOURCE ${SSE} APPEND PROPERTY COMPILE_FLAGS "-msse4.1" )
+    set_property( SOURCE ${AVX} APPEND PROPERTY COMPILE_FLAGS " -mavx2" )
+
+    set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES FOLDER lib
                                                             LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-  target_compile_definitions( ${LIB_NAME_BASE} PUBLIC ANY LINUX )  
-  target_link_libraries(${LIB_NAME_BASE} m)
+    target_compile_definitions( ${LIB_NAME_BASE} PUBLIC ANY LINUX )
+    target_link_libraries(${LIB_NAME_BASE} m)
 endif()
 
 # Install rules
@@ -78,8 +86,10 @@ endif()
 # List the headers we want to declare as public for installation.
 set(XEVD_PUBLIC_HEADERS "${XEVD_INC}")
 set_target_properties(${LIB_NAME_BASE} PROPERTIES PUBLIC_HEADER "${XEVD_PUBLIC_HEADERS}")
+set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES PUBLIC_HEADER "${XEVD_PUBLIC_HEADERS}")
 
 set(XEVD_PRIVATE_HEADERS "${LIB_BASE_INC}" "${LIB_SSE_INC}" "${LIB_AVX_INC}")
+
 # Install static library and public headers
 #
 # Static library (libxevdb.a or xevdb.lib) will be installed to <prefix>/lib/xevdb
@@ -98,23 +108,22 @@ install(TARGETS ${LIB_NAME_BASE}
 #
 install(TARGETS ${LIB_NAME_BASE}_dynamic
         RUNTIME COMPONENT Libraries DESTINATION ${CMAKE_INSTALL_BINDIR}
-        LIBRARY 
-            COMPONENT Libraries DESTINATION ${CMAKE_INSTALL_LIBDIR} 
-            NAMELINK_COMPONENT Development DESTINATION ${CMAKE_INSTALL_LIBDIR} 
-        ARCHIVE COMPONENT Development DESTINATION ${CMAKE_INSTALL_LIBDIR}/${LIB_NAME_BASE}/import
+        LIBRARY
+            COMPONENT Libraries DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            NAMELINK_COMPONENT Development DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE COMPONENT Development DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        PUBLIC_HEADER COMPONENT Development DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME_BASE}
 )
 
 install( FILES
     ${PROJECT_BINARY_DIR}/xevd_exports.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME_BASE}
 )
 
-if( NOT MSVC )
-    configure_file(
-        "${CMAKE_SOURCE_DIR}/pkgconfig/${LIB_NAME_BASE}.pc.in"
-        "${CMAKE_BINARY_DIR}/${LIB_NAME_BASE}.pc"
-        IMMEDIATE @ONLY)
+configure_file(
+    "${CMAKE_SOURCE_DIR}/pkgconfig/${LIB_NAME_BASE}.pc.in"
+    "${CMAKE_BINARY_DIR}/${LIB_NAME_BASE}.pc"
+    IMMEDIATE @ONLY)
 
-    install( FILES
-        "${CMAKE_BINARY_DIR}/${LIB_NAME_BASE}.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-    )
-endif()
+install( FILES
+    "${CMAKE_BINARY_DIR}/${LIB_NAME_BASE}.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
