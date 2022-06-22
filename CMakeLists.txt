@@ -51,6 +51,11 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set compiler flags and options.
 if( MSVC )
+    add_compile_options(
+      $<$<CONFIG:>:/MD> #---------|
+      $<$<CONFIG:Debug>:/MDd> #---|-- Dynamically link the runtime libraries
+      $<$<CONFIG:Release>:/MD> #--|
+    )
 elseif( UNIX OR MINGW )
     if(NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE "Release")
