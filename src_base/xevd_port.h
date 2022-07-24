@@ -137,8 +137,17 @@ void xevd_trace_line(char * pre);
 #define xevd_assert_gv(x,r,v,g) \
     {if(!(x)){assert(x); (r)=(v); goto g;}}
 
+#ifndef ARM
 #define X86_SSE                 1
+#define ARM_NEON                0
+#else
+#define X86_SSE                 0
+#define ARM_NEON                1
+#endif
 
+#if ARM_NEON
+#include <arm_neon.h>
+#else
 #if X86_SSE
 #ifdef _WIN32
 #include <emmintrin.h>
@@ -150,5 +159,6 @@ void xevd_trace_line(char * pre);
 #include <x86intrin.h>
 #endif
 #endif
+#endif /* ARM_NEON */
 
 #endif /* _XEVD_PORT_H_ */

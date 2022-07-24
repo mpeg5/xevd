@@ -1942,6 +1942,18 @@ int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb)
 
 int xevd_platform_init(XEVD_CTX *ctx)
 {
+
+#if ARM_NEON
+    xevd_func_mc_l = xevd_tbl_mc_l_neon;
+    xevd_func_mc_c = xevd_tbl_mc_c_neon;
+    xevd_func_average_no_clip = &xevd_average_16b_no_clip_neon;
+    ctx->fn_itxb   = &xevd_tbl_itxb_neon;
+    ctx->fn_recon = &xevd_recon_neon;
+    ctx->fn_dbk = &xevd_tbl_dbk_neon;
+    ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma_neon;
+  
+    
+#else
 #if X86_SSE
     int check_cpu, support_sse, support_avx, support_avx2;
 
@@ -1990,6 +2002,7 @@ int xevd_platform_init(XEVD_CTX *ctx)
         ctx->fn_dbk = &xevd_tbl_dbk;
         ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma;
     }
+#endif
 #endif
 
     ctx->fn_ready         = xevd_ready;
