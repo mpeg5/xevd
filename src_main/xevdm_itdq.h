@@ -38,7 +38,7 @@
 #define _XEVDM_ITDQ_H_
 #include "xevdm_def.h"
 #include "xevd_itdq.h"
-#if x86_SSE
+#if X86_SSE
 #include "xevdm_itdq_sse.h"
 #endif
 extern INV_TRANS *(*xevd_func_itrans)[5];
