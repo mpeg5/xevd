@@ -63,10 +63,10 @@ void deblock_scu_hor_neon(pel *buf, int st, int stride, int bit_depth_minus8, in
     t16 = vmaxq_s16(zero, t16);
     clip = vsubq_s16(abs_d, t16);
     clip = vmaxq_s16(zero, clip);
-    uint16x8_t ltMask = vshrq_n_s16(d, 15); // get sign
+    uint16x8_t lt_mask = vshrq_n_s16(d, 15); // get sign
     uint16x8_t zeromask = vceqzq_s16(d);
 
-    d1 = vbicq_s16(vbslq_s16(ltMask, vnegq_s16(clip), clip), zeromask);
+    d1 = vbicq_s16(vbslq_s16(lt_mask, vnegq_s16(clip), clip), zeromask);
 
     clip = vshlq_u16(clip, vdupq_n_s16(-1));
     d2 = vsubq_s16(AA, DD);
@@ -74,10 +74,10 @@ void deblock_scu_hor_neon(pel *buf, int st, int stride, int bit_depth_minus8, in
     ad = vabsq_s16(d2);
     ad = vshlq_u16(ad, vdupq_n_s16(-2));
     ad = vminq_s16(ad, clip);
-    ltMask = vshrq_n_s16(d2, 15); // get sign
+    lt_mask = vshrq_n_s16(d2, 15); // get sign
     zeromask = vceqzq_s16(d2);
 
-    d2 = vbicq_s16(vbslq_s16(ltMask, vnegq_s16(ad), ad), zeromask);
+    d2 = vbicq_s16(vbslq_s16(lt_mask, vnegq_s16(ad), ad), zeromask);
 
     AA = vsubq_s16(AA, d2);
     BB = vaddq_s16(BB, d1);
@@ -152,10 +152,10 @@ void deblock_scu_hor_chroma_neon(pel *u, pel *v, int st_u, int st_v, int stride,
     t16 = vmaxq_s16(zero, t16);
     clip = vsubq_s16(abs_d, t16);
     clip = vmaxq_s16(zero, clip);
-    uint16x8_t ltMask = vshrq_n_s16(d, 15); // get sign
+    uint16x8_t lt_mask = vshrq_n_s16(d, 15); // get sign
     uint16x8_t zeromask = vceqzq_s16(d);
 
-    d1 = vbicq_s16(vbslq_s16(ltMask, vnegq_s16(clip), clip), zeromask);
+    d1 = vbicq_s16(vbslq_s16(lt_mask, vnegq_s16(clip), clip), zeromask);
 
     BB = vaddq_s16(BB, d1);
     CC = vsubq_s16(CC, d1);
@@ -244,10 +244,10 @@ void deblock_scu_ver_neon(pel *buf, int st, int stride, int bit_depth_minus8, in
     t16 = vmaxq_s16(zero, t16);
     clip = vsubq_s16(abs_d, t16);
     clip = vmaxq_s16(zero, clip);
-    uint16x8_t ltMask = vshrq_n_s16(d, 15); // get sign
+    uint16x8_t lt_mask = vshrq_n_s16(d, 15); // get sign
     uint16x8_t zeromask = vceqzq_s16(d);
 
-    d1 = vbicq_s16(vbslq_s16(ltMask, vnegq_s16(clip), clip), zeromask);
+    d1 = vbicq_s16(vbslq_s16(lt_mask, vnegq_s16(clip), clip), zeromask);
 
     clip = vshlq_u16(clip, vdupq_n_s16(-1));
     d2 = vsubq_s16(AA, DD);
@@ -256,10 +256,10 @@ void deblock_scu_ver_neon(pel *buf, int st, int stride, int bit_depth_minus8, in
     ad = vshlq_u16(ad, vdupq_n_s16(-2));
     ad = vminq_s16(ad, clip);
 
-    ltMask = vshrq_n_s16(d2, 15); // get sign
+    lt_mask = vshrq_n_s16(d2, 15); // get sign
     zeromask = vceqzq_s16(d2);
 
-    d2 = vbicq_s16(vbslq_s16(ltMask, vnegq_s16(ad), ad), zeromask);
+    d2 = vbicq_s16(vbslq_s16(lt_mask, vnegq_s16(ad), ad), zeromask);
 
     AA = vsubq_s16(AA, d2);
     BB = vaddq_s16(BB, d1);
@@ -338,10 +338,10 @@ void deblock_scu_ver_chroma_neon(pel* u, pel* v, int st_u, int st_v, int stride,
         t16 = vmaxq_s16(zero, t16);
         clip = vsubq_s16(abs_d, t16);
         clip = vmaxq_s16(zero, clip);
-        uint16x8_t ltMask = vshrq_n_s16(d, 15); // get sign
+        uint16x8_t lt_mask = vshrq_n_s16(d, 15); // get sign
         uint16x8_t zeromask = vceqzq_s16(d);
 
-        d1 = vbicq_s16(vbslq_s16(ltMask, vnegq_s16(clip), clip), zeromask);
+        d1 = vbicq_s16(vbslq_s16(lt_mask, vnegq_s16(clip), clip), zeromask);
 
         BB = vaddq_s16(BB, d1);
         CC = vsubq_s16(CC, d1);
