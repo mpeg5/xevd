@@ -1488,6 +1488,7 @@ int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
 #include "xevd_mc.h"
 #include "xevd_eco.h"
 #include "xevd_df.h"
+#ifndef ARM
 #include "xevd_mc_sse.h"
 #include "xevd_mc_avx.h"
 #include "xevd_itdq_sse.h"
@@ -1495,4 +1496,10 @@ int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
 #include "xevd_recon_avx.h"
 #include "xevd_recon_sse.h"
 #include "xevd_dbk_sse.h"
+#else
+#include "xevd_mc_neon.h"
+#include "xevd_itdq_neon.h"
+#include "xevd_recon_neon.h"
+#include "xevd_dbk_neon.h"
+#endif
 #endif /* _XEVD_DEF_H_ */

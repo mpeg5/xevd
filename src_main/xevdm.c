@@ -3255,6 +3255,18 @@ int xevd_pull_frm(XEVD_CTX *ctx, XEVD_IMGB **imgb)
 
 int xevdm_platform_init(XEVD_CTX *ctx)
 {
+#if ARM_NEON
+    xevd_func_itrans     = xevdm_itrans_map_tbl;
+    xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l_neon;
+    xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c_neon;
+    xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l_neon;
+    xevd_func_mc_l       = xevd_tbl_mc_l_neon;
+    xevd_func_mc_c       = xevd_tbl_mc_c_neon;
+    xevd_func_average_no_clip = &xevd_average_16b_no_clip_neon;
+    ctx->fn_itxb         = &xevd_tbl_itxb;
+    ctx->fn_dbk          = &xevd_tbl_dbk_neon;
+    ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma_neon;
+#else
 #if X86_SSE
     int check_cpu, support_sse, support_avx, support_avx2;
 
@@ -3315,6 +3327,7 @@ int xevdm_platform_init(XEVD_CTX *ctx)
         ctx->fn_dbk          = &xevd_tbl_dbk;
         ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma;
     }
+#endif
 #endif
     ctx->fn_ready         = xevdm_ready;
     ctx->fn_flush         = xevdm_flush;
