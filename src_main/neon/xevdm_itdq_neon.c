@@ -389,8 +389,8 @@ static void xevdm_itx_pb16_neon(s16 *src, s16 *dst, int shift, int line)
         int stride11 = stride10 + line;
         int stride12 = stride11 + line;
         int stride13 = stride12 + line;
-        int stride14 = stride14 + line;
-        int stride15 = stride15 + line;
+        int stride14 = stride13 + line;
+        int stride15 = stride14 + line;
 
         for (int i = 0; i < 8; i++)
         {
