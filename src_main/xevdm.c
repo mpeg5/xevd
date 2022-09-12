@@ -3257,13 +3257,14 @@ int xevdm_platform_init(XEVD_CTX *ctx)
 {
 #if ARM_NEON
     xevd_func_itrans     = xevdm_itrans_map_tbl;
+    xevdm_fn_itx         = &xevdm_tbl_itx_neon;
     xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l_neon;
     xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c_neon;
     xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l_neon;
     xevd_func_mc_l       = xevd_tbl_mc_l_neon;
     xevd_func_mc_c       = xevd_tbl_mc_c_neon;
     xevd_func_average_no_clip = &xevd_average_16b_no_clip_neon;
-    ctx->fn_itxb         = &xevd_tbl_itxb;
+    ctx->fn_itxb         = &xevd_tbl_itxb_neon;
     ctx->fn_dbk          = &xevd_tbl_dbk_neon;
     ctx->fn_dbk_chroma   = &xevd_tbl_dbk_chroma_neon;
 #else
@@ -3278,6 +3279,7 @@ int xevdm_platform_init(XEVD_CTX *ctx)
     if (support_avx2)
     {
         xevd_func_itrans     = xevdm_itrans_map_tbl_sse;
+        xevdm_fn_itx          = &xevdm_tbl_itx_avx;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l_sse;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c_sse;
         xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l_sse;
@@ -3291,6 +3293,7 @@ int xevdm_platform_init(XEVD_CTX *ctx)
     else if (support_sse)
     {
         xevd_func_itrans     = xevdm_itrans_map_tbl_sse;
+        xevdm_fn_itx          = &xevdm_tbl_itx;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l_sse;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c_sse;
         xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l_sse;
@@ -3304,6 +3307,7 @@ int xevdm_platform_init(XEVD_CTX *ctx)
     else
     {
         xevd_func_itrans     = xevdm_itrans_map_tbl;
+        xevdm_fn_itx          = &xevdm_tbl_itx;
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c;
         xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l;
@@ -3317,6 +3321,7 @@ int xevdm_platform_init(XEVD_CTX *ctx)
 #else
     {
         xevd_func_itrans     = xevdm_itrans_map_tbl;
+        xevdm_fn_itx          = &xevdm_tbl_itx;		
         xevdm_func_dmvr_mc_l = xevdm_tbl_dmvr_mc_l;
         xevdm_func_dmvr_mc_c = xevdm_tbl_dmvr_mc_c;
         xevdm_func_bl_mc_l   = xevdm_tbl_bl_mc_l;

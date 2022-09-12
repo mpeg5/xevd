@@ -38,11 +38,21 @@
 #define _XEVDM_ITDQ_H_
 #include "xevdm_def.h"
 #include "xevd_itdq.h"
-#if X86_SSE
-#include "xevdm_itdq_sse.h"
-#endif
+
 extern INV_TRANS *(*xevd_func_itrans)[5];
 extern INV_TRANS *xevdm_itrans_map_tbl[16][5];
+
+typedef void(*XEVD_ITX)(s16* coef, s16* t, int shift, int line);
+extern XEVD_ITX xevdm_tbl_itx[MAX_TR_LOG2];
+extern XEVD_ITX(*xevdm_fn_itx)[MAX_TR_LOG2];
+
+#if ARM_NEON
+#include "xevdm_itdq_neon.h"
+#elif X86_SSE
+#include "xevdm_itdq_avx.h"
+#include "xevdm_itdq_sse.h"
+#endif
+
 void xevdm_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth);
 void xevdm_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
                         , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int bit_depth, int chroma_format_idc);

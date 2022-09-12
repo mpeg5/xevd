@@ -19,6 +19,8 @@ file (GLOB LIB_MAIN_SRC "./xevdm_*.c")
 file (GLOB LIB_MAIN_INC "./xevdm_*.h" )
 file (GLOB LIB_MAIN_SSE_SRC "./sse/xevdm_*.c")
 file (GLOB LIB_MAIN_SSE_INC "./sse/xevdm_*.h" )
+file (GLOB LIB_MAIN_AVX_SRC "./avx/xevdm_*.c")
+file (GLOB LIB_MAIN_AVX_INC "./avx/xevdm_*.h" )
 file (GLOB LIB_MAIN_NEON_SRC "./neon/xevdm_*.c")
 file (GLOB LIB_MAIN_NEON_INC "./neon/xevdm_*.h" )
 
@@ -32,9 +34,9 @@ if("${ARM}" STREQUAL "TRUE")
                                     ${LIB_NEON_SRC} ${LIB_NEON_INC} ${LIB_MAIN_NEON_SRC} ${LIB_MAIN_NEON_INC} )
 else()
     add_library( ${LIB_NAME} STATIC ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC}
-                                    ${LIB_SSE_SRC} ${LIB_SSE_INC} ${LIB_MAIN_SSE_SRC} ${LIB_MAIN_SSE_INC} ${LIB_AVX_SRC} ${LIB_AVX_INC} )
+                                    ${LIB_SSE_SRC} ${LIB_SSE_INC} ${LIB_MAIN_SSE_SRC} ${LIB_MAIN_SSE_INC} ${LIB_AVX_SRC} ${LIB_AVX_INC} ${LIB_MAIN_AVX_SRC} ${LIB_MAIN_AVX_INC} )
     add_library( ${LIB_NAME}_dynamic SHARED ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC}
-                                            ${LIB_SSE_SRC} ${LIB_SSE_INC} ${LIB_MAIN_SSE_SRC} ${LIB_MAIN_SSE_INC} ${LIB_AVX_SRC} ${LIB_AVX_INC} )
+                                            ${LIB_SSE_SRC} ${LIB_SSE_INC} ${LIB_MAIN_SSE_SRC} ${LIB_MAIN_SSE_INC} ${LIB_AVX_SRC} ${LIB_AVX_INC} ${LIB_MAIN_AVX_SRC} ${LIB_MAIN_AVX_INC} )
 endif()
 
 set_target_properties(${LIB_NAME}_dynamic PROPERTIES VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR} SOVERSION ${LIB_SOVERSION})
@@ -70,13 +72,15 @@ source_group("main\\header" FILES ${LIB_MAIN_INC})
 source_group("main\\source" FILES ${LIB_MAIN_SRC} ${LIB_API_MAIN_SRC})
 source_group("main\\sse\\header" FILES ${LIB_MAIN_SSE_INC})
 source_group("main\\sse\\source" FILES ${LIB_MAIN_SSE_SRC})
+source_group("main\\avx\\header" FILES ${LIB_MAIN_AVX_INC})
+source_group("main\\avx\\source" FILES ${LIB_MAIN_AVX_SRC})
 source_group("main\\neon\\header" FILES ${LIB_MAIN_NEON_INC})
 source_group("main\\neon\\source" FILES ${LIB_MAIN_NEON_SRC})
 
 if("${ARM}" STREQUAL "TRUE")
     include_directories( ${LIB_NAME} PUBLIC . .. ../inc ./neon ../src_base ../src_base/neon)
 else()
-    include_directories( ${LIB_NAME} PUBLIC . .. ../inc ./sse ../src_base ../src_base/sse ../src_base/avx)
+    include_directories( ${LIB_NAME} PUBLIC . .. ../inc ./sse ./avx ../src_base ../src_base/sse ../src_base/avx)
 endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES FOLDER lib
@@ -86,7 +90,7 @@ set_target_properties(${LIB_NAME} PROPERTIES FOLDER lib
                                                ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib)
 
 set( SSE ${BASE_INC_FILES} ${LIB_SSE_SRC} ${LIB_MAIN_SSE_SRC})
-set( AVX ${LIB_AVX_SRC} )
+set( AVX ${LIB_AVX_SRC} ${LIB_MAIN_AVX_SRC})
 set_target_properties(${LIB_NAME}_dynamic PROPERTIES OUTPUT_NAME ${LIB_NAME})
 
 if( MSVC )

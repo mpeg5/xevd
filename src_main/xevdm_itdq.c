@@ -78,6 +78,7 @@ void xevdm_itrans_ats_intra(s16 *coef, int log2_cuw, int log2_cuh, u8 ats_mode, 
 
 );
 
+XEVD_ITX(*xevdm_fn_itx)[MAX_TR_LOG2];
 
 void xevdm_init_multi_tbl()
 {
@@ -423,7 +424,7 @@ void xevdm_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const in
     xevd_func_itrans[t_idx_h][log2_minus1_w](t, coef, shift_2nd, tuh, 0, skip_w);
 }
 
-static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
+static void xevdm_itx_pb2(s16 *src, s16 *dst, int shift, int line)
 {
     int j;
     int E, O;
@@ -439,7 +440,7 @@ static void itx_pb2(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void itx_pb4(s16 *src, s16 *dst, int shift, int line)
+static void xevdm_itx_pb4(s16 *src, s16 *dst, int shift, int line)
 {
     int j;
     int E[2], O[2];
@@ -461,7 +462,7 @@ static void itx_pb4(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void itx_pb8(s16 *src, s16 *dst, int shift, int line)
+static void xevdm_itx_pb8(s16 *src, s16 *dst, int shift, int line)
 {
     int j, k;
     int E[4], O[4];
@@ -495,7 +496,7 @@ static void itx_pb8(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void itx_pb16(s16 *src, s16 *dst, int shift, int line)
+static void xevdm_itx_pb16(s16 *src, s16 *dst, int shift, int line)
 {
     int j, k;
     int E[8], O[8];
@@ -541,7 +542,7 @@ static void itx_pb16(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void itx_pb32(s16 *src, s16 *dst, int shift, int line)
+static void xevdm_itx_pb32(s16 *src, s16 *dst, int shift, int line)
 {
     int j, k;
     int E[16], O[16];
@@ -619,7 +620,7 @@ static void itx_pb32(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void itx_pb64(s16 *src, s16 *dst, int shift, int line)
+static void xevdm_itx_pb64(s16 *src, s16 *dst, int shift, int line)
 {
     const int tx_size = 64;
     const s8 *tm = xevd_tbl_tm64[0];
@@ -698,15 +699,14 @@ static void itx_pb64(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-typedef void(*XEVD_ITX)(s16 *coef, s16 *t, int shift, int line);
-static XEVD_ITX tbl_itx[MAX_TR_LOG2] =
+XEVD_ITX xevdm_tbl_itx[MAX_TR_LOG2] =
 {
-    itx_pb2,
-    itx_pb4,
-    itx_pb8,
-    itx_pb16,
-    itx_pb32,
-    itx_pb64
+    xevdm_itx_pb2,
+    xevdm_itx_pb4,
+    xevdm_itx_pb8,
+    xevdm_itx_pb16,
+    xevdm_itx_pb32,
+    xevdm_itx_pb64
 };
 
 static void xevdm_itrans(XEVD_CTX * ctx, s16 *coef, int log2_cuw, int log2_cuh, int iqt_flag, int bit_depth)
@@ -714,8 +714,8 @@ static void xevdm_itrans(XEVD_CTX * ctx, s16 *coef, int log2_cuw, int log2_cuh, 
     if(iqt_flag)
     {
         s16 t[MAX_TR_DIM]; /* temp buffer */
-        tbl_itx[log2_cuh - 1](coef, t, ITX_SHIFT1, 1 << log2_cuw);
-        tbl_itx[log2_cuw - 1](t, coef, ITX_SHIFT2(bit_depth), 1 << log2_cuh);
+        (*xevdm_fn_itx)[log2_cuh - 1](coef, t, ITX_SHIFT1, 1 << log2_cuw);
+        (*xevdm_fn_itx)[log2_cuw - 1](t, coef, ITX_SHIFT2(bit_depth), 1 << log2_cuh);
 
     }
     else
