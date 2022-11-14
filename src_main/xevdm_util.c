@@ -129,7 +129,7 @@ ERR:
     return NULL;
 }
 
-void xevdm_picbuf_free(XEVD_PIC *pic)
+void xevdm_picbuf_free(PICBUF_ALLOCATOR* pa, XEVD_PIC *pic)
 {
     XEVD_IMGB *imgb;
     if (pic)

@@ -45,7 +45,7 @@
 u16 xevdm_get_avail_inter(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 *map_scu, u8* map_tidx);
 u16 xevdm_get_avail_ibc(int x_scu, int y_scu, int w_scu, int h_scu, int scup, int cuw, int cuh, u32 * map_scu, u8* map_tidx);
 XEVD_PIC* xevdm_picbuf_alloc_exp(int w, int h, int pad_l, int pad_c, int *err, int idc, int bitdepth);
-void xevdm_picbuf_free(XEVD_PIC *pic);
+void xevdm_picbuf_free(PICBUF_ALLOCATOR* pa, XEVD_PIC *pic);
 
 void xevdm_get_mmvd_mvp_list(s8(*map_refi)[REFP_NUM], XEVD_REFP refp[REFP_NUM], s16(*map_mv)[REFP_NUM][MV_D], int w_scu, int h_scu, int scup, u16 avail, int cuw, int cuh, int slice_t, int real_mv[][2][3], u32 *map_scu, int REF_SET[][XEVD_MAX_NUM_ACTIVE_REF_FRAME], u16 avail_lr
     , u32 curr_ptr, u8 num_refp[REFP_NUM]

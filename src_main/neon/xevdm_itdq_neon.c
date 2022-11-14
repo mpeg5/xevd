@@ -1541,3 +1541,141 @@ XEVD_ITX xevdm_tbl_itx_neon[MAX_TR_LOG2] =
     xevdm_itx_pb32_neon,
     xevdm_itx_pb64_neon
 };
+
+#define vmadd_s16(a, b)\
+    vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_s16(vget_high_s16(a), vget_high_s16(b)));
+
+#define MAC_LINE(idx, w, mcoef, src2, mac, mtot, lane) \
+    mac = vdupq_n_s16(0); \
+    for (idx = 0; idx<((w)>>3); idx++) \
+    { \
+        int16x8_t src_tmp = vld1q_s16(src2 + (idx << 3)); \
+        int32x4_t mac_tmp = vmadd_s16(mcoef[idx],src_tmp); \
+        mac = vaddq_s32(mac,  mac_tmp); \
+    } \
+    mac = vpaddq_s32(mac, mac); \
+    mac = vpaddq_s32(mac, mac); \
+    mtot = vsetq_lane_s32(vgetq_lane_s32(mac, 0), mtot, lane);
+
+/* 32bit in xmm to 16bit clip with round-off */
+#define ADD_SHIFT_CLIP_S32_TO_S16_4PEL(mval, madd, shift) \
+    int32x4_t shift_neon = vdupq_n_s32(-shift); \
+    mval = vshlq_s32(vaddq_s32(mval, madd), shift_neon); \
+    mval  = vcombine_s16(vqmovn_s32(mval),  vqmovn_s32(mval));
+
+/* top macro for inverse transforms */
+#define ITX_MATRIX(coef, blk, tsize, line, shift, itm_tbl, skip_line) \
+{\
+    int i, j, k, h, w; \
+    const s16 *itm; \
+    s16 * c; \
+\
+    int16x8_t mc[8]; \
+    int16x8_t mac, mtot=vdupq_n_s16(0), madd; \
+\
+    { \
+        h = line - skip_line; \
+        w = tsize; \
+    } \
+\
+    madd = vdupq_n_s32(1 << (shift - 1)); \
+\
+    for (i = 0; i<h; i++) \
+    { \
+        itm = (itm_tbl); \
+        c = coef + i; \
+\
+        for (k = 0; k<(w>>3); k++) \
+        { \
+           s16 c_data[8] = {c[0], c[(1)*line], c[(2)*line], c[(3)*line], c[(4)*line], c[(5)*line], c[(6)*line], c[(7)*line]}; \
+           mc[k] = vld1q_s16((int16_t *) c_data); \
+            c += line << 3; \
+        } \
+\
+        for (j = 0; j<(tsize>>2); j++) \
+        { \
+            MAC_LINE(k, w, mc, itm, mac, mtot, 0); \
+            itm += tsize; \
+\
+            MAC_LINE(k, w, mc, itm, mac, mtot, 1); \
+            itm += tsize; \
+\
+            MAC_LINE(k, w, mc, itm, mac, mtot, 2); \
+            itm += tsize; \
+\
+            MAC_LINE(k, w, mc, itm, mac, mtot, 3); \
+            itm += tsize; \
+\
+            ADD_SHIFT_CLIP_S32_TO_S16_4PEL(mtot, madd, shift); \
+            vst1q_s16((blk + (j<<2)), mtot); \
+        } \
+        blk += tsize; \
+    } \
+}
+
+void xevdm_itrans_ats_intra_DST7_B8_neon(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    ITX_MATRIX(coef, block, 8, line, shift, xevd_tbl_inv_tr8[DST7][0], skip_line);
+
+    if (skip_line)
+    {
+        xevd_mset(block, 0, (skip_line << 3) * sizeof(s16));
+    }
+}
+
+void xevdm_itrans_ats_intra_DST7_B16_neon(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    ITX_MATRIX(coef, block, 16, line, shift, xevd_tbl_inv_tr16[DST7][0], skip_line);
+
+    if (skip_line)
+    {
+        xevd_mset(block, 0, (skip_line << 4) * sizeof(s16));
+    }
+}
+
+void xevdm_itrans_ats_intra_DST7_B32_neon(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    ITX_MATRIX(coef, block, 32, line, shift, xevd_tbl_inv_tr32[DST7][0], skip_line);
+
+    if (skip_line)
+    {
+        xevd_mset(block, 0, (skip_line << 5) * sizeof(s16));
+    }
+}
+
+
+void xevdm_itrans_ats_intra_DCT8_B8_neon(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    ITX_MATRIX(coef, block, 8, line, shift, xevd_tbl_inv_tr8[DCT8][0], skip_line);
+
+    if (skip_line)
+    {
+        xevd_mset(block, 0, (skip_line << 3) * sizeof(s16));
+    }
+}
+
+void xevdm_itrans_ats_intra_DCT8_B16_neon(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    ITX_MATRIX(coef, block, 16, line, shift, xevd_tbl_inv_tr16[DCT8][0], skip_line);
+
+    if (skip_line)
+    {
+        xevd_mset(block, 0, (skip_line << 4) * sizeof(s16));
+    }
+}
+
+void xevdm_itrans_ats_intra_DCT8_B32_neon(s16 *coef, s16 *block, int shift, int line, int skip_line, int skip_line_2)
+{
+    ITX_MATRIX(coef, block, 32, line, shift, xevd_tbl_inv_tr32[DCT8][0], skip_line);
+
+    if (skip_line)
+    {
+        xevd_mset(block, 0, (skip_line << 5) * sizeof(s16));
+    }
+}
+
+INV_TRANS *xevdm_itrans_map_tbl_neon[16][5] =
+{
+    { NULL, xevdm_itrans_ats_intra_DCT8_B4, xevdm_itrans_ats_intra_DCT8_B8_neon, xevdm_itrans_ats_intra_DCT8_B16_neon, xevdm_itrans_ats_intra_DCT8_B32_neon },
+    { NULL, xevdm_itrans_ats_intra_DST7_B4, xevdm_itrans_ats_intra_DST7_B8_neon, xevdm_itrans_ats_intra_DST7_B16_neon, xevdm_itrans_ats_intra_DST7_B32_neon },
+};

@@ -53,6 +53,13 @@ extern XEVD_ITX(*xevdm_fn_itx)[MAX_TR_LOG2];
 #include "xevdm_itdq_sse.h"
 #endif
 
+void xevdm_itx_pb2(s16* src, s16* dst, int shift, int line);
+void xevdm_itx_pb4(s16* src, s16* dst, int shift, int line);
+void xevdm_itx_pb8(s16* src, s16* dst, int shift, int line);
+void xevdm_itx_pb16(s16* src, s16* dst, int shift, int line);
+void xevdm_itx_pb32(s16* src, s16* dst, int shift, int line);
+void xevdm_itx_pb64(s16* src, s16* dst, int shift, int line);
+
 void xevdm_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, int iqt_flag, u8 ats_intra_cu, u8 ats_mode, int bit_depth);
 void xevdm_sub_block_itdq(XEVD_CTX * ctx, s16 coef[N_C][MAX_CU_DIM], int log2_cuw, int log2_cuh, u8 qp_y, u8 qp_u, u8 qp_v, int flag[N_C], int nnz_sub[N_C][MAX_SUB_TB_NUM], int iqt_flag
                         , u8 ats_intra_cu, u8 ats_mode, u8 ats_inter_info, int bit_depth, int chroma_format_idc);

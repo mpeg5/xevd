@@ -326,7 +326,10 @@ void xevd_deblock_cu_hor(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int
     u = pic->u + t;
     v = pic->v + t;
 
-    unsigned int no_boundary = map_tidx[t_copy] == map_tidx[t1];
+
+    unsigned int no_boundary = 0;
+    if(y_pel > 0 )
+        no_boundary = map_tidx[t_copy] == map_tidx[t1];
     if (boundary_filtering)
     {
         no_boundary = !(map_tidx[t_copy] == map_tidx[t1]);
@@ -425,7 +428,10 @@ void xevd_deblock_cu_ver(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int
     map_refi_tmp = map_refi;
     map_mv_tmp = map_mv;
 
-    unsigned int  no_boundary = map_tidx[t_copy] == map_tidx[t1];
+    unsigned int  no_boundary = 0;
+    if(x_pel > 0)
+        no_boundary = map_tidx[t_copy] == map_tidx[t1];
+
     if (boundary_filtering)
     {
         no_boundary = !(map_tidx[t_copy] == map_tidx[t1]) && ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[-1])));
@@ -470,7 +476,9 @@ void xevd_deblock_cu_ver(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int
         }
     }
 
-    no_boundary = map_tidx[t_copy] == map_tidx[t2];
+    no_boundary = 0;
+    if(x_pel + cuw < pic->w_l )
+        no_boundary = map_tidx[t_copy] == map_tidx[t2];
     if (boundary_filtering)
     {
         no_boundary = !(map_tidx[t_copy] == map_tidx[t2]) && ((MCU_GET_SN(map_scu[0])) == (MCU_GET_SN(map_scu[w])));
