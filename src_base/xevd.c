@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2020, Samsung Electronics Co., Ltd.
    All Rights Reserved. */
 /*
@@ -82,6 +83,88 @@ static void core_free(XEVD_CORE * core)
     xevd_mfree_fast(core);
 }
 
+
+void xevd_free_1d(void** dst, int size)
+{
+    xevd_mfree_fast(*dst);
+}
+
+void xevd_free_2d(s8*** dst, int size_1d, int size_2d, int type_size)
+{
+    int i;
+
+    xevd_mfree_fast((*dst)[0]);
+    xevd_mfree_fast(*dst);
+}
+
+int xevd_delete_cu_data(XEVD_CU_DATA* cu_data, int log2_cuw, int log2_cuh)
+{
+    int i, j;
+    int cuw_scu, cuh_scu;
+    int size_8b, size_16b, size_32b, cu_cnt, pixel_cnt;
+
+    cuw_scu = 1 << log2_cuw;
+    cuh_scu = 1 << log2_cuh;
+
+    size_8b = cuw_scu * cuh_scu * sizeof(s8);
+    size_16b = cuw_scu * cuh_scu * sizeof(s16);
+    size_32b = cuw_scu * cuh_scu * sizeof(s32);
+    cu_cnt = cuw_scu * cuh_scu;
+    pixel_cnt = cu_cnt << 4;
+
+    xevd_free_1d((void**)&cu_data->qp_y, size_8b);
+    xevd_free_1d((void**)&cu_data->qp_u, size_8b);
+    xevd_free_1d((void**)&cu_data->qp_v, size_8b);
+    xevd_free_1d((void**)&cu_data->pred_mode, size_8b);
+    xevd_free_1d((void**)&cu_data->pred_mode_chroma, size_8b);
+
+    xevd_free_2d((s8***)&cu_data->mpm, 2, cu_cnt, sizeof(u8));
+    xevd_free_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
+    xevd_free_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
+    xevd_free_1d((void**)&cu_data->skip_flag, size_8b);
+    xevd_free_1d((void**)&cu_data->ibc_flag, size_8b);
+    xevd_free_1d((void**)&cu_data->dmvr_flag, size_8b);
+
+    xevd_free_2d((s8***)&cu_data->refi, cu_cnt, REFP_NUM, sizeof(u8));
+    xevd_free_2d((s8***)&cu_data->mvp_idx, cu_cnt, REFP_NUM, sizeof(u8));
+    xevd_free_1d((void**)&cu_data->mvr_idx, size_8b);
+    xevd_free_1d((void**)&cu_data->bi_idx, size_8b);
+    xevd_free_1d((void**)&cu_data->inter_dir, size_8b);
+    xevd_free_1d((void**)&cu_data->mmvd_idx, size_16b);
+    xevd_free_1d((void**)&cu_data->mmvd_flag, size_8b);
+
+    xevd_free_1d((void**)&cu_data->ats_intra_cu, size_8b);
+    xevd_free_1d((void**)&cu_data->ats_mode_h, size_8b);
+    xevd_free_1d((void**)&cu_data->ats_mode_v, size_8b);
+
+    xevd_free_1d((void**)&cu_data->ats_inter_info, size_8b);
+
+    for (i = 0; i < N_C; i++)
+    {
+        xevd_free_1d((void**)&cu_data->nnz[i], size_32b);
+    }
+    for (i = 0; i < N_C; i++)
+    {
+        for (j = 0; j < 4; j++)
+        {
+            xevd_free_1d((void**)&cu_data->nnz_sub[i][j], size_32b);
+        }
+    }
+    xevd_free_1d((void**)&cu_data->map_scu, size_32b);
+    xevd_free_1d((void**)&cu_data->affine_flag, size_8b);
+    xevd_free_1d((void**)&cu_data->map_affine, size_32b);
+    xevd_free_1d((void**)&cu_data->map_cu_mode, size_32b);
+    xevd_free_1d((void**)&cu_data->depth, size_8b);
+
+    for (i = 0; i < N_C; i++)
+    {
+        xevd_free_1d((void**)&cu_data->coef[i], (pixel_cnt >> (!!(i) * 2)) * sizeof(s16));
+        xevd_free_1d((void**)&cu_data->reco[i], (pixel_cnt >> (!!(i) * 2)) * sizeof(pel));
+    }
+
+    return XEVD_OK;
+}
+
 static void sequence_deinit(XEVD_CTX * ctx)
 {
     xevd_mfree(ctx->map_scu);
@@ -89,6 +172,14 @@ static void sequence_deinit(XEVD_CTX * ctx)
     xevd_mfree(ctx->map_split);
     xevd_mfree(ctx->map_ipm);
     xevd_mfree(ctx->map_cu_mode);
+
+    for (int i = 0; i < (int)ctx->f_lcu; i++)
+    {
+        xevd_delete_cu_data(ctx->map_cu_data + i, ctx->log2_max_cuwh - MIN_CU_LOG2, ctx->log2_max_cuwh - MIN_CU_LOG2);
+    }
+
+    xevd_mfree(ctx->map_cu_data);
+    xevd_mfree(ctx->tile);
     xevd_mfree_fast(ctx->map_tidx);
     xevd_picman_deinit(&ctx->dpm);
     free((void*)ctx->sync_flag);
@@ -112,6 +203,20 @@ static int picture_init(XEVD_CTX * ctx)
     {
         xevd_mfree(ctx->tc.task_num_in_tile);
         ctx->tc.task_num_in_tile = (int*)xevd_malloc(sizeof(int) * ctx->tile_cnt);
+    }
+
+    if (ctx->tile == NULL)
+    {
+        int size = sizeof(XEVD_TILE) * ctx->tile_cnt;
+        ctx->tile = xevd_malloc(size);
+        xevd_assert_rv(ctx->tile, XEVD_ERR_OUT_OF_MEMORY);
+    }
+    else
+    {
+        xevd_mfree(ctx->tile);
+        int size = sizeof(XEVD_TILE) * ctx->tile_cnt;
+        ctx->tile = xevd_malloc(size);
+        xevd_assert_rv(ctx->tile, XEVD_ERR_OUT_OF_MEMORY);
     }
 
     if (ctx->tc.max_task_cnt > 1)
@@ -540,7 +645,10 @@ static void coef_rect_to_series(XEVD_CTX * ctx, s16 *coef_src[N_C], int x, int y
 
     for (j = 0; j < cuh; j++)
     {
-        xevd_mcpy(&coef_dst[Y_C][didx], &coef_src[Y_C][sidx], cuw * sizeof(16));
+        for (int k = 0; k < cuw; k++)
+        {
+            coef_dst[Y_C][k + didx] = coef_src[Y_C][k + sidx];
+        }
         didx += cuw;
         sidx += ctx->max_cuwh;
     }
@@ -556,8 +664,11 @@ static void coef_rect_to_series(XEVD_CTX * ctx, s16 *coef_src[N_C], int x, int y
 
     for (j = 0; j < cuh; j++)
     {
-        xevd_mcpy(&coef_dst[U_C][didx], &coef_src[U_C][sidx], cuw * sizeof(16));
-        xevd_mcpy(&coef_dst[V_C][didx], &coef_src[V_C][sidx], cuw * sizeof(16));
+        for (int k = 0; k < cuw; k++)
+        {
+            coef_dst[U_C][k + didx] = coef_src[U_C][k + sidx];
+            coef_dst[V_C][k + didx] = coef_src[V_C][k + sidx];
+        }
         didx += cuw;
         sidx += (ctx->max_cuwh >> (XEVD_GET_CHROMA_W_SHIFT(ctx->sps->chroma_format_idc)));
     }
@@ -1239,8 +1350,6 @@ static int set_tile_info(XEVD_CTX * ctx, XEVD_CORE *core, XEVD_PPS *pps)
     if (slice_num == 0)
     {
         size = sizeof(XEVD_TILE) * f_tile;
-        ctx->tile = xevd_malloc(size);
-        xevd_assert_rv(ctx->tile, XEVD_ERR_OUT_OF_MEMORY);
         xevd_mset(ctx->tile, 0, size);
     }
 
@@ -1724,8 +1833,6 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
 
         xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
 
-        ret = set_tile_info(ctx, ctx->core, pps);
-        xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         if (ctx->num_ctb == 0)
         {
            ctx->num_ctb = ctx->f_lcu;

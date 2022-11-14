@@ -394,7 +394,7 @@ void alf_destroy(ADAPTIVE_LOOP_FILTER * alf);
 void alf_init(ADAPTIVE_LOOP_FILTER * alf, int bit_depth);
 void alf_init_filter_shape(void * filter_shape, int size);
 
-void call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PIC * pic);
+int call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PIC * pic);
 void store_dec_aps_to_buffer(XEVD_CTX * ctx);
 #endif
 

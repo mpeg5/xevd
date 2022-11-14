@@ -174,9 +174,16 @@ XEVD_IMGB * xevd_imgb_create(int w, int h, int cs, int opt, int pad[XEVD_IMGB_MA
             a_size = (align != NULL)? align[i] : 0;
             p_size = (pad != NULL)? pad[i] : 0;
 
-            imgb->aw[i] = XEVD_ALIGN(w, a_size);
-            imgb->ah[i] = XEVD_ALIGN(h, a_size);
-
+            if (a_size)
+            {
+                imgb->aw[i] = XEVD_ALIGN(w, a_size);
+                imgb->ah[i] = XEVD_ALIGN(h, a_size);
+            }
+            else
+            {
+                imgb->aw[i] = w;
+                imgb->ah[i] = h;
+            }
             imgb->padl[i] = imgb->padr[i]=imgb->padu[i]=imgb->padb[i]=p_size;
 
             imgb->s[i] = (imgb->aw[i] + imgb->padl[i] + imgb->padr[i]) * bd;

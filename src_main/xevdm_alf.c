@@ -1240,7 +1240,7 @@ void alf_process(ADAPTIVE_LOOP_FILTER *alf, CODING_STRUCTURE* cs, ALF_SLICE_PARA
     }
 }
 
-void call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PIC * pic)
+int call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PIC * pic)
 {
     CODING_STRUCTURE cs;
     cs.ctx = (void *)ctx;
@@ -1248,6 +1248,8 @@ void call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PI
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
     ALF_SLICE_PARAM alf_slice_param;
     alf_slice_param.alf_ctb_flag = (u8 *)malloc(N_C * ctx->f_lcu * sizeof(u8));
+    if (alf_slice_param.alf_ctb_flag == NULL)
+        return XEVD_ERR;
     xevd_mset(alf_slice_param.alf_ctb_flag, 0, N_C * ctx->f_lcu * sizeof(u8));
     // load filter from buffer
     alf_load_paramline_from_aps_buffer2(alf, &(alf_slice_param), mctx->sh.aps_id_y, mctx->sh.aps_id_ch, mctx->sh.alf_chroma_idc);
@@ -1256,4 +1258,8 @@ void call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PI
     alf_slice_param.is_ctb_alf_on = mctx->sh.alf_sh_param.is_ctb_alf_on;
     xevd_mcpy(alf_slice_param.alf_ctb_flag, mctx->sh.alf_sh_param.alf_ctu_enable_flag, N_C * ctx->f_lcu * sizeof(u8));
     alf_process(alf, &cs, &alf_slice_param);
+    if (alf_slice_param.alf_ctb_flag)
+        free(alf_slice_param.alf_ctb_flag);
+
+    return XEVD_OK;
 }

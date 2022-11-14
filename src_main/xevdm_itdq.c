@@ -424,7 +424,7 @@ void xevdm_it_MxN_ats_intra(s16 *coef, int tuw, int tuh, int bit_depth, const in
     xevd_func_itrans[t_idx_h][log2_minus1_w](t, coef, shift_2nd, tuh, 0, skip_w);
 }
 
-static void xevdm_itx_pb2(s16 *src, s16 *dst, int shift, int line)
+void xevdm_itx_pb2(s16 *src, s16 *dst, int shift, int line)
 {
     int j;
     int E, O;
@@ -440,7 +440,7 @@ static void xevdm_itx_pb2(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void xevdm_itx_pb4(s16 *src, s16 *dst, int shift, int line)
+void xevdm_itx_pb4(s16 *src, s16 *dst, int shift, int line)
 {
     int j;
     int E[2], O[2];
@@ -462,7 +462,7 @@ static void xevdm_itx_pb4(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void xevdm_itx_pb8(s16 *src, s16 *dst, int shift, int line)
+void xevdm_itx_pb8(s16 *src, s16 *dst, int shift, int line)
 {
     int j, k;
     int E[4], O[4];
@@ -496,7 +496,7 @@ static void xevdm_itx_pb8(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void xevdm_itx_pb16(s16 *src, s16 *dst, int shift, int line)
+void xevdm_itx_pb16(s16 *src, s16 *dst, int shift, int line)
 {
     int j, k;
     int E[8], O[8];
@@ -542,7 +542,7 @@ static void xevdm_itx_pb16(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void xevdm_itx_pb32(s16 *src, s16 *dst, int shift, int line)
+void xevdm_itx_pb32(s16 *src, s16 *dst, int shift, int line)
 {
     int j, k;
     int E[16], O[16];
@@ -620,7 +620,7 @@ static void xevdm_itx_pb32(s16 *src, s16 *dst, int shift, int line)
     }
 }
 
-static void xevdm_itx_pb64(s16 *src, s16 *dst, int shift, int line)
+void xevdm_itx_pb64(s16 *src, s16 *dst, int shift, int line)
 {
     const int tx_size = 64;
     const s8 *tm = xevd_tbl_tm64[0];
@@ -758,30 +758,31 @@ void xevdm_itdq(XEVD_CTX * ctx, s16 *coef, int log2_w, int log2_h, int scale, in
 
     xevd_dquant(coef, log2_w, log2_h, scale, offset, shift);
 
-    for(j = 0; j < cuh; j++)
-    {
-        for(i = 0; i < cuw; i++)
-        {
-            if(coef_tmp[i] != 0)
-            {
-                if(i > max_x)
-                {
-                    max_x = i;
-                }
-                if(j > max_y)
-                {
-                    max_y = j;
-                }
-            }
-        }
-        coef_tmp += cuw;
-    }
 
-    skip_w = cuw - 1 - max_x;
-    skip_h = cuh - 1 - max_y;
 
     if(ats_intra_cu)
     {
+	    for(j = 0; j < cuh; j++)
+        {
+            for(i = 0; i < cuw; i++)
+            {
+                if(coef_tmp[i] != 0)
+                {
+                    if(i > max_x)
+                    {
+                        max_x = i;
+                    }
+                    if(j > max_y)
+                    {
+                        max_y = j;
+                    }
+                }
+            }
+            coef_tmp += cuw;
+        }
+
+        skip_w = cuw - 1 - max_x;
+        skip_h = cuh - 1 - max_y;
         xevdm_itrans_ats_intra(coef, log2_w, log2_h, ats_mode, skip_w, skip_h, bit_depth);
     }
     else
