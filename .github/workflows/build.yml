@@ -16,13 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0
+
       - name: install dependencies
         run: |
           sudo apt-get update -qq && sudo apt-get -y install \
-          build-essential \
           cmake
-          
+ 
       - name: Build xevd
         run: |
           mkdir build
@@ -33,14 +34,14 @@ jobs:
       - name: 'Upload executable Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: xevd_app-linux-artifact
+          name: xevd_app-linux
           path: build/bin/xevd_app
           retention-days: 5
           
       - name: 'Upload library Artifact'
         uses: actions/upload-artifact@v3
         with:
-          name: libxevd-linux-artifact
+          name: libxevd-linux
           path: build/lib/
           retention-days: 5
 
@@ -48,15 +49,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-          
-      - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
         with:
-          platform: x64
-          
-      - name: Get CMake
-        uses: symbitic/install-cmake@master
-      
+          fetch-depth: 0
+
       - name: Build xevd
         run: |
           mkdir build
@@ -64,17 +59,16 @@ jobs:
           cmake .. -G "MinGW Makefiles"
           make
           
-# TODO: need to check build paths on Windows          
-#       - name: 'Upload executable Artifact'
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: xevd_app-windows-artifact
-#           path: build/bin/xevd_app
-#           retention-days: 5
-          
-#       - name: 'Upload library Artifact'
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: libxevd-windows-artifact
-#           path: build/lib/
-#           retention-days: 5
+      - name: 'Upload executable Artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: xevd_app-windows
+          path: build/bin/xeved_app.exe
+          retention-days: 5
+
+      - name: 'Upload library Artifacts'
+        uses: actions/upload-artifact@v3
+        with:
+          name: libxevd-windows
+          path: build/src/libxevd.*
+          retention-days: 5
