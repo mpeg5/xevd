@@ -421,7 +421,7 @@ static void imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
         logv0("ERROR: unsupported image copy\n");
         return;
     }
-    for(i = 0; i < 4; i++)
+    for( i = 0; i < XEVD_TS_NUM; i++)
     {
         dst->ts[i] = src->ts[i];
     }

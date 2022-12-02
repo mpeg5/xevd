@@ -369,6 +369,8 @@ int main(int argc, const char **argv)
     int                is_y4m = 0;
     int                dim_changed = 0;
 
+    int                vcl_cnt = 0;
+
 
     /* parse options */
     ret = xevd_args_parse_all(argc, argv, options);
@@ -474,12 +476,19 @@ int main(int argc, const char **argv)
             bitb.addr = bs_buf;
             bitb.ssize = bs_size;
 
-            logv2("[%4d] NALU --> ", bs_cnt++);
+            bitb.ts[XEVD_TS_DTS] = vcl_cnt;
+
+            bs_cnt++;
+            logv2("[%4d] NALU --> ", bs_cnt);
 
             clk_beg = xevd_clk_get();
 
             /* main decoding block */
             ret = xevd_decode(id, &bitb, &stat);
+            if(stat.fnum >= 0 && (stat.nalu_type == XEVD_NUT_IDR || stat.nalu_type == XEVD_NUT_NONIDR))
+            {
+                vcl_cnt++;
+            }
 
             clk_tot += xevd_clk_from(clk_beg);
 
@@ -488,7 +497,7 @@ int main(int argc, const char **argv)
             if(XEVD_FAILED(ret))
             {
                 logv0("failed to decode bitstream\n");
-				proc_ret = -1;
+                proc_ret = -1;
                 goto END;
             }
 
@@ -509,14 +518,14 @@ int main(int argc, const char **argv)
             if(ret == XEVD_ERR_UNEXPECTED)
             {
                 logv2("bumping process completed\n");
-				proc_ret = 0;
+                proc_ret = 0;
                 goto END;
             }
             else if(XEVD_FAILED(ret))
             {
                 logv0("failed to pull the decoded image\n");
-				proc_ret = -1;
-				goto END;
+                proc_ret = -1;
+                goto END;
             }
         }
         else
@@ -526,6 +535,7 @@ int main(int argc, const char **argv)
 
         if(imgb)
         {
+            logv2("pts: %lld | dts: %lld\n", imgb->ts[XEVD_TS_PTS], imgb->ts[XEVD_TS_DTS]);
             if (al_w != imgb->aw[0] || al_h != imgb->ah[0])
             {
                 dim_changed = 1;
@@ -555,8 +565,8 @@ int main(int argc, const char **argv)
                     if(imgb_t == NULL)
                     {
                         logv0("failed to allocate temporay image buffer\n");
-						proc_ret = -1;
-						goto END;
+                        proc_ret = -1;
+                        goto END;
                     }
                     //Copy the actual width and height of input image to temporary image.
                     int chroma_format = XEVD_CS_GET_FORMAT(imgb->cs);
@@ -572,10 +582,10 @@ int main(int argc, const char **argv)
                 if (!pic_cnt && is_y4m)
                 {
                     if(write_y4m_header(op_fname_out, imgb))
-					{
-						proc_ret = -1;
-						goto END;
-					}
+                    {
+                        proc_ret = -1;
+                        goto END;
+                    }
                 }
                 write_dec_img(id, op_fname_out, imgb, imgb_t, is_y4m);
             }

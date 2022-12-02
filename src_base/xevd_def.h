@@ -36,7 +36,7 @@
 #include "xevd_tp.h"
 
 /* xevd decoder magic code */
-#define XEVD_MAGIC_CODE                              0x45565944 
+#define XEVD_MAGIC_CODE                              0x45565944
 
 /* Profiles definitions */
 #define PROFILE_BASELINE                             0
@@ -56,7 +56,7 @@
 #define OPT_SIMD_MC_C                                1
 #else
 #define OPT_SIMD_MC_L                                0
-#define OPT_SIMD_MC_C                                0 
+#define OPT_SIMD_MC_C                                0
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -224,7 +224,7 @@ extern int fp_trace_started;
 
 /* DPB Extra size */
 #define DELAYED_FRAME                      8 /* Maximum number of delayed frames */
-#define EXTRA_FRAME                       (XEVD_MAX_NUM_ACTIVE_REF_FRAME + DELAYED_FRAME) 
+#define EXTRA_FRAME                       (XEVD_MAX_NUM_ACTIVE_REF_FRAME + DELAYED_FRAME)
 
 /* maximum picture buffer size */
 #define MAX_PB_SIZE                       (XEVD_MAX_NUM_REF_PICS + EXTRA_FRAME)
@@ -447,7 +447,7 @@ typedef u16 SBAC_CTX_MODEL;
 #define NUM_CTX_SIG_COEFF_LUMA_TU          13  /* number of context models for luma sig coeff flag per TU */
 #define NUM_CTX_SIG_COEFF_FLAG             (NUM_CTX_SIG_COEFF_LUMA + NUM_CTX_SIG_COEFF_CHROMA)  /* number of context models for sig coeff flag */
 #define NUM_CTX_GTX_LUMA                   13
-#define NUM_CTX_GTX_CHROMA                 5     
+#define NUM_CTX_GTX_CHROMA                 5
 #define NUM_CTX_GTX                        (NUM_CTX_GTX_LUMA + NUM_CTX_GTX_CHROMA)  /* number of context models for gtA/B flag */
 
 #define NUM_CTX_SKIP_FLAG                  2
@@ -1189,6 +1189,13 @@ typedef struct _XEVD_CU_DATA
     pel *reco[N_C];
 } XEVD_CU_DATA;
 
+/* time stamp */
+typedef struct _XEVD_TIME_STAMP
+{
+    XEVD_MTIME         frame_first_dts;
+    XEVD_MTIME         frame_duration_time;
+} XEVD_TIME_STAMP;
+
 #include "xevd_bsr.h"
 
 typedef struct _XEVD_CORE
@@ -1329,6 +1336,9 @@ struct _XEVD_CTX
     /* SBAC */
     XEVD_SBAC               sbac_dec;
     XEVD_SBAC               sbac_dec_mt[XEVD_MAX_TASK_CNT];
+
+    /* time stamp */
+    XEVD_TIME_STAMP         ts;
 
     /* decoding picture width */
     u16                     w;

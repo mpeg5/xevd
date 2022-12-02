@@ -157,7 +157,7 @@ void xevdm_picbuf_free(PICBUF_ALLOCATOR* pa, XEVD_PIC *pic)
     }
 }
 
-XEVD_IMGB * xevd_imgb_generate(int w, int h, int padl, int padc, int idc, int bit_depth) 
+XEVD_IMGB * xevd_imgb_generate(int w, int h, int padl, int padc, int idc, int bit_depth)
 {
     XEVD_IMGB *imgb = NULL;
     int align[XEVD_IMGB_MAX_PLANE] = { MIN_CU_SIZE, MIN_CU_SIZE >> 1, MIN_CU_SIZE >> 1 };
@@ -170,9 +170,9 @@ XEVD_IMGB * xevd_imgb_generate(int w, int h, int padl, int padc, int idc, int bi
     }
     return imgb;
 }
-void xevd_imgb_destroy(XEVD_IMGB *imgb) 
+void xevd_imgb_destroy(XEVD_IMGB *imgb)
 {
-    if (imgb) 
+    if (imgb)
     {
         imgb->release(imgb);
     }
@@ -4045,7 +4045,7 @@ void xevd_imgb_cpy(XEVD_IMGB * dst, XEVD_IMGB * src)
         xevd_trace("ERROR: unsupported image copy\n");
         return;
     }
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < XEVD_TS_NUM; i++)
     {
         dst->ts[i] = src->ts[i];
     }
@@ -4309,12 +4309,10 @@ void xevdm_set_dec_info(XEVD_CTX * ctx, XEVD_CORE * core)
             {
                 MCU_RESET_QP(map_scu[j]);
                 MCU_SET_IF_SN_QP(map_scu[j], flag, ctx->slice_num, core->qp);
-                
             }
             else
             {
                 MCU_SET_IF_SN_QP(map_scu[j], flag, ctx->slice_num, ctx->tile[core->tile_num].qp);
-                
             }
 
             map_refi[j][REFP_0] = core->refi[REFP_0];
