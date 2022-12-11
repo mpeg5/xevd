@@ -150,8 +150,16 @@ extern "C"
 /*****************************************************************************
  * type and macro for media time
  *****************************************************************************/
-/* media time in 100-nanosec unit */
-typedef long long                    XEVD_MTIME;
+typedef long long                       XEVD_MTIME; /* media time in 100-nanosec unit */
+#define XEVD_TS_PTS                     0
+#define XEVD_TS_DTS                     1
+#define XEVD_TS_NUM                     2
+
+/*****************************************************************************
+ * macro for arbitrary data and arbitrary addresses
+ *****************************************************************************/
+#define XEVD_NDATA_NUM                  4
+#define XEVD_PDATA_NUM                  4
 
 /*****************************************************************************
  * image buffer format
@@ -209,10 +217,10 @@ struct _XEVD_IMGB
     void              * a[XEVD_IMGB_MAX_PLANE];
 
     /* time-stamps */
-    XEVD_MTIME          ts[4];
+    XEVD_MTIME          ts[XEVD_TS_NUM];
 
-    int                 ndata[4]; /* arbitrary data, if needs */
-    void              * pdata[4]; /* arbitrary adedress if needs */
+    int                 ndata[XEVD_NDATA_NUM]; /* arbitrary data, if needs */
+    void              * pdata[XEVD_PDATA_NUM]; /* arbitrary adedress if needs */
 
     /* aligned width (in unit of pixel) */
     int                 aw[XEVD_IMGB_MAX_PLANE];
@@ -263,11 +271,11 @@ typedef struct _XEVD_BITB
     /* bitstream has an error? */
     int                 err;
     /* arbitrary data, if needs */
-    int                 ndata[4];
+    int                 ndata[XEVD_NDATA_NUM];
     /* arbitrary address, if needs */
-    void              * pdata[4];
+    void              * pdata[XEVD_PDATA_NUM];
     /* time-stamps */
-    XEVD_MTIME          ts[4];
+    XEVD_MTIME          ts[XEVD_TS_NUM];
 
 } XEVD_BITB;
 

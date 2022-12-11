@@ -1982,6 +1982,25 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             ret = xevd_picman_put_pic(&ctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
         }
+
+        if(ctx->pic_cnt == 0) {
+            ctx->ts.frame_first_dts = bitb->ts[XEVD_TS_DTS];
+            ctx->ts.frame_duration_time = 0;
+        } else if(ctx->pic_cnt == 1) {
+            ctx->ts.frame_duration_time = bitb->ts[XEVD_TS_DTS] - ctx->ts.frame_first_dts;
+        }
+        ctx->pic->imgb->ts[XEVD_TS_DTS] = bitb->ts[XEVD_TS_DTS];
+
+        int coding_delay = ctx->poc.poc_val - (int)ctx->pic_cnt; // number of frames between coding and presentation
+        ctx->pic->imgb->ts[XEVD_TS_PTS] = bitb->ts[XEVD_TS_DTS] + coding_delay * ctx->ts.frame_duration_time;
+
+        for (int i=0; i<XEVD_NDATA_NUM; i++) {
+            ctx->pic->imgb->ndata[i] = bitb->ndata[i];
+        }
+
+        for (int i=0; i<XEVD_PDATA_NUM; i++) {
+            ctx->pic->imgb->pdata[i] = bitb->pdata[i];
+        }
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SEI)
     {
@@ -2058,8 +2077,8 @@ int xevd_platform_init(XEVD_CTX *ctx)
     ctx->fn_recon = &xevd_recon_neon;
     ctx->fn_dbk = &xevd_tbl_dbk_neon;
     ctx->fn_dbk_chroma = &xevd_tbl_dbk_chroma_neon;
-  
-    
+
+
 #else
 #if X86_SSE
     int check_cpu, support_sse, support_avx, support_avx2;
