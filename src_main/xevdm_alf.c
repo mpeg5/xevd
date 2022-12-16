@@ -34,6 +34,7 @@
 */
 
 #include "xevdm_alf.h"
+#include "xevdm_def.h"
 
 void alf_derive_classification_blk(ALF_CLASSIFIER ** classifier, const pel * src_luma, const int src_stride, const AREA * blk, const int shift, int bit_depth)
 {
@@ -490,10 +491,10 @@ void alf_init_filter_shape(void* _filter_shape, int size)
     }
 }
 
-void alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth)
+int alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth)
 {
     const int input_bit_depth[N_C] = { bit_depth, bit_depth };
-
+    int ret = XEVD_OK;
     xevd_mset(alf->alf_idx_in_scan_order, 0, sizeof(u8) * APS_MAX_NUM);
     alf->next_free_alf_idx_in_buf = 0;
     alf->first_idx_poc = INT_MAX;
@@ -529,22 +530,30 @@ void alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_h
         alf->temp_buf2 = (pel*)malloc(((pic_width >> 1) + (7 * alf->num_ctu_in_widht))*((pic_height >> 1) + (7 * alf->num_ctu_in_height)) * sizeof(pel));
     }
     alf->classifier_mt = (ALF_CLASSIFIER**)malloc(MAX_CU_SIZE * XEVD_MAX_TASK_CNT * sizeof(ALF_CLASSIFIER*));
+    xevd_assert_rv(alf->classifier_mt, XEVD_ERR_OUT_OF_MEMORY);
     if (alf->classifier_mt)
     {
         for (int i = 0; i < MAX_CU_SIZE * XEVD_MAX_TASK_CNT; i++)
         {
             alf->classifier_mt[i] = (ALF_CLASSIFIER*)malloc(MAX_CU_SIZE * sizeof(ALF_CLASSIFIER));
+            xevd_assert_rv(alf->classifier_mt, XEVD_ERR_OUT_OF_MEMORY);
             xevd_mset(alf->classifier_mt[i], 0, MAX_CU_SIZE * sizeof(ALF_CLASSIFIER));
         }
     }
 
     // Classification
     alf->classifier = (ALF_CLASSIFIER**)malloc(pic_height * sizeof(ALF_CLASSIFIER*));
+    xevd_assert_rv(alf->classifier, XEVD_ERR_OUT_OF_MEMORY);
+
     for (int i = 0; i < pic_height; i++)
     {
         alf->classifier[i] = (ALF_CLASSIFIER*)malloc(pic_width * sizeof(ALF_CLASSIFIER));
+        xevd_assert_rv(alf->classifier[i], XEVD_ERR_OUT_OF_MEMORY);
+
         xevd_mset(alf->classifier[i], 0, pic_width * sizeof(ALF_CLASSIFIER));
     }
+
+    return XEVD_OK;
 }
 
 void alf_destroy(ADAPTIVE_LOOP_FILTER * alf)

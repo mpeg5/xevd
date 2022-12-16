@@ -3588,21 +3588,23 @@ void xevdm_get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_
     u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
     if (ats_inter_idx == 0)
     {
-        *log2_tuw = log2_cuw;
-        *log2_tuh = log2_cuh;
+        *log2_tuw = (log2_cuw > MAX_TR_LOG2) ? MAX_TR_LOG2 : log2_cuw;
+        *log2_tuh = (log2_cuh > MAX_TR_LOG2) ? MAX_TR_LOG2 : log2_cuh;
         return;
     }
 
     assert(ats_inter_idx <= 4);
     if (is_ats_inter_horizontal(ats_inter_idx))
     {
-        *log2_tuw = log2_cuw;
+        *log2_tuw = (log2_cuw > MAX_TR_LOG2) ? MAX_TR_LOG2 : log2_cuw;
         *log2_tuh = is_ats_inter_quad_size(ats_inter_idx) ? log2_cuh - 2 : log2_cuh - 1;
+        *log2_tuh = (*log2_tuh > MAX_TR_LOG2) ? MAX_TR_LOG2 : *log2_tuh;
     }
     else
     {
         *log2_tuw = is_ats_inter_quad_size(ats_inter_idx) ? log2_cuw - 2 : log2_cuw - 1;
-        *log2_tuh = log2_cuh;
+        *log2_tuw = (*log2_tuw > MAX_TR_LOG2) ? MAX_TR_LOG2 : *log2_tuw;
+        *log2_tuh = (log2_cuh > MAX_TR_LOG2) ? MAX_TR_LOG2 : log2_cuh;
     }
 }
 
@@ -3778,28 +3780,28 @@ void xevdm_get_mv_collocated(XEVD_REFP(*refp)[REFP_NUM], u32 poc, int scup, int 
     }
     else
     {
+        dpoc_co[REFP_0] = 0;
         // collocated_mvp_source_list_idx = REFP_0; // specified above
         s8 refidx = map_refi_co[neb_addr_coll][collocated_mvp_source_list_idx];
-        dpoc_co[REFP_0] = colPic.poc - colPic.list_poc[refidx];
-        {
-            if (dpoc_co[REFP_0] != 0 && REFI_IS_VALID(refidx))
-            {
-                ver_refi[REFP_0] = 0;
-                ver_refi[REFP_1] = 0;
-                s16 *mvc = colPic.map_mv[neb_addr_coll][collocated_mvp_source_list_idx]; //  collocated_mvp_source_list_idx == 0 for RA
-                int ratio_tmvp = ((dpoc[REFP_0]) << MVP_SCALING_PRECISION) / dpoc_co[REFP_0];
-                scaling_mv(ratio_tmvp, mvc, mvp[REFP_0]);
+        if(REFI_IS_VALID(refidx))
+            dpoc_co[REFP_0] = colPic.poc - colPic.list_poc[refidx];
 
-                ratio_tmvp = ((dpoc[REFP_1]) << MVP_SCALING_PRECISION) / dpoc_co[REFP_0];
-                scaling_mv(ratio_tmvp, mvc, mvp[REFP_1]);
-            }
-            else
-            {
-                mvp[REFP_0][MV_X] = 0;
-                mvp[REFP_0][MV_Y] = 0;
-                mvp[REFP_1][MV_X] = 0;
-                mvp[REFP_1][MV_Y] = 0;
-            }
+        if (dpoc_co[REFP_0] != 0)
+        {
+            ver_refi[REFP_0] = 0;
+            ver_refi[REFP_1] = 0;
+            s16 *mvc = colPic.map_mv[neb_addr_coll][collocated_mvp_source_list_idx]; //  collocated_mvp_source_list_idx == 0 for RA
+            int ratio_tmvp = ((dpoc[REFP_0]) << MVP_SCALING_PRECISION) / dpoc_co[REFP_0];
+            scaling_mv(ratio_tmvp, mvc, mvp[REFP_0]);
+            ratio_tmvp = ((dpoc[REFP_1]) << MVP_SCALING_PRECISION) / dpoc_co[REFP_0];
+            scaling_mv(ratio_tmvp, mvc, mvp[REFP_1]);
+        }
+        else
+        {
+            mvp[REFP_0][MV_X] = 0;
+            mvp[REFP_0][MV_Y] = 0;
+            mvp[REFP_1][MV_X] = 0;
+            mvp[REFP_1][MV_Y] = 0;
         }
     }
 

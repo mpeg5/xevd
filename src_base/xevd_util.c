@@ -1238,9 +1238,9 @@ void xevd_eco_sbac_ctx_initialize(SBAC_CTX_MODEL *model, s16 *ctx_init_model, u1
     s32 i, slope, offset;
     u16 mps, state;
     const int qp = XEVD_CLIP3(0, 51, slice_qp);
-    const int is_inter_slice = (slice_type == SLICE_B || slice_type == SLICE_P);
+    const int idx  = ((slice_type == SLICE_B) * num_ctx);
 
-    ctx_init_model += (is_inter_slice * num_ctx);
+    ctx_init_model += idx;
 
     for(i = 0; i < num_ctx; i++)
     {
