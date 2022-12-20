@@ -34,7 +34,6 @@
 */
 
 #include "xevdm_alf.h"
-#include "xevdm_def.h"
 
 void alf_derive_classification_blk(ALF_CLASSIFIER ** classifier, const pel * src_luma, const int src_stride, const AREA * blk, const int shift, int bit_depth)
 {
