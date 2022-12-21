@@ -99,7 +99,6 @@ void xevdm_init_multi_tbl()
         case 4: tm = xevd_tbl_tr32[0][0]; break;
         case 5: tm = xevd_tbl_tr64[0][0]; break;
         case 6: tm = xevd_tbl_tr128[0][0]; break;
-        case 7: exit(0); break;
         }
 
         for (k = 0; k < c; k++)
@@ -140,7 +139,6 @@ void xevd_init_multi_inv_tbl()
         case 4: tm = xevd_tbl_inv_tr32[0][0]; break;
         case 5: tm = xevd_tbl_inv_tr64[0][0]; break;
         case 6: tm = xevd_tbl_inv_tr128[0][0]; break;
-        case 7: exit(0); break;
         }
 
         for (k = 0; k < c; k++)

@@ -389,7 +389,7 @@ struct _ADAPTIVE_LOOP_FILTER
 ADAPTIVE_LOOP_FILTER* new_alf(int bit_depth);
 void delete_alf(ADAPTIVE_LOOP_FILTER* alf);
 
-void alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth);
+int alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth);
 void alf_destroy(ADAPTIVE_LOOP_FILTER * alf);
 void alf_init(ADAPTIVE_LOOP_FILTER * alf, int bit_depth);
 void alf_init_filter_shape(void * filter_shape, int size);

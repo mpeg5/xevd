@@ -247,11 +247,13 @@ static int picture_init(XEVD_CTX * ctx)
     if (ctx->tc.task_num_in_tile == NULL)
     {
         ctx->tc.task_num_in_tile = (int*)xevd_malloc(sizeof(int) * ctx->tile_cnt);
+        xevd_assert_rv(ctx->tc.task_num_in_tile, XEVD_ERR_OUT_OF_MEMORY);
     }
     else
     {
         xevd_mfree(ctx->tc.task_num_in_tile);
         ctx->tc.task_num_in_tile = (int*)xevd_malloc(sizeof(int) * ctx->tile_cnt);
+        xevd_assert_rv(ctx->tc.task_num_in_tile, XEVD_ERR_OUT_OF_MEMORY);
     }
 
     if (ctx->tile == NULL)
@@ -1644,7 +1646,7 @@ static int xevd_entropy_decode_tree(XEVD_CTX * ctx, XEVD_CORE * core, int x0, in
                          , MODE_CONS mode_cons)
 {
     int ret;
-    s8  split_mode;
+    s8  split_mode = NO_SPLIT;
     int cuw, cuh;
     s8  suco_flag = 0;
     int bound;
@@ -2634,6 +2636,7 @@ int xevdm_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core)
     while (num_tiles_in_slice)
     {
         num_tiles_proc = num_tiles_in_slice > ctx->tc.tile_task_num ? ctx->tc.tile_task_num : num_tiles_in_slice;
+        core_mt = ctx->core_mt[num_tiles_proc - 1];
 
         for (thread_idx = num_tiles_proc - 1; thread_idx >= 0; thread_idx--)
         {
@@ -2713,26 +2716,32 @@ ERR:
     return ret;
 }
 
-void xevd_malloc_1d(void** dst, int size)
+int xevd_malloc_1d(void** dst, int size)
 {
     if(*dst == NULL)
     {
         *dst = xevd_malloc_fast(size);
+        xevd_assert_rv(*dst, XEVD_ERR_OUT_OF_MEMORY);
+
         xevd_mset(*dst, 0, size);
     }
+    return XEVD_OK;
 }
 
-void xevd_malloc_2d(s8*** dst, int size_1d, int size_2d, int type_size)
+int xevd_malloc_2d(s8*** dst, int size_1d, int size_2d, int type_size)
 {
     int i;
 
     if(*dst == NULL)
     {
         *dst = xevd_malloc_fast(size_1d * sizeof(s8*));
+        xevd_assert_rv(*dst, XEVD_ERR_OUT_OF_MEMORY);
+
         xevd_mset(*dst, 0, size_1d * sizeof(s8*));
 
-
         (*dst)[0] = xevd_malloc_fast(size_1d * size_2d * type_size);
+        xevd_assert_rv((*dst)[0], XEVD_ERR_OUT_OF_MEMORY);
+
         xevd_mset((*dst)[0], 0, size_1d * size_2d * type_size);
 
         for(i = 1; i < size_1d; i++)
@@ -2740,6 +2749,7 @@ void xevd_malloc_2d(s8*** dst, int size_1d, int size_2d, int type_size)
             (*dst)[i] = (*dst)[i - 1] + size_2d * type_size;
         }
     }
+    return XEVD_OK;
 }
 
 int xevd_create_cu_data(XEVD_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
@@ -2747,7 +2757,7 @@ int xevd_create_cu_data(XEVD_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     int i, j;
     int cuw_scu, cuh_scu;
     int size_8b, size_16b, size_32b, cu_cnt, pixel_cnt;
-
+    int ret = XEVD_OK;
     cuw_scu = 1 << log2_cuw;
     cuh_scu = 1 << log2_cuh;
 
@@ -2757,56 +2767,56 @@ int xevd_create_cu_data(XEVD_CU_DATA *cu_data, int log2_cuw, int log2_cuh)
     cu_cnt = cuw_scu * cuh_scu;
     pixel_cnt = cu_cnt << 4;
 
-    xevd_malloc_1d((void**)&cu_data->qp_y, size_8b);
-    xevd_malloc_1d((void**)&cu_data->qp_u, size_8b);
-    xevd_malloc_1d((void**)&cu_data->qp_v, size_8b);
-    xevd_malloc_1d((void**)&cu_data->pred_mode, size_8b);
-    xevd_malloc_1d((void**)&cu_data->pred_mode_chroma, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->qp_y, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->qp_u, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->qp_v, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->pred_mode, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->pred_mode_chroma, size_8b);
 
-    xevd_malloc_2d((s8***)&cu_data->mpm, 2, cu_cnt, sizeof(u8));
-    xevd_malloc_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
-    xevd_malloc_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
-    xevd_malloc_1d((void**)&cu_data->skip_flag, size_8b);
-    xevd_malloc_1d((void**)&cu_data->ibc_flag, size_8b);
-    xevd_malloc_1d((void**)&cu_data->dmvr_flag, size_8b);
-    xevd_malloc_2d((s8***)&cu_data->refi, cu_cnt, REFP_NUM, sizeof(u8));
-    xevd_malloc_2d((s8***)&cu_data->mvp_idx, cu_cnt, REFP_NUM, sizeof(u8));
-    xevd_malloc_1d((void**)&cu_data->mvr_idx, size_8b);
-    xevd_malloc_1d((void**)&cu_data->bi_idx, size_8b);
-    xevd_malloc_1d((void**)&cu_data->inter_dir, size_8b);
-    xevd_malloc_1d((void**)&cu_data->mmvd_idx, size_16b);
-    xevd_malloc_1d((void**)&cu_data->mmvd_flag, size_8b);
+    ret = xevd_malloc_2d((s8***)&cu_data->mpm, 2, cu_cnt, sizeof(u8));
+    ret = xevd_malloc_2d((s8***)&cu_data->ipm, 2, cu_cnt, sizeof(u8));
+    ret = xevd_malloc_2d((s8***)&cu_data->mpm_ext, 8, cu_cnt, sizeof(u8));
+    ret = xevd_malloc_1d((void**)&cu_data->skip_flag, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->ibc_flag, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->dmvr_flag, size_8b);
+    ret = xevd_malloc_2d((s8***)&cu_data->refi, cu_cnt, REFP_NUM, sizeof(u8));
+    ret = xevd_malloc_2d((s8***)&cu_data->mvp_idx, cu_cnt, REFP_NUM, sizeof(u8));
+    ret = xevd_malloc_1d((void**)&cu_data->mvr_idx, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->bi_idx, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->inter_dir, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->mmvd_idx, size_16b);
+    ret = xevd_malloc_1d((void**)&cu_data->mmvd_flag, size_8b);
 
-    xevd_malloc_1d((void**)& cu_data->ats_intra_cu, size_8b);
-    xevd_malloc_1d((void**)& cu_data->ats_mode_h, size_8b);
-    xevd_malloc_1d((void**)& cu_data->ats_mode_v, size_8b);
+    ret = xevd_malloc_1d((void**)& cu_data->ats_intra_cu, size_8b);
+    ret = xevd_malloc_1d((void**)& cu_data->ats_mode_h, size_8b);
+    ret = xevd_malloc_1d((void**)& cu_data->ats_mode_v, size_8b);
 
-    xevd_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->ats_inter_info, size_8b);
 
     for(i = 0; i < N_C; i++)
     {
-        xevd_malloc_1d((void**)&cu_data->nnz[i], size_32b);
+        ret = xevd_malloc_1d((void**)&cu_data->nnz[i], size_32b);
     }
     for (i = 0; i < N_C; i++)
     {
         for (j = 0; j < 4; j++)
         {
-            xevd_malloc_1d((void**)&cu_data->nnz_sub[i][j], size_32b);
+            ret = xevd_malloc_1d((void**)&cu_data->nnz_sub[i][j], size_32b);
         }
     }
-    xevd_malloc_1d((void**)&cu_data->map_scu, size_32b);
-    xevd_malloc_1d((void**)&cu_data->affine_flag, size_8b);
-    xevd_malloc_1d((void**)&cu_data->map_affine, size_32b);
-    xevd_malloc_1d((void**)&cu_data->map_cu_mode, size_32b);
-    xevd_malloc_1d((void**)&cu_data->depth, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->map_scu, size_32b);
+    ret = xevd_malloc_1d((void**)&cu_data->affine_flag, size_8b);
+    ret = xevd_malloc_1d((void**)&cu_data->map_affine, size_32b);
+    ret = xevd_malloc_1d((void**)&cu_data->map_cu_mode, size_32b);
+    ret = xevd_malloc_1d((void**)&cu_data->depth, size_8b);
 
     for(i = 0; i < N_C; i++)
     {
-        xevd_malloc_1d((void**)&cu_data->coef[i], (pixel_cnt >> (!!(i)* 2)) * sizeof(s16));
-        xevd_malloc_1d((void**)&cu_data->reco[i], (pixel_cnt >> (!!(i)* 2)) * sizeof(pel));
+        ret = xevd_malloc_1d((void**)&cu_data->coef[i], (pixel_cnt >> (!!(i)* 2)) * sizeof(s16));
+        ret = xevd_malloc_1d((void**)&cu_data->reco[i], (pixel_cnt >> (!!(i)* 2)) * sizeof(pel));
     }
 
-    return XEVD_OK;
+    return ret;
 }
 
 int xevdm_ready(XEVD_CTX *ctx)
