@@ -401,7 +401,7 @@ int main(int argc, const char **argv)
 
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
-        char fext[4];
+        char fext[5];
 
         if(strlen(op_fname_out) < 5) /* x.yuv or x.y4m */
         {
