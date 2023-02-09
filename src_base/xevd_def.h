@@ -599,7 +599,7 @@ typedef struct _XEVD_SBAC_CTX
 #define XEVD_MAX_QP_TABLE_SIZE_EXT              94
 #define XEVD_MAX_NUM_REF_PICS                   21
 #define XEVD_MAX_NUM_ACTIVE_REF_FRAME           5
-#define XEVD_MAX_NUM_RPLS                       32
+#define XEVD_MAX_NUM_RPLS                       64
 
 /* SEI UUID ISO Length */
 #define ISO_IEC_11578_LEN                       16

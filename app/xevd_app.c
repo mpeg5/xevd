@@ -401,23 +401,23 @@ int main(int argc, const char **argv)
 
     if(op_flag[OP_FLAG_FNAME_OUT])
     {
-        char fext[4];
+        char fext[5];
 
         if(strlen(op_fname_out) < 5) /* x.yuv or x.y4m */
         {
             logv0("ERROR: invalide output file name\n");
             return XEVD_ERR;
         }
-        strncpy(fext, op_fname_out + strlen(op_fname_out) - 3, 3);
-        fext[0] = toupper(fext[0]);
+        strncpy(fext, op_fname_out + strlen(op_fname_out) - 4, 4);
         fext[1] = toupper(fext[1]);
         fext[2] = toupper(fext[2]);
+        fext[3] = toupper(fext[3]);
 
-        if(strcmp(fext, "YUV") == 0)
+        if(strncmp(fext, ".YUV", 4) == 0)
         {
             is_y4m = 0;
         }
-        else if(strcmp(fext,"Y4M") == 0)
+        else if(strncmp(fext,".Y4M", 4) == 0)
         {
             is_y4m = 1;
         }
