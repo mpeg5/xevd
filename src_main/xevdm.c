@@ -78,12 +78,16 @@ static XEVDM_CTX * xevdm_ctx_alloc(void)
     xevd_mset_x64a(ctx, 0, sizeof(XEVDM_CTX));
 
     ctx->aps_gen_array = (XEVD_APS_GEN *)xevd_malloc(2 * sizeof(XEVD_APS_GEN));
-    //xevd_assert_rv(ctx->aps_gen_array != NULL, NULL);
+    xevd_assert_rv(ctx->aps_gen_array != NULL, NULL);
     xevd_mset_x64a(ctx->aps_gen_array, 0, 2 * sizeof(XEVD_APS_GEN));
 
     ctx->dra_array = (SIG_PARAM_DRA *)xevd_malloc(32 * sizeof(SIG_PARAM_DRA));
-    //xevd_assert_rv(ctx->dra_array != NULL, NULL);
+    xevd_assert_rv(ctx->dra_array != NULL, NULL);
     xevd_mset_x64a(ctx->dra_array, 0, 32 * sizeof(SIG_PARAM_DRA));
+    ctx->g_dra_control_effective = (DRA_CONTROL*)xevd_malloc(sizeof(DRA_CONTROL));
+    xevd_assert_rv(ctx->g_dra_control_effective != NULL, NULL);
+    ctx->dra_control_effective = (DRA_CONTROL*)xevd_malloc(sizeof(DRA_CONTROL));
+    xevd_assert_rv(ctx->dra_control_effective != NULL, NULL);
     return ctx;
 }
 static void ctx_free(XEVD_CTX * ctx)
@@ -91,6 +95,8 @@ static void ctx_free(XEVD_CTX * ctx)
     XEVDM_CTX *mctx = (XEVDM_CTX *)ctx;
     xevd_mfree(mctx->aps_gen_array);
     xevd_mfree(mctx->dra_array);
+    xevd_mfree(mctx->g_dra_control_effective);
+    xevd_mfree(mctx->dra_control_effective);
     xevd_mfree_fast(ctx);
 }
 
@@ -128,8 +134,6 @@ void xevd_free_1d(void** dst, int size)
 
 void xevd_free_2d(s8*** dst, int size_1d, int size_2d, int type_size)
 {
-    int i;
-
     xevd_mfree_fast((*dst)[0]);
     xevd_mfree_fast(*dst);
 }
@@ -3312,15 +3316,15 @@ int xevd_apply_filter(XEVD_CTX *ctx, XEVD_IMGB *imgb)
         int pps_dra_id = (imgb)->imgb_active_aps_id;
 
         SIG_PARAM_DRA *g_dra_control = mctx->dra_array;
-        DRA_CONTROL g_dra_control_effective;
+        DRA_CONTROL* g_dra_control_effective = mctx->g_dra_control_effective;
 
         if ((pps_dra_id > -1) && (pps_dra_id < 32))
         {
-            g_dra_control_effective.flag_enabled = 1;
+            g_dra_control_effective->flag_enabled = 1;
         }
         else
         {
-            g_dra_control_effective.flag_enabled = 0;
+            g_dra_control_effective->flag_enabled = 0;
         }
         int sps_dra_enable_flag = ctx->sps->tool_dra;
 
@@ -3328,16 +3332,16 @@ int xevd_apply_filter(XEVD_CTX *ctx, XEVD_IMGB *imgb)
         {
             // Assigned effective DRA controls as specified by PPS
             xevd_assert((pps_dra_id > -1) && (pps_dra_id < 32) && ((g_dra_control + pps_dra_id)->signal_dra_flag == 1));
-            xevd_mcpy(&(g_dra_control_effective.signalled_dra), (g_dra_control + pps_dra_id), sizeof(SIG_PARAM_DRA));
-            mctx->pps_dra_params = (void *)&(g_dra_control_effective.signalled_dra);
+            xevd_mcpy(&(g_dra_control_effective->signalled_dra), (g_dra_control + pps_dra_id), sizeof(SIG_PARAM_DRA));
+            mctx->pps_dra_params = (void *)&(g_dra_control_effective->signalled_dra);
 
-            if (g_dra_control_effective.flag_enabled)
+            if (g_dra_control_effective->flag_enabled)
             {
-                xevd_init_dra(&g_dra_control_effective, ctx->internal_codec_bit_depth);
+                xevd_init_dra(g_dra_control_effective, ctx->internal_codec_bit_depth);
 
-                xevd_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 1, TRUE);
-                xevd_apply_dra_chroma_plane(imgb, imgb, &g_dra_control_effective, 2, TRUE);
-                xevd_apply_dra_luma_plane(imgb, imgb, &g_dra_control_effective, 0, TRUE);
+                xevd_apply_dra_chroma_plane(imgb, imgb, g_dra_control_effective, 1, TRUE);
+                xevd_apply_dra_chroma_plane(imgb, imgb, g_dra_control_effective, 2, TRUE);
+                xevd_apply_dra_luma_plane(imgb, imgb, g_dra_control_effective, 0, TRUE);
             }
         }
     }
@@ -3718,7 +3722,7 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
     XEVDM_CTX * mctx = (XEVDM_CTX *)ctx;
 
     SIG_PARAM_DRA *dra_control = mctx->dra_array;
-    DRA_CONTROL dra_control_effective;
+    DRA_CONTROL *dra_control_effective = mctx->dra_control_effective;
 
     XEVD_APS_GEN *aps_gen_array = mctx->aps_gen_array;
 
@@ -3733,14 +3737,14 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
         int pps_dra_id = ctx->pps.pic_dra_aps_id;
         if ((pps_dra_id > -1) && (pps_dra_id < 32))
         {
-            memcpy(&(dra_control_effective.signalled_dra), dra_control + pps_dra_id, sizeof(SIG_PARAM_DRA));
-            dra_control_effective.flag_enabled = 1;
-            mctx->pps_dra_params = &(dra_control_effective.signalled_dra);
+            memcpy(&(dra_control_effective->signalled_dra), dra_control + pps_dra_id, sizeof(SIG_PARAM_DRA));
+            dra_control_effective->flag_enabled = 1;
+            mctx->pps_dra_params = &(dra_control_effective->signalled_dra);
         }
         else
         {
-            dra_control_effective.flag_enabled = 0;
-            dra_control_effective.signalled_dra.signal_dra_flag = 0;
+            dra_control_effective->flag_enabled = 0;
+            dra_control_effective->signalled_dra.signal_dra_flag = 0;
         }
     }
 

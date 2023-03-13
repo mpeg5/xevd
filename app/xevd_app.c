@@ -349,9 +349,9 @@ static int write_dec_img(XEVD id, char * fname, XEVD_IMGB * img, XEVD_IMGB * img
     imgb_cpy(imgb_t, img);
     if (flag_y4m)
     {
-        if(write_y4m_frame_header(op_fname_out)) return XEVD_ERR;
+        if(write_y4m_frame_header(fname)) return XEVD_ERR;
     }
-    if(imgb_write(op_fname_out, imgb_t)) return XEVD_ERR;
+    if(imgb_write(fname, imgb_t)) return XEVD_ERR;
     return XEVD_OK;
 }
 
@@ -373,7 +373,6 @@ int main(int argc, const char **argv)
     int                al_w, al_h;
     int                act_w = 0, act_h = 0;
     FILE             * fp_bs = NULL;
-    int                decod_frames = 0;
     int                is_y4m = 0;
     int                dim_changed = 0;
 

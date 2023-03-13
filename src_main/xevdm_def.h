@@ -565,6 +565,7 @@ typedef struct _XEVDM_CORE
 * All have to be stored are in this structure.
 *****************************************************************************/
 typedef struct _SIG_PARAM_DRA SIG_PARAM_DRA;
+typedef struct _DRA_CONTROL DRA_CONTROL;
 
 struct _XEVDM_CTX
 {
@@ -579,6 +580,10 @@ struct _XEVDM_CTX
     void                  * pps_dra_params;
     XEVD_APS_GEN          * aps_gen_array;
     SIG_PARAM_DRA         * dra_array;
+
+    DRA_CONTROL           * g_dra_control_effective;
+    DRA_CONTROL           * dra_control_effective;
+
     s8(*map_suco)[NUM_CU_DEPTH][NUM_BLOCK_SHAPE][MAX_CU_CNT_IN_LCU];
 
 

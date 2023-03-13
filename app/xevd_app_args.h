@@ -250,7 +250,7 @@ ERR:
 int xevd_args_parse_all(int argc, const char * argv[],
                                XEVD_ARGS_OPTION * ops)
 {
-    int i, ret = 0, idx = 0;
+    int ret = 0, idx = 0;
     XEVD_ARGS_OPTION *o;
     const char *fname_cfg = NULL;
     FILE *fp;
@@ -260,7 +260,7 @@ int xevd_args_parse_all(int argc, const char * argv[],
     memset(&posConfFiles, -1, sizeof(int) * MAX_NUM_CONF_FILES);
 
     /* config file parsing */
-    for(i = 1; i < argc; i++)
+    for(int i = 1; i < argc; i++)
     {
         if(!strcmp(argv[i], "--"XEVD_ARGS_KEY_LONG_CONFIG))
         {
