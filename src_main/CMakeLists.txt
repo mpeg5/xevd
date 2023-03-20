@@ -83,14 +83,9 @@ else()
     include_directories( ${LIB_NAME} PUBLIC . .. ../inc ./sse ./avx ../src_base ../src_base/sse ../src_base/avx)
 endif()
 
-set_target_properties(${LIB_NAME} PROPERTIES FOLDER lib
-                                               ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib)
-
-set_target_properties(${LIB_NAME} PROPERTIES FOLDER lib
-                                               ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/lib)
-
 set( SSE ${BASE_INC_FILES} ${LIB_SSE_SRC} ${LIB_MAIN_SSE_SRC})
 set( AVX ${LIB_AVX_SRC} ${LIB_MAIN_AVX_SRC})
+
 set_target_properties(${LIB_NAME}_dynamic PROPERTIES OUTPUT_NAME ${LIB_NAME})
 
 if( MSVC )
@@ -111,8 +106,7 @@ elseif( UNIX OR MINGW )
         set_property( SOURCE ${AVX} APPEND PROPERTY COMPILE_FLAGS " -mavx2" )
     endif()
 
-    set_target_properties(${LIB_NAME}_dynamic PROPERTIES FOLDER lib
-                                                        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set_target_properties(${LIB_NAME}_dynamic PROPERTIES FOLDER lib LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
     target_compile_definitions( ${LIB_NAME} PUBLIC ANY LINUX )
     target_link_libraries(${LIB_NAME} m)
 endif()
@@ -156,7 +150,7 @@ install(TARGETS ${LIB_NAME}_dynamic
 )
 
 install( FILES
-    ${PROJECT_BINARY_DIR}/xevd_exports.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}
+    ${PROJECT_BINARY_DIR}/xevd_exports.h COMPONENT Development DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}
 )
 
 configure_file(
@@ -165,5 +159,5 @@ configure_file(
     IMMEDIATE @ONLY)
 
 install( FILES
-    "${CMAKE_BINARY_DIR}/${LIB_NAME}.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+    "${CMAKE_BINARY_DIR}/${LIB_NAME}.pc" COMPONENT Development DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )

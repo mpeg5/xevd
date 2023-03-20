@@ -134,7 +134,7 @@ install(TARGETS ${LIB_NAME_BASE}_dynamic
 )
 
 install( FILES
-    ${PROJECT_BINARY_DIR}/xevd_exports.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME_BASE}
+    ${PROJECT_BINARY_DIR}/xevd_exports.h COMPONENT Development DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME_BASE}
 )
 
 configure_file(
@@ -143,5 +143,5 @@ configure_file(
     IMMEDIATE @ONLY)
 
 install( FILES
-    "${CMAKE_BINARY_DIR}/${LIB_NAME_BASE}.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+    "${CMAKE_BINARY_DIR}/${LIB_NAME_BASE}.pc" COMPONENT Development DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
