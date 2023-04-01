@@ -243,7 +243,7 @@ void xevdm_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     switch(ipm)
     {
         case IPD_VER:
-            ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            xevd_ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_HOR:
             xevdm_ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -252,11 +252,11 @@ void xevdm_ipred(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
             xevdm_ipred_dc(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_PLN:
-            ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
+            xevd_ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
 
         case IPD_BI:
-            ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
+            xevd_ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
         default:
             ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm, bit_depth);
@@ -277,7 +277,7 @@ void xevdm_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
             switch(ipm)
             {
                 case IPD_PLN:
-                    ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
+                    xevd_ipred_plane(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
                     break;
                 default:
                     ipred_ang(src_le, src_up, src_ri, avail_lr, dst, w, h, ipm, bit_depth);
@@ -292,11 +292,11 @@ void xevdm_ipred_uv(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *ds
             xevdm_ipred_hor(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_VER_C:
-            ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            xevd_ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
 
         case IPD_BI_C:
-            ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
+            xevd_ipred_bi(src_le, src_up, src_ri, avail_lr, dst, w, h, bit_depth);
             break;
         default:
             xevd_trace("\n illegal chroma intra prediction mode\n");

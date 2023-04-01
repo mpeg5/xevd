@@ -185,7 +185,7 @@ static void deblock_cu_hor(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, i
 
 static void deblock_cu_ver(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, int cuw, int cuh, TREE_CONS tree_cons, int boundary_filtering)
 {
-      
+
     pel         * y, *u, *v;
     const u8    * tbl_qp_to_st;
     int         i, t, qp, s_l, s_c, st;
@@ -336,12 +336,12 @@ static void deblock_cu_ver(XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, i
 
 #define CU_THRESH                           16
 
-const u8 sm_tc_table[MAX_QP + 1 + DEFAULT_INTRA_TC_OFFSET] =
+static const u8 sm_tc_table[MAX_QP + 1 + DEFAULT_INTRA_TC_OFFSET] =
 {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,5,5,6,6,7,8,9,10,11,13,14,16,18,20,22,24
 };
 
-const u8 sm_beta_table[MAX_QP + 1] =
+static const u8 sm_beta_table[MAX_QP + 1] =
 {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,7,8,9,10,11,12,13,14,15,16,17,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64
 };
@@ -1138,7 +1138,7 @@ void xevdm_deblock_cu_hor(  XEVD_CTX *ctx, XEVD_PIC *pic, int x_pel, int y_pel, 
                        , int w_scu, int log2_max_cuwh, XEVD_REFP(*refp)[REFP_NUM], int ats_inter_mode, TREE_CONS tree_cons, u8* map_tidx
                         , int boundary_filtering, int tool_addb, u8* map_ats_inter, int bit_depth_luma, int bit_depth_chroma, int chroma_format_idc)
 
-  
+
 {
     if (ctx->sps->tool_addb)
     {

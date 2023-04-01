@@ -2011,7 +2011,7 @@ void xevdm_derive_affine_subblock_size(s16 ac_mv[VER_NUM][MV_D], int cuw, int cu
     }
 }
 
-void calculate_affine_motion_model_parameters(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, int d_hor[MV_D], int d_ver[MV_D], int mv_additional_precision)
+static void calculate_affine_motion_model_parameters(s16 ac_mv[VER_NUM][MV_D], int cuw, int cuh, int vertex_num, int d_hor[MV_D], int d_ver[MV_D], int mv_additional_precision)
 {
     assert(MV_X == 0 && MV_Y == 1);
     assert(vertex_num == 2 || vertex_num == 3);
@@ -2030,7 +2030,7 @@ void calculate_affine_motion_model_parameters(s16 ac_mv[VER_NUM][MV_D], int cuw,
     }
 }
 
-void calculate_bounding_box_size(int w, int h, s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision, int *b_box_w, int *b_box_h)
+static void calculate_bounding_box_size(int w, int h, s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision, int *b_box_w, int *b_box_h)
 {
     int corners[MV_D][4] = { {0}, };
 
@@ -2059,7 +2059,7 @@ void calculate_bounding_box_size(int w, int h, s16 ac_mv[VER_NUM][MV_D], int d_h
     *b_box_h = diff[MV_Y] + 1 + 1;
 }
 
-BOOL check_eif_num_fetched_lines_restrictions(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
+static BOOL check_eif_num_fetched_lines_restrictions(s16 ac_mv[VER_NUM][MV_D], int d_hor[MV_D], int d_ver[MV_D], int mv_precision)
 {
     if (d_ver[MV_Y] < -1 << mv_precision)
         return FALSE;
@@ -3608,7 +3608,7 @@ void xevdm_get_tu_size(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* log2_
     }
 }
 
-void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset)
+static void get_tu_pos_offset(u8 ats_inter_info, int log2_cuw, int log2_cuh, int* x_offset, int* y_offset)
 {
     u8 ats_inter_idx = get_ats_inter_idx(ats_inter_info);
     u8 ats_inter_pos = get_ats_inter_pos(ats_inter_info);

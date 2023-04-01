@@ -353,7 +353,7 @@ static int sequence_init(XEVD_CTX * ctx, XEVD_SPS * sps)
 
     mctx->alf = new_alf(ctx->internal_codec_bit_depth);
     ADAPTIVE_LOOP_FILTER* alf = (ADAPTIVE_LOOP_FILTER*)(mctx->alf);
-    alf_create(alf, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5, sps->chroma_format_idc, ctx->internal_codec_bit_depth);
+    xevd_alf_create(alf, ctx->w, ctx->h, ctx->max_cuwh, ctx->max_cuwh, 5, sps->chroma_format_idc, ctx->internal_codec_bit_depth);
 
     XEVDM_SH  *msh = &mctx->sh;
     if (msh->alf_sh_param.alf_ctu_enable_flag == NULL)
@@ -3488,7 +3488,7 @@ void xevdm_platform_deinit(XEVD_CTX * ctx)
     ADAPTIVE_LOOP_FILTER* alf = (ADAPTIVE_LOOP_FILTER*)(mctx->alf);
     if (alf != NULL)
     {
-        alf_destroy(alf);
+        xevd_alf_destroy(alf);
     }
     if (mctx->alf != NULL)
     {

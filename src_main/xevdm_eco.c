@@ -2236,7 +2236,7 @@ int xevdm_eco_alf_filter(XEVD_BSR * bs, XEVD_ALF_SLICE_PARAM* alf_slice_param, c
             alf_slice_param->coeff_delta_pred_mode_flag = 0;
         }
         XEVD_ALF_FILTER_SHAPE alfShape;
-        alf_init_filter_shape(&alfShape, isChroma ? 5 : (alf_slice_param->luma_filter_type == ALF_FILTER_5 ? 5 : 7));
+        xevd_alf_init_filter_shape(&alfShape, isChroma ? 5 : (alf_slice_param->luma_filter_type == ALF_FILTER_5 ? 5 : 7));
 
         const int maxGolombIdx = alfShape.filterType == 0 ? 2 : 3;
 
@@ -2284,7 +2284,7 @@ int xevdm_eco_alf_filter(XEVD_BSR * bs, XEVD_ALF_SLICE_PARAM* alf_slice_param, c
     else
     {
         XEVD_ALF_FILTER_SHAPE alfShape;
-        alf_init_filter_shape(&alfShape, isChroma ? 5 : (alf_slice_param->luma_filter_type == ALF_FILTER_5 ? 5 : 7));
+        xevd_alf_init_filter_shape(&alfShape, isChroma ? 5 : (alf_slice_param->luma_filter_type == ALF_FILTER_5 ? 5 : 7));
 
         const int maxGolombIdx = alfShape.filterType == 0 ? 2 : 3;
 

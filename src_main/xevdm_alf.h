@@ -389,10 +389,10 @@ struct _ADAPTIVE_LOOP_FILTER
 ADAPTIVE_LOOP_FILTER* new_alf(int bit_depth);
 void delete_alf(ADAPTIVE_LOOP_FILTER* alf);
 
-int alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth);
-void alf_destroy(ADAPTIVE_LOOP_FILTER * alf);
-void alf_init(ADAPTIVE_LOOP_FILTER * alf, int bit_depth);
-void alf_init_filter_shape(void * filter_shape, int size);
+int xevd_alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth);
+void xevd_alf_destroy(ADAPTIVE_LOOP_FILTER * alf);
+void xevd_alf_init(ADAPTIVE_LOOP_FILTER * alf, int bit_depth);
+void xevd_alf_init_filter_shape(void * filter_shape, int size);
 
 int call_dec_alf_process_aps(ADAPTIVE_LOOP_FILTER* alf, XEVD_CTX * ctx, XEVD_PIC * pic);
 void store_dec_aps_to_buffer(XEVD_CTX * ctx);
