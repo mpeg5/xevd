@@ -107,7 +107,7 @@ void ipred_hor_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
 
 static const int lut_size_plus1[MAX_CU_LOG2 + 1] = { 2048, 1365, 819, 455, 241, 124, 63, 32 }; // 1/(w+1) = k >> 12
 
-void ipred_vert(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, int w, int h)
+void xevd_ipred_vert(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, int w, int h)
 {
     int i, j;
 
@@ -126,7 +126,7 @@ int xevd_get_dc(const int numerator, const int w, const int h)
     const int log2_w = xevd_tbl_log2[w];
     const int log2_h = xevd_tbl_log2[h];
     const int shift_w = 12;
-    
+
     int basic_shift = log2_w, log2_asp_ratio = 0;
 
     if (log2_w > log2_h)
@@ -160,7 +160,7 @@ void ipred_dc_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, i
     }
 }
 
-void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h
+void xevd_ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h
     , int bit_depth
 )
 {
@@ -248,7 +248,7 @@ void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, 
     }
 }
 
-void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth)
+void xevd_ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth)
 {
     int x, y;
     int ishift_x = xevd_tbl_log2[w];
@@ -390,7 +390,7 @@ static __inline pel ipred_ang_val(pel * src_up, pel * src_le, pel * src_ri, u16 
     int use_x;
     int p, pn, pn_n1, pn_p2;
     pel temp_pel = 0;
-    int refpos = 0; 
+    int refpos = 0;
 
     x = INT_MAX;
     y = INT_MAX;
@@ -627,7 +627,7 @@ void xevd_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst,
     switch(ipm)
     {
         case IPD_VER_B:
-            ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            xevd_ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_HOR_B:
             ipred_hor_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
@@ -660,7 +660,7 @@ void xevd_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *d
             ipred_hor_b(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_VER_C_B:
-            ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
+            xevd_ipred_vert(src_le, src_up, src_ri, avail_lr, dst, w, h);
             break;
         case IPD_UL_C_B:
             ipred_ul(src_le, src_up, src_ri, avail_lr, dst, w, h);

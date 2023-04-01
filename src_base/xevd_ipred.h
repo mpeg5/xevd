@@ -35,7 +35,7 @@
 
 #define XEVD_IPRED_CHK_CONV(mode)\
     ((mode) == IPD_VER || (mode) == IPD_HOR || (mode) == IPD_DC || (mode) == IPD_BI)
-    
+
 #define XEVD_IPRED_CONV_L2C(mode)\
     ((mode) == IPD_VER) ? IPD_VER_C : \
     ((mode) == IPD_HOR ? IPD_HOR_C : ((mode) == IPD_DC ? IPD_DC_C : IPD_BI_C))
@@ -51,13 +51,13 @@
         (chk) = 0;
 
 void xevd_get_nbr_b(int x, int y, int cuw, int cuh, pel *src, int s_src, u16 avail_cu, pel nb[N_C][N_REF][MAX_CU_SIZE * 3], int scup, u32 *map_scu
-                  , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8* map_tidx, int bit_depth, int chroma_format_idc); 
+                  , int w_scu, int h_scu, int ch_type, int constrained_intra_pred, u8* map_tidx, int bit_depth, int chroma_format_idc);
 void xevd_ipred_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm, int w, int h);
 void xevd_ipred_uv_b(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int ipm_c, int ipm, int w, int h);
 void xevd_get_mpm_b(int x_scu, int y_scu, int cuw, int cuh, u32 * map_scu,u8 *cod_eco, s8 * map_ipm, int scup, int w_scu, u8 ** mpm, u16 avail_lr, u8 mpm_ext[8], u8 pms[IPD_CNT], u8 * map_tidx);
 int  xevd_get_dc(const int numerator, const int w, const int h);
-void ipred_vert(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, int w, int h);
-void ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth);
-void ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth);
+void xevd_ipred_vert(pel *src_le, pel *src_up, pel * src_ri, u16 avail_lr, pel *dst, int w, int h);
+void xevd_ipred_plane(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth);
+void xevd_ipred_bi(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int bit_depth);
 void ipred_ang(pel *src_le, pel *src_up, pel *src_ri, u16 avail_lr, pel *dst, int w, int h, int ipm, int bit_depth);
 #endif /* _XEVD_IPRED_H_ */

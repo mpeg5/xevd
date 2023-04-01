@@ -599,7 +599,7 @@ typedef struct _XEVD_SBAC_CTX
 #define XEVD_MAX_QP_TABLE_SIZE_EXT              94
 #define XEVD_MAX_NUM_REF_PICS                   21
 #define XEVD_MAX_NUM_ACTIVE_REF_FRAME           5
-#define XEVD_MAX_NUM_RPLS                       64
+#define XEVD_MAX_NUM_RPLS                       32
 
 /* SEI UUID ISO Length */
 #define ISO_IEC_11578_LEN                       16
@@ -1498,15 +1498,15 @@ int  xevd_dec_slice(XEVD_CTX * ctx, XEVD_CORE * core);
 #include "xevd_mc.h"
 #include "xevd_eco.h"
 #include "xevd_df.h"
-#ifndef ARM
-#include "xevd_mc_sse.h"
-#include "xevd_mc_avx.h"
-#include "xevd_itdq_sse.h"
-#include "xevd_itdq_avx.h"
-#include "xevd_recon_avx.h"
-#include "xevd_recon_sse.h"
-#include "xevd_dbk_sse.h"
-#else
+#if defined(__AVX2__)
+#include "x86/xevd_mc_sse.h"
+#include "x86/xevd_mc_avx.h"
+#include "x86/xevd_itdq_sse.h"
+#include "x86/xevd_itdq_avx.h"
+#include "x86/xevd_recon_avx.h"
+#include "x86/xevd_recon_sse.h"
+#include "x86/xevd_dbk_sse.h"
+#elif defined(ARM)
 #include "xevd_mc_neon.h"
 #include "xevd_itdq_neon.h"
 #include "xevd_recon_neon.h"
