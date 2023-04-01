@@ -38,7 +38,7 @@ extern "C"
 #endif
 
 #include <stdint.h>
-#include <xevd_exports.h>
+#include "xevd_exports.h"
 
 /* xevd decoder const */
 #define XEVD_MAX_TASK_CNT                  8
