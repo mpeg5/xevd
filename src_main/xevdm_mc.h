@@ -39,7 +39,7 @@
 
 extern s16 tbl_mc_l_coeff_main[16][8];
 extern s16 tbl_mc_c_coeff_main[32][4];
-extern const s16 tbl_bl_mc_l_coeff[4 << MC_PRECISION_ADD][2];
+extern const s16 xevd_tbl_bl_mc_l_coeff[4 << MC_PRECISION_ADD][2];
 
 typedef void(*XEVDM_DMVR_MC_L) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
 typedef void(*XEVDM_DMVR_MC_C) (pel *ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel *pred, int w, int h, int bit_depth);
