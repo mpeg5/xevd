@@ -132,7 +132,7 @@ XEVD supports main and baseline profiles of EVC.
 | -m, --threads         | 1         | mumber of threads to be created                |
 
 
->More optins can be found when type **xevd_app** only.
+>More options can be found when type **xevd_app** only.
 
 ### Example
 	$xevd_app -i input_bitstream.evc -o output_video.yuv
