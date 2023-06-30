@@ -159,7 +159,7 @@ void xevdm_recon_yuv(int x, int y, int cuw, int cuh, s16 coef[N_C][MAX_CU_DIM], 
 #define HTDF_CNT_SCALE                                    2
 #define HTDF_CNT_SCALE_RND                                (1 << (HTDF_CNT_SCALE - 1))
 
-u8 HTDF_table_thr_log2[HTDF_LUT_QP_NUM] = { 6, 7, 7, 8, 8 };
+static u8 HTDF_table_thr_log2[HTDF_LUT_QP_NUM] = { 6, 7, 7, 8, 8 };
 
 static const
 u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2] = {
@@ -255,7 +255,7 @@ void xevdm_htdf_filter_block(pel *block, pel *acc_block, const u8 *tbl, int stri
     }
 }
 
-void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2], int width, int height, int stride, int qp, int bit_depth)
+static void filter_block_luma(pel *block, const u8 HTDF_table[HTDF_LUT_QP_NUM][1 << HTDF_LUT_SIZE_LOG2], int width, int height, int stride, int qp, int bit_depth)
 {
     pel acc_block[(MAX_CU_SIZE + 2)*(MAX_CU_SIZE + 2)];
 

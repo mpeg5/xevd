@@ -35,7 +35,7 @@
 
 #include "xevdm_alf.h"
 
-void alf_derive_classification_blk(ALF_CLASSIFIER ** classifier, const pel * src_luma, const int src_stride, const AREA * blk, const int shift, int bit_depth)
+static void alf_derive_classification_blk(ALF_CLASSIFIER ** classifier, const pel * src_luma, const int src_stride, const AREA * blk, const int shift, int bit_depth)
 {
     static const int th[16] = { 0, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4 };
     const int stride = src_stride;
@@ -207,7 +207,7 @@ void alf_derive_classification_blk(ALF_CLASSIFIER ** classifier, const pel * src
     }
 }
 
-void alf_filter_blk_7(ALF_CLASSIFIER** classifier, pel * rec_dst, const int dst_stride, const pel* rec_src, const int src_stride, const AREA* blk, const u8 comp_id, short* filter_set, const CLIP_RANGE* clip_range)
+static void alf_filter_blk_7(ALF_CLASSIFIER** classifier, pel * rec_dst, const int dst_stride, const pel* rec_src, const int src_stride, const AREA* blk, const u8 comp_id, short* filter_set, const CLIP_RANGE* clip_range)
 {
     const BOOL is_chroma = FALSE;
 
@@ -336,7 +336,7 @@ void alf_filter_blk_7(ALF_CLASSIFIER** classifier, pel * rec_dst, const int dst_
     }
 }
 
-void alf_filter_blk_5(ALF_CLASSIFIER** classifier, pel * rec_dst, const int dst_stride, const pel* rec_src, const int src_stride, const AREA* blk, const u8 comp_id, short* filter_set, const CLIP_RANGE* clip_range)
+static void alf_filter_blk_5(ALF_CLASSIFIER** classifier, pel * rec_dst, const int dst_stride, const pel* rec_src, const int src_stride, const AREA* blk, const u8 comp_id, short* filter_set, const CLIP_RANGE* clip_range)
 {
     const int start_h = blk->y;
     const int end_h = blk->y + blk->height;
@@ -428,7 +428,7 @@ void alf_filter_blk_5(ALF_CLASSIFIER** classifier, pel * rec_dst, const int dst_
     }
 }
 
-void alf_init(ADAPTIVE_LOOP_FILTER * alf, int bit_depth)
+void xevd_alf_init(ADAPTIVE_LOOP_FILTER * alf, int bit_depth)
 {
     alf->clip_ranges.comp[0] = (CLIP_RANGE) { .min = 0, .max = (1 << bit_depth) - 1, .bd = bit_depth, .n = 0 };
     alf->clip_ranges.comp[1] = (CLIP_RANGE) { .min = 0, .max = (1 << bit_depth) - 1, .bd = bit_depth, .n = 0 };
@@ -450,7 +450,7 @@ ADAPTIVE_LOOP_FILTER * new_alf(int bit_depth)
 {
     ADAPTIVE_LOOP_FILTER * alf = (ADAPTIVE_LOOP_FILTER *)xevd_malloc(sizeof(ADAPTIVE_LOOP_FILTER));
     xevd_mset(alf, 0, sizeof(ADAPTIVE_LOOP_FILTER));
-    alf_init(alf, bit_depth);
+    xevd_alf_init(alf, bit_depth);
     return alf;
 }
 
@@ -459,7 +459,7 @@ void delete_alf(ADAPTIVE_LOOP_FILTER* alf)
     xevd_mfree(alf);
 }
 
-void alf_init_filter_shape(void* _filter_shape, int size)
+void xevd_alf_init_filter_shape(void* _filter_shape, int size)
 {
     ALF_FILTER_SHAPE* filter_shape = (ALF_FILTER_SHAPE*)_filter_shape;
 
@@ -490,7 +490,7 @@ void alf_init_filter_shape(void* _filter_shape, int size)
     }
 }
 
-int alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth)
+int xevd_alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_height, const int max_cu_width, const int max_cu_height, const int max_cu_depth, int chroma_format_idc, int bit_depth)
 {
     const int input_bit_depth[N_C] = { bit_depth, bit_depth };
     int ret = XEVD_OK;
@@ -518,9 +518,9 @@ int alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_he
     alf->num_ctu_in_height = (alf->pic_height / alf->max_cu_height) + ((alf->pic_height % alf->max_cu_height) ? 1 : 0);
     alf->num_ctu_in_pic = alf->num_ctu_in_height * alf->num_ctu_in_widht;
 
-    alf_init_filter_shape(&alf->filter_shapes[CHANNEL_TYPE_LUMA][0], 5);
-    alf_init_filter_shape(&alf->filter_shapes[CHANNEL_TYPE_LUMA][1], 7);
-    alf_init_filter_shape(&alf->filter_shapes[CHANNEL_TYPE_CHROMA][0], 5);
+    xevd_alf_init_filter_shape(&alf->filter_shapes[CHANNEL_TYPE_LUMA][0], 5);
+    xevd_alf_init_filter_shape(&alf->filter_shapes[CHANNEL_TYPE_LUMA][1], 7);
+    xevd_alf_init_filter_shape(&alf->filter_shapes[CHANNEL_TYPE_CHROMA][0], 5);
 
     alf->temp_buf = (pel*)malloc((pic_width + (7 * alf->num_ctu_in_widht))*(pic_height + (7 * alf->num_ctu_in_height)) * sizeof(pel)); // +7 is of filter diameter //todo: check this
     if (alf->chroma_format)
@@ -555,7 +555,7 @@ int alf_create(ADAPTIVE_LOOP_FILTER * alf, const int pic_width, const int pic_he
     return XEVD_OK;
 }
 
-void alf_destroy(ADAPTIVE_LOOP_FILTER * alf)
+void xevd_alf_destroy(ADAPTIVE_LOOP_FILTER * alf)
 {
     free(alf->temp_buf);
     free(alf->temp_buf1);
@@ -584,7 +584,7 @@ void alf_destroy(ADAPTIVE_LOOP_FILTER * alf)
     }
 }
 
-void alf_copy_param(ALF_SLICE_PARAM* dst, ALF_SLICE_PARAM* src)
+static void alf_copy_param(ALF_SLICE_PARAM* dst, ALF_SLICE_PARAM* src)
 {
     xevd_mcpy(dst->enable_flag, src->enable_flag, sizeof(BOOL)*N_C);
     dst->chroma_filter_present = src->chroma_filter_present;
@@ -613,7 +613,7 @@ void alf_copy_param(ALF_SLICE_PARAM* dst, ALF_SLICE_PARAM* src)
     dst->max_idr_poc = src->max_idr_poc;
 }
 
-void alf_store_paramline_from_aps(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_PARAM* alf_param, u8 idx)
+static void alf_store_paramline_from_aps(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_PARAM* alf_param, u8 idx)
 {
     assert(idx < APS_MAX_NUM);
     alf_copy_param(&(alf->ac_alf_line_buf[idx]), alf_param);
@@ -669,7 +669,7 @@ void store_dec_aps_to_buffer(XEVD_CTX * ctx)
     alf_store_paramline_from_aps(mctx->alf, &(alf_slice_param), alf_slice_param.prev_idx);
 }
 
-void alf_param_chroma(ALF_SLICE_PARAM* dst, ALF_SLICE_PARAM* src)
+static void alf_param_chroma(ALF_SLICE_PARAM* dst, ALF_SLICE_PARAM* src)
 {
     xevd_mcpy(dst->chroma_coef, src->chroma_coef, sizeof(short)*MAX_NUM_ALF_CHROMA_COEFF);
     dst->chroma_filter_present = src->chroma_filter_present;
@@ -679,7 +679,7 @@ void alf_param_chroma(ALF_SLICE_PARAM* dst, ALF_SLICE_PARAM* src)
 
 }
 
-void alf_load_paramline_from_aps_buffer2(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_PARAM* alf_param, u8 idxY, u8 idxUV, u8 alf_chroma_idc)
+static void alf_load_paramline_from_aps_buffer2(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_PARAM* alf_param, u8 idxY, u8 idxUV, u8 alf_chroma_idc)
 {
     alf_copy_param(alf_param, &(alf->ac_alf_line_buf[idxY]));
     assert(alf_param->enable_flag[0] == 1);
@@ -697,7 +697,7 @@ void alf_load_paramline_from_aps_buffer2(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_P
     }
 }
 
-void alf_recon_coef(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_PARAM* alf_slice_param, int channel, const BOOL is_rdo, const BOOL is_re_do)
+static void alf_recon_coef(ADAPTIVE_LOOP_FILTER * alf, ALF_SLICE_PARAM* alf_slice_param, int channel, const BOOL is_rdo, const BOOL is_re_do)
 {
     int factor = is_rdo ? 0 : (1 << (NUM_BITS - 1));
     ALF_FILTER_TYPE filter_type = channel == CHANNEL_TYPE_LUMA ? alf_slice_param->luma_filter_type : ALF_FILTER_5;
@@ -802,7 +802,7 @@ typedef struct _XEVD_ALF_TMP
     int                 tsk_num;
 } XEVD_ALF_TMP;
 
-void alf_copy_and_extend_tile(pel* tmp_yuv, const int s, const pel* rec, const int s2, const int w, const int h, const int m)
+static void alf_copy_and_extend_tile(pel* tmp_yuv, const int s, const pel* rec, const int s2, const int w, const int h, const int m)
 {
     //copy
     for (int j = 0; j < h; j++)
@@ -841,7 +841,7 @@ void alf_copy_and_extend_tile(pel* tmp_yuv, const int s, const pel* rec, const i
 }
 
 
-void tile_boundary_check(int* avail_left, int* avail_right, int* avail_top, int* avail_bottom, const int width, const int height, int x_pos, int y_pos, int x_l, int x_r, int y_l, int y_r)
+static void tile_boundary_check(int* avail_left, int* avail_right, int* avail_top, int* avail_bottom, const int width, const int height, int x_pos, int y_pos, int x_l, int x_r, int y_l, int y_r)
 {
     if (x_pos == x_l)
     {
@@ -880,7 +880,7 @@ void tile_boundary_check(int* avail_left, int* avail_right, int* avail_top, int*
     }
 }
 
-void alf_derive_classification(ADAPTIVE_LOOP_FILTER * alf, ALF_CLASSIFIER** classifier, const pel * src_luma, const int src_luma_stride, const AREA * blk)
+static void alf_derive_classification(ADAPTIVE_LOOP_FILTER * alf, ALF_CLASSIFIER** classifier, const pel * src_luma, const int src_luma_stride, const AREA * blk)
 {
     int height = blk->y + blk->height;
     int width = blk->x + blk->width;
