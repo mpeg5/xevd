@@ -273,8 +273,8 @@ static int write_y4m_header(char * fname, XEVD_IMGB * img)
     int bit_depth  =   op_out_bit_depth;
     int len = 80;
     int buff_len = 0;
-    char buf[80] = { 0, };
-    char c_buf[16] = { 0, };
+    char buf[80] = { '\0', };
+    char c_buf[16] = { '\0', };
     FILE          * fp;
 
     if (color_format == XEVD_CF_YCBCR420)
@@ -297,7 +297,7 @@ static int write_y4m_header(char * fname, XEVD_IMGB * img)
         if (bit_depth == 8)  strcpy(c_buf, "mono");
     }
 
-    if (c_buf == NULL)
+    if (strlen(c_buf) == 0)
     {
         logv0("Color format is not suuported by y4m");
         return XEVD_ERR;
