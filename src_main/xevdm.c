@@ -3329,7 +3329,6 @@ int xevd_apply_filter(XEVD_CTX *ctx, XEVD_IMGB *imgb)
             // Assigned effective DRA controls as specified by PPS
             xevd_assert((pps_dra_id > -1) && (pps_dra_id < 32) && ((g_dra_control + pps_dra_id)->signal_dra_flag == 1));
             xevd_mcpy(&(g_dra_control_effective.signalled_dra), (g_dra_control + pps_dra_id), sizeof(SIG_PARAM_DRA));
-            mctx->pps_dra_params = (void *)&(g_dra_control_effective.signalled_dra);
 
             if (g_dra_control_effective.flag_enabled)
             {
@@ -3735,7 +3734,6 @@ int xevd_decode(XEVD id, XEVD_BITB * bitb, XEVD_STAT * stat)
         {
             memcpy(&(dra_control_effective.signalled_dra), dra_control + pps_dra_id, sizeof(SIG_PARAM_DRA));
             dra_control_effective.flag_enabled = 1;
-            mctx->pps_dra_params = &(dra_control_effective.signalled_dra);
         }
         else
         {
