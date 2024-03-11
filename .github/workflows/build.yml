@@ -15,7 +15,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -32,14 +32,14 @@ jobs:
           make
           
       - name: 'Upload executable Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: xevd_app-linux
           path: build/bin/xevd_app
           retention-days: 5
           
       - name: 'Upload library Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libxevd-linux
           path: build/lib/
@@ -48,7 +48,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -60,14 +60,14 @@ jobs:
           make
           
       - name: 'Upload executable Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: xevd_app-windows
           path: build/bin/xeved_app.exe
           retention-days: 5
 
       - name: 'Upload library Artifacts'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: libxevd-windows
           path: build/src/libxevd.*
