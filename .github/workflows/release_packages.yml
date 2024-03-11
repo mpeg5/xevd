@@ -15,7 +15,7 @@ jobs:
 
     runs-on: ${{matrix.os}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -45,7 +45,7 @@ jobs:
 
       - name: 'Upload Linux artifacts'
         if: ${{matrix.os == 'ubuntu-latest'}}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: xevd-linux-packages-${{ github.event.release.tag_name }}
           path: |
@@ -55,7 +55,7 @@ jobs:
 
       - name: 'Upload Windows artifacts'
         if: ${{matrix.os == 'windows-latest'}}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: xevd-windows-packages-${{ github.event.release.tag_name }}
           path: |
@@ -64,7 +64,7 @@ jobs:
           retention-days: 7
 
       - name: Upload assets to GitHub Release
-        uses: xresloader/upload-to-github-release@v1.3.7
+        uses: xresloader/upload-to-github-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
