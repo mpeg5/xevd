@@ -824,7 +824,7 @@ void xevdm_bl_mc_l_n0_neon(pel* ref, int gmv_x, int gmv_y, int s_ref, int s_pred
     int max = ((1 << bit_depth) - 1);
     int min = 0;
 
-    mc_filter_bilin_horz_neon(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
+    mc_filter_bilin_horz_neon(ref, s_ref, pred, s_pred, xevd_tbl_bl_mc_l_coeff[dx], w, h, min, max, MAC_ADD_N0, MAC_SFT_N0, 1);
 }
 
 void xevdm_bl_mc_l_0n_neon(pel* ref, int gmv_x, int gmv_y, int s_ref, int s_pred, pel* pred, int w, int h, int bit_depth)
@@ -837,7 +837,7 @@ void xevdm_bl_mc_l_0n_neon(pel* ref, int gmv_x, int gmv_y, int s_ref, int s_pred
     int max = ((1 << bit_depth) - 1);
     int min = 0;
 
-    mc_filter_bilin_vert_neon(ref, s_ref, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
+    mc_filter_bilin_vert_neon(ref, s_ref, pred, s_pred, xevd_tbl_bl_mc_l_coeff[dy], w, h, min, max, MAC_ADD_0N, MAC_SFT_0N, 1);
 }
 
 void xevdm_bl_mc_l_nn_neon(s16* ref, int gmv_x, int gmv_y, int s_ref, int s_pred, s16* pred, int w, int h, int bit_depth)
@@ -857,8 +857,8 @@ void xevdm_bl_mc_l_nn_neon(s16* ref, int gmv_x, int gmv_y, int s_ref, int s_pred
     int max = ((1 << bit_depth) - 1);
     int min = 0;
 
-    mc_filter_bilin_horz_neon(ref, s_ref, buf, w, tbl_bl_mc_l_coeff[dx], w, (h + 1), min, max, offset1, shift1, 0);
-    mc_filter_bilin_vert_neon(buf, w, pred, s_pred, tbl_bl_mc_l_coeff[dy], w, h, min, max, offset2, shift2, 1);
+    mc_filter_bilin_horz_neon(ref, s_ref, buf, w, xevd_tbl_bl_mc_l_coeff[dx], w, (h + 1), min, max, offset1, shift1, 0);
+    mc_filter_bilin_vert_neon(buf, w, pred, s_pred, xevd_tbl_bl_mc_l_coeff[dy], w, h, min, max, offset2, shift2, 1);
 }
 
 /****************************************************************************
