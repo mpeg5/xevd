@@ -40,6 +40,8 @@ void xevdm_itx_pb8b_neon (void * src, void * dst, int shift, int line);
 void xevdm_itx_pb16b_neon(void * src, void * dst, int shift, int line);
 void xevdm_itx_pb32b_neon(void * src, void * dst, int shift, int line);
 void xevdm_itx_pb64b_neon(void * src, void * dst, int shift, int line);
+
+extern INV_TRANS *xevdm_itrans_map_tbl_neon[16][5];
 #endif /* ARM_NEON */
 
 #endif /*_XEVDM_ITDQ_NEON_H_*/
