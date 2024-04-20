@@ -984,7 +984,7 @@ static void xevdm_itx_pb64_neon(s16 *src, s16 *dst, int shift, int line)
         int16x4_t r[64];
         int16x4x2_t a[64];
         int32x4_t o[32], e[32], eo[16], ee[16], eeo[8], eee[8], eeeo[4], eeee[4], eeeeo[2], eeeee[2];
-        int32x4_t v[64], t[16], d[64];
+        int32x4_t v[64], t[32], d[64];
 
         int32x4_t max_val = vdupq_n_s32(MAX_TX_VAL);
         int32x4_t min_val = vdupq_n_s32(MIN_TX_VAL);
