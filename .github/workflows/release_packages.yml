@@ -12,6 +12,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        build: [PC, ARM]
+        exclude:
+          -os: windows-latest
+	   build: ARM
 
     runs-on: ${{matrix.os}}
     steps:
@@ -20,13 +24,19 @@ jobs:
           fetch-depth: 0
 
       - name: install dependencies (Linux)
-        if: ${{matrix.os == 'ubuntu-latest'}}
+        if: ${{matrix.os == 'ubuntu-latest' && matrix.build == 'PC'}}
         run: |
           sudo apt-get update -qq && sudo apt-get -y install \
           cmake
+
+      - name: Install dependencies (ARM)
+        if: ${{matrix.os == 'ubuntu-latest' && matrix.build == 'ARM'}}
+        run: |
+          sudo apt-get update -qq && sudo apt-get -y install \
+          cmake gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
         
       - name: Build Linux versions of xevd, generate packages and md5
-        if: ${{matrix.os == 'ubuntu-latest'}}
+        if: ${{matrix.os == 'ubuntu-latest' && matrix.build == 'PC'}}
         run: |
           mkdir build
           cd build
@@ -35,7 +45,7 @@ jobs:
           make package
 
       - name: Build Windows versions of xevd, generate packages and md5
-        if: ${{matrix.os == 'windows-latest'}}
+        if: ${{matrix.os == 'windows-latest' && matrix.build == 'PC'}}
         run: |
           mkdir build
           cd build
@@ -43,8 +53,17 @@ jobs:
           make
           make package
 
+      - name: Build ARM versions of xevd, generate packages and md5
+        if: ${{matrix.os == 'ubuntu-latest' && matrix.build == 'ARM'}}
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_TYPE=Release -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DARM=TRUE
+          make
+          make package
+
       - name: 'Upload Linux artifacts'
-        if: ${{matrix.os == 'ubuntu-latest'}}
+        if: ${{matrix.os == 'ubuntu-latest' && matrix.build == 'PC'}}
         uses: actions/upload-artifact@v4
         with:
           name: xevd-linux-packages-${{ github.event.release.tag_name }}
@@ -54,12 +73,22 @@ jobs:
           retention-days: 7
 
       - name: 'Upload Windows artifacts'
-        if: ${{matrix.os == 'windows-latest'}}
+        if: ${{matrix.os == 'windows-latest' && matrix.build == 'PC'}}
         uses: actions/upload-artifact@v4
         with:
           name: xevd-windows-packages-${{ github.event.release.tag_name }}
           path: |
             ${{ github.workspace }}/build/*.exe
+            ${{ github.workspace }}/build/*.md5
+          retention-days: 7
+
+      - name: 'Upload ARM artifacts'
+        if: ${{matrix.os == 'ubuntu-latest' && matrix.build == 'ARM'}}
+        uses: actions/upload-artifact@v4
+        with:
+          name: xevd-arm-packages-${{github.event.release.tag_name}}
+          path: |
+            ${{ github.workspace }}/build/*.deb
             ${{ github.workspace }}/build/*.md5
           retention-days: 7
 
