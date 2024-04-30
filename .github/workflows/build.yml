@@ -72,3 +72,36 @@ jobs:
           name: libxevd-windows
           path: build/src/libxevd.*
           retention-days: 5
+
+  build-arm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update -qq && sudo apt-get -y install \
+          cmake gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Build xevd
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DARM=TRUE
+          make
+
+      - name: 'Upload executable Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: xevd_app-arm
+          path: build/bin/xevd_app
+          retention-days: 5
+
+      - name: 'Upload library Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: libxevd-arm
+          path: build/lib/
+          retention-days: 5
