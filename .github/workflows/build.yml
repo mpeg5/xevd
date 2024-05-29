@@ -83,7 +83,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update -qq && sudo apt-get -y install \
-          cmake gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          cmake gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Build xevd
         run: |
