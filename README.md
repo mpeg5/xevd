@@ -47,6 +47,23 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
     ```
     You can change '-G' option with proper version of Visual Studio.
 
+### ARM (64-bit)
+- Build Requirements
+  - CMake 3.5 or later (download from [https://cmake.org/](https://cmake.org/))
+  - gcc-aarch64-linux-gnu 
+  - binutils-aarch64-linux-gnu
+
+- Build Instructions
+  ```
+  $mkdir build-arm
+  $cd build-arm
+  $cmake .. -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DARM=TRUE
+  $make
+  ```
+  - Output Location
+    - Executable application (xevd_app) can be found under build-arm/bin/.
+    - Library files (libxevd.so and libxevd.a) can be found under build-arm/lib/.
+
 ## How to generate installer
 
 ### Linux (64-bit)
