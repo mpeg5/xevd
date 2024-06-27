@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 3.5)
 
+########################################
+# Project versioning
+########################################
+
 function(get_versions versionstring VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
     string(REGEX REPLACE "^([vV])([0-9]*)([.][0-9]*[.][0-9]*-?.*)$" "\\2" numbers ${versionstring} )
     set(VERSION_MAJOR ${numbers} PARENT_SCOPE)
@@ -52,6 +56,12 @@ if(VERSION_MAJOR STREQUAL ${VERSION_STRING})
 endif()
 message("XEVD VERSION=${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
+project (XEVD VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH} LANGUAGES C)
+
+########################################
+# Input arguments.
+########################################
+
 # Check input arguments.
 if(NOT SET_PROF)
   set(SET_PROF "MAIN")
@@ -64,6 +74,7 @@ else()
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flax-vector-conversions")
   set(CMAKE_EXE_LINKER_FLAGS "-static")
 endif()
+message("ARM=${ARM}")
 
 if(("${SET_PROF}" STREQUAL "MAIN") OR ("${SET_PROF}" STREQUAL "BASE"))
   message("SET_PROF=${SET_PROF}")
@@ -77,12 +88,9 @@ if(XEVD_APP_STATIC_BUILD)
     add_definitions(-DXEVD_STATIC_DEFINE)
 endif(XEVD_APP_STATIC_BUILD)
 
-cmake_policy(SET CMP0048 NEW)
-set(CMAKE_C_STANDARD 99)
-
-# Maps to a solution file (XEVD.sln).
-project (XEVD VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH} LANGUAGES C)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+########################################
+# Compilation flags
+########################################
 
 # Set compiler flags and options.
 if( MSVC )
@@ -105,14 +113,25 @@ elseif( UNIX OR MINGW )
         set(OPT_DBG "-DNDEBUG") # disable assert
     endif()
 
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -${OPT_LV} ${OPT_DBG} -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-unknown-pragmas -Wno-stringop-overflow -std=c99")
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pointer-sign -pthread -Wno-pointer-to-int-cast -Wno-maybe-uninitialized")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -${OPT_LV} ${OPT_DBG} -fomit-frame-pointer -pthread -std=c99")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-pointer-sign -Wno-pointer-to-int-cast -Wno-maybe-uninitialized -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-unknown-pragmas -Wno-stringop-overflow")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 endif()
 
 # Command to output information to the console
 message ("c Flags: " ${CMAKE_C_FLAGS})
 message ("linker Flags: " ${CMAKE_EXE_LINKER_FLAGS})
+
+message("Compiler ID: ${CMAKE_C_COMPILER_ID}")
+message("Compiler version: ${CMAKE_C_COMPILER_VERSION}")
+
+########################################
+# Configuration
+########################################
+
+cmake_policy(SET CMP0048 NEW)
+set(CMAKE_C_STANDARD 99)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Sub-directories where more CMakeLists.txt exist
 if(("${SET_PROF}" STREQUAL "BASE"))
@@ -135,7 +154,7 @@ if(NOT TARGET uninstall)
 endif()
 
 ########################################
-# add CPack to project
+# CPack project packaging
 ########################################
 
 if( MSVC )
