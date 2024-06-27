@@ -78,7 +78,7 @@ if(XEVD_APP_STATIC_BUILD)
 endif(XEVD_APP_STATIC_BUILD)
 
 cmake_policy(SET CMP0048 NEW)
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 
 # Maps to a solution file (XEVD.sln).
 project (XEVD VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH} LANGUAGES C)
@@ -105,7 +105,7 @@ elseif( UNIX OR MINGW )
         set(OPT_DBG "-DNDEBUG") # disable assert
     endif()
 
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -${OPT_LV} ${OPT_DBG} -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-unknown-pragmas -Wno-stringop-overflow -std=c99")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -${OPT_LV} ${OPT_DBG} -fomit-frame-pointer -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Werror -Wno-unknown-pragmas -Wno-stringop-overflow -std=c11")
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pointer-sign -pthread -Wno-pointer-to-int-cast -Wno-maybe-uninitialized")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 endif()
