@@ -28,7 +28,7 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _XEVD_DBK_NOEN_H_
+#ifndef _XEVD_DBK_NEON_H_
 #define _XEVD_DBK_NEON_H_
 
 
