@@ -61,9 +61,9 @@ extern int * xevd_qp_chroma_dynamic[2];
 void xevd_derived_chroma_qp_mapping_tables(XEVD_CHROMA_TABLE *struct_chroma_qp, int bit_depth);
 void xevd_set_chroma_qp_tbl_loc(int codec_bit_depth);
 
-typedef struct _XEVD_SCAN_TABLES {
+struct _XEVD_SCAN_TABLES {
     u16* xevd_inv_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
     u16* xevd_scan_tbl[COEF_SCAN_TYPE_NUM][MAX_CU_LOG2 - 1][MAX_CU_LOG2 - 1];
-} XEVD_SCAN_TABLES;
+};
 
 #endif /* _XEVD_TBL_H_ */

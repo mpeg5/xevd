@@ -71,7 +71,7 @@ typedef struct _DRA_SCALE_MAPPING
     double dra_scale_map_y[256][2];          ///< first=luma level, second=delta QP.
 } DRA_SCALE_MAPPING;
 
-typedef struct _SIG_PARAM_DRA
+struct _SIG_PARAM_DRA
 {
     int  signal_dra_flag; // flag has 3 positions at encoder: -1: not initialized, 0: initialized and sent, 1: initialized, to be sent
     int  dra_table_idx;
@@ -84,7 +84,7 @@ typedef struct _SIG_PARAM_DRA
     int  dra_cb_scale_value;
     int  dra_cr_scale_value;
     int  dra_scale_value[33 - 1];
-}SIG_PARAM_DRA;
+};
 
 typedef struct _DRA_CONTROL
 {
