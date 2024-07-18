@@ -301,7 +301,7 @@ static const u8 tb_max[257] = { 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 
 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8 };
 
-typedef struct _ALF_FILTER_SHAPE
+struct _ALF_FILTER_SHAPE
 {
     int filter_type;
     int filterLength;
@@ -312,7 +312,7 @@ typedef struct _ALF_FILTER_SHAPE
     int golombIdx[14];
     int pattern_to_large_filter[13];
 
-} ALF_FILTER_SHAPE;
+};
 
 struct _ALF_SLICE_PARAM
 {

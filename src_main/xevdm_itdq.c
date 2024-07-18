@@ -65,8 +65,6 @@ void xevdm_itrans_ats_intra_DCT8_B32(s16 *coeff, s16 *block, int shift, int line
 
 
 
-typedef void INV_TRANS(s16 *, s16 *, int, int, int, int);
-
 INV_TRANS *xevdm_itrans_map_tbl[16][5] =
 {
     { NULL, xevdm_itrans_ats_intra_DCT8_B4, xevdm_itrans_ats_intra_DCT8_B8, xevdm_itrans_ats_intra_DCT8_B16, xevdm_itrans_ats_intra_DCT8_B32 },
