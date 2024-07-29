@@ -62,11 +62,25 @@ project (XEVD VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH} LANGUAG
 # Input arguments.
 ########################################
 
-# Check input arguments.
+# To build in debug provide in command line: -DCMAKE_BUILD_TYPE=Debug
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release") # Default build type
+endif()
+message("CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+
+# To set profile from command line: -DSET_PROF=BASE
 if(NOT SET_PROF)
   set(SET_PROF "MAIN")
 endif()
 
+if(("${SET_PROF}" STREQUAL "MAIN") OR ("${SET_PROF}" STREQUAL "BASE"))
+  message("SET_PROF=${SET_PROF}")
+else()
+  message("SET_PORF should be BASE or MAIN [Input error: ${SET_PROF}]")
+  return()
+endif()
+
+# To build for arm provide in command line: -DARM=TRUE
 if(NOT ARM)
   set(ARM "FALSE")
 else()
@@ -77,18 +91,6 @@ else()
   endif()
 endif()
 message("ARM=${ARM}")
-
-if(("${SET_PROF}" STREQUAL "MAIN") OR ("${SET_PROF}" STREQUAL "BASE"))
-  message("SET_PROF=${SET_PROF}")
-else()
-  message("SET_PORF should be BASE or MAIN [Input error: ${SET_PROF}]")
-  return()
-endif()
-
-option(XEVD_APP_STATIC_BUILD "xevd_app will be statically linked against static xevd library" ON)
-if(XEVD_APP_STATIC_BUILD)
-    add_definitions(-DXEVD_STATIC_DEFINE)
-endif(XEVD_APP_STATIC_BUILD)
 
 ########################################
 # Compilation flags
@@ -101,12 +103,21 @@ if( MSVC )
       $<$<CONFIG:Debug>:/MDd> #---|-- Dynamically link the runtime libraries
       $<$<CONFIG:Release>:/MD> #--|
     )
-elseif( UNIX OR MINGW )
-    if(NOT CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE "Release")
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+    message("Using LLVM Clang compiler")
+    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+        set(OPT_LV "O0")
+        set(OPT_DBG "-g")
+    else()
+        set(OPT_LV "O3")
+        set(OPT_DBG "-DNDEBUG") # disable assert
     endif()
-    message("CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPT_DBG} -${OPT_LV} -fomit-frame-pointer -pthread -std=c99")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
+elseif( UNIX OR MINGW )
+    message("Using GNU GCC compiler")
     if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
         set(OPT_LV "O0")
         set(OPT_DBG "-g")
@@ -124,9 +135,6 @@ endif()
 message ("c Flags: " ${CMAKE_C_FLAGS})
 message ("linker Flags: " ${CMAKE_EXE_LINKER_FLAGS})
 
-message("Compiler ID: ${CMAKE_C_COMPILER_ID}")
-message("Compiler version: ${CMAKE_C_COMPILER_VERSION}")
-
 ########################################
 # Configuration
 ########################################
@@ -134,6 +142,11 @@ message("Compiler version: ${CMAKE_C_COMPILER_VERSION}")
 cmake_policy(SET CMP0048 NEW)
 set(CMAKE_C_STANDARD 99)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+option(XEVD_APP_STATIC_BUILD "xevd_app will be statically linked against static xevd library" ON)
+if(XEVD_APP_STATIC_BUILD)
+    add_definitions(-DXEVD_STATIC_DEFINE)
+endif(XEVD_APP_STATIC_BUILD)
 
 # Sub-directories where more CMakeLists.txt exist
 if(("${SET_PROF}" STREQUAL "BASE"))
