@@ -124,7 +124,7 @@ void deblock_scu_hor_chroma_sse(pel *u, pel *v, int st_u, int st_v, int stride, 
     }
 
     if (!st_u || !st_v) {
-        fprintf(stderr, "WARNING: Wariables are initiallized with zeros!\n");
+        fprintf(stderr, "WARNING: Variables are initiallized with zeros!\n");
     }
 
     AA = _mm_unpacklo_epi64(Au, Av);
@@ -304,7 +304,7 @@ void deblock_scu_ver_chroma_sse(pel *u, pel *v, int st_u, int st_v, int stride, 
         }
 
         if (!st_u || !st_v) {
-            fprintf(stderr, "WARNING: Wariables are initiallized with zeros!\n");
+            fprintf(stderr, "WARNING: Variables are initiallized with zeros!\n");
         }
 
         __m128i t1, t2;
