@@ -97,7 +97,17 @@ void deblock_scu_hor_chroma_sse(pel *u, pel *v, int st_u, int st_v, int stride, 
 
     size = MIN_CU_SIZE >> (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc));
 
-    __m128i Au, Bu, Cu, Du, Av, Bv, Cv, Dv, AA, BB, CC, DD;
+    __m128i Au = _mm_setzero_si128();
+    __m128i Bu = _mm_setzero_si128();
+    __m128i Cu = _mm_setzero_si128();
+    __m128i Du = _mm_setzero_si128();
+    __m128i Av = _mm_setzero_si128();
+    __m128i Bv = _mm_setzero_si128();
+    __m128i Cv = _mm_setzero_si128();
+    __m128i Dv = _mm_setzero_si128();
+
+    __m128i AA, BB, CC, DD;
+
     if (st_u)
     {
         Au = _mm_loadl_epi64((__m128i*)&u[-2 * stride]);
@@ -111,6 +121,10 @@ void deblock_scu_hor_chroma_sse(pel *u, pel *v, int st_u, int st_v, int stride, 
         Bv = _mm_loadl_epi64((__m128i*)&v[-stride]);
         Cv = _mm_loadl_epi64((__m128i*)&v[0]);
         Dv = _mm_loadl_epi64((__m128i*)&v[stride]);
+    }
+
+    if (!st_u || !st_v) {
+        fprintf(stderr, "WARNING: Variables are initiallized with zeros!\n");
     }
 
     AA = _mm_unpacklo_epi64(Au, Av);
@@ -273,7 +287,11 @@ void deblock_scu_ver_chroma_sse(pel *u, pel *v, int st_u, int st_v, int stride, 
     size = MIN_CU_SIZE >> (XEVD_GET_CHROMA_H_SHIFT(chroma_format_idc));
     if (size == 2)
     {
-        __m128i AA, BB, CC, DD;
+        __m128i AA = _mm_setzero_si128();
+        __m128i BB = _mm_setzero_si128();
+        __m128i CC = _mm_setzero_si128();
+        __m128i DD = _mm_setzero_si128();
+
         if (st_u)
         {
             AA = _mm_loadl_epi64((__m128i*)&u[-2]);
@@ -284,6 +302,11 @@ void deblock_scu_ver_chroma_sse(pel *u, pel *v, int st_u, int st_v, int stride, 
             CC = _mm_loadl_epi64((__m128i*)&v[-2]);
             DD = _mm_loadl_epi64((__m128i*)&v[stride - 2]);
         }
+
+        if (!st_u || !st_v) {
+            fprintf(stderr, "WARNING: Variables are initiallized with zeros!\n");
+        }
+
         __m128i t1, t2;
         t1 = _mm_unpacklo_epi16(AA, BB);
         t2 = _mm_unpacklo_epi16(CC, DD);

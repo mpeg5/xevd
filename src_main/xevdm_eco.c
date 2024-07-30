@@ -39,7 +39,6 @@
 
 #include <math.h>
 #include "xevdm_alf.h"
-#pragma warning(disable:4018)
 
 static u32 sbac_decode_bin_ep(XEVD_BSR * bs, XEVD_SBAC * sbac)
 {
