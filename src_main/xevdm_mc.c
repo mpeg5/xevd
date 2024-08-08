@@ -922,8 +922,8 @@ static void mv_clip_only_one_ref(int x, int y, int pic_w, int pic_h, int w, int 
     y <<= 2;
     w <<= 2;
     h <<= 2;
-    min_clip[MV_X] = (-MAX_CU_SIZE) << 2;
-    min_clip[MV_Y] = (-MAX_CU_SIZE) << 2;
+    min_clip[MV_X] = -(MAX_CU_SIZE << 2);
+    min_clip[MV_Y] = -(MAX_CU_SIZE << 2);
     max_clip[MV_X] = (pic_w - 1 + MAX_CU_SIZE) << 2;
     max_clip[MV_Y] = (pic_h - 1 + MAX_CU_SIZE) << 2;
 
@@ -945,8 +945,8 @@ static BOOL mv_clip_only_one_ref_dmvr(int x, int y, int pic_w, int pic_h, int w,
     y <<= 2;
     w <<= 2;
     h <<= 2;
-    min_clip[MV_X] = (-MAX_CU_SIZE) << 2;
-    min_clip[MV_Y] = (-MAX_CU_SIZE) << 2;
+    min_clip[MV_X] = -(MAX_CU_SIZE << 2);
+    min_clip[MV_Y] = -(MAX_CU_SIZE << 2);
     max_clip[MV_X] = (pic_w - 1 + MAX_CU_SIZE) << 2;
     max_clip[MV_Y] = (pic_h - 1 + MAX_CU_SIZE) << 2;
 
@@ -1831,8 +1831,8 @@ void mv_clip(int x, int y, int pic_w, int pic_h, int w, int h, s8 refi[REFP_NUM]
     y <<= 2;
     w <<= 2;
     h <<= 2;
-    min_clip[MV_X] = (-MAX_CU_SIZE) << 2;
-    min_clip[MV_Y] = (-MAX_CU_SIZE) << 2;
+    min_clip[MV_X] = -(MAX_CU_SIZE << 2);
+    min_clip[MV_Y] = -(MAX_CU_SIZE << 2);
     max_clip[MV_X] = (pic_w - 1 + MAX_CU_SIZE) << 2;
     max_clip[MV_Y] = (pic_h - 1 + MAX_CU_SIZE) << 2;
 
