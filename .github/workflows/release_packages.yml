@@ -14,8 +14,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         build: [PC, ARM]
         exclude:
-          -os: windows-latest
-	   build: ARM
+          - os: windows-latest
+	    build: ARM
 
     runs-on: ${{matrix.os}}
     steps:
