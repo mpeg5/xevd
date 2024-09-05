@@ -1883,7 +1883,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ret = xevd_picman_refp_init(&ctx->dpm, ctx->sps->max_num_ref_pics, sh->slice_type, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, ctx->last_intra_poc, ctx->refp);
         xevd_assert_rv(ret == XEVD_OK, ret);
 
-        if (ctx->num_ctb == ctx->f_lcu)
+        if (ctx->num_ctb == (u32)ctx->f_lcu)
         {
             /* get available frame buffer for decoded image */
             ctx->pic = xevd_picman_get_empty_pic(&ctx->dpm, &ret, ctx->internal_codec_bit_depth);
