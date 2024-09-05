@@ -2209,7 +2209,7 @@ u32 xevdm_xReadTruncBinCode(XEVD_BSR * bs, const int uiMaxSymbol)
     int uiVal = 1 << uiThresh;
     int b = uiMaxSymbol - uiVal;
     xevd_bsr_read(bs, &ruiSymbol, uiThresh); //xReadCode( uiThresh, ruiSymbol );
-    if(ruiSymbol >= uiVal - b)
+    if(ruiSymbol >= u32(uiVal - b))
     {
         u32 uiSymbol;
         xevd_bsr_read1(bs, &uiSymbol); //xReadFlag( uiSymbol );
