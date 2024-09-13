@@ -7,40 +7,41 @@ BasedOnStyle: Google
 IndentWidth: 4
 UseTab: Never
 
+# Language:
+Language: Cpp
+
 # Alignment settings
 AlignConsecutiveDeclarations: true
 AlignConsecutiveAssignments: true
-AlignTrailingComments: true
 
 # Break settings
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterEnum: true
-  AfterStruct: false
-  SplitEmptyFunction: false
   AfterFunction: true
   BeforeElse: true
 
-AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-
-# Space settings
-SpaceBeforeParens: Custom
-SpaceBeforeParensOptions:
-  AfterControlStatements: false
-  AfterFunctionDefinitionName: false
-
-SpaceAfterCStyleCast: true
-SpaceBeforeCStyleCast: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
 
 # Comment settings
 CommentPragmas: Preserve
 SortIncludes: false
 
+# Case blocks
+IndentCaseBlocks: true
+
+# Space settings
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: false
+
 # Other settings
-ColumnLimit: 0  # Disable column limit
+ColumnLimit: 160  # Disable column limit
+
+# Put each one of the function paremeters on its own line.
+BinPackParameters: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Function call’s arguments will have one line each.
+BinPackArguments: false
