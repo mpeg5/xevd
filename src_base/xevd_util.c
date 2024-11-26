@@ -693,9 +693,10 @@ u16 xevd_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, i
     if (x_scu > 0 && MCU_GET_COD(map_scu[scup - 1]) && map_tidx[curr_scup] == map_tidx[scup - 1])
     {
         SET_AVAIL(avail, AVAIL_LE);
-
-        if (y_scu + scuh + scuw - 1 < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * (scuw + scuh)) - w_scu - 1]) &&
-            (map_tidx[curr_scup] == map_tidx[scup + (w_scu * (scuw + scuh)) - w_scu - 1]))
+		
+		//ETM8.0 Reference Modification
+		if(y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * scuh) - 1]) &&
+           (map_tidx[curr_scup] == map_tidx[scup + (w_scu * scuh) - 1]))
         {
             SET_AVAIL(avail, AVAIL_LO_LE);
         }
@@ -726,9 +727,9 @@ u16 xevd_get_avail_intra(int x_scu, int y_scu, int w_scu, int h_scu, int scup, i
     if (x_scu + scuw < w_scu && MCU_GET_COD(map_scu[scup + scuw]) && (map_tidx[curr_scup] == map_tidx[scup + scuw]))
     {
         SET_AVAIL(avail, AVAIL_RI);
-
-        if (y_scu + scuh + scuw - 1 < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * (scuw + scuh - 1)) + scuw]) &&
-            (map_tidx[curr_scup] == map_tidx[scup + (w_scu * (scuw + scuh - 1)) + scuw]))
+		// ETM8.0 Reference Modification
+		if(y_scu + scuh < h_scu  && MCU_GET_COD(map_scu[scup + (w_scu * scuh) + scuw]) && 
+           (map_tidx[curr_scup] == map_tidx[scup + (w_scu * scuh) + scuw]))
         {
             SET_AVAIL(avail, AVAIL_LO_RI);
         }
