@@ -16,10 +16,10 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
 
 - Build Instructions
   ```
-  $mkdir build
-  $cd build
-  $cmake ..
-  $make
+  mkdir build
+  cd build
+  cmake ..
+  make
   ```
   - Output Location
     - Executable application (xevd_app) can be found under build/bin/.
@@ -33,17 +33,17 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
 - Build Instructions
   - MinGW-64
     ```
-    $mkdir build
-    $cd build
-    $cmake .. -G "MinGW Makefiles"
-    $make
+    mkdir build
+    cd build
+    cmake .. -G "MinGW Makefiles"
+    make
     ```
   - Microsoft Visual Studio
     ```
-    $mkdir build
-    $cd build
-    $cmake .. -G "Visual Studio 15 2017 Win64"
-    $make
+    mkdir build
+    cd build
+    cmake .. -G "Visual Studio 15 2017 Win64"
+    make
     ```
     You can change '-G' option with proper version of Visual Studio.
 
@@ -55,10 +55,10 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
 
 - Build Instructions
   ```
-  $mkdir build-arm
-  $cd build-arm
-  $cmake .. -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DARM=TRUE
-  $make
+  mkdir build-arm
+  cd build-arm
+  cmake .. -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DARM=TRUE
+  make
   ```
   - Output Location
     - Executable application (xevd_app) can be found under build-arm/bin/.
@@ -71,7 +71,7 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
   - Follow build instruction and build the project
   - Generate **DEB packages**
     ```
-    $make package
+    make package
     ```
     or
     ```
@@ -129,7 +129,7 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
     - MinGW-64
       - Go to the build directory and issue the following command
       ```
-      $make package
+      make package
       ```
   - Output:
     - Baseline Profile:
@@ -152,7 +152,7 @@ XEVD supports main and baseline profiles of EVC.
 >More options can be found when type **xevd_app** only.
 
 ### Example
-	$xevd_app -i input_bitstream.evc -o output_video.yuv
+	xevd_app -i input_bitstream.evc -o output_video.yuv
 
 ## License
 See [COPYING](COPYING) file for details.
