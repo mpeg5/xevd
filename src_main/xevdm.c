@@ -2434,12 +2434,16 @@ int xevd_tile_eco(void * arg)
         {
             xevd_threadsafe_assign(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
             xevd_assert_gv(xevd_eco_tile_end_flag(bs, sbac) == 1, ret, XEVD_ERR, ERR);
-            /*Decode zero bits after processing of last tile in slice*/
-            if (core->tile_num == ctx->num_tiles_in_slice - 1)
+            /*Decode zero bits at end of the picture is not required, hence commented out,
+            ETM 8.0 also doesnot have the support to decode zero bits at end of the frame
+            If Decode of zero bits need to be added, the below code to be enabled */
+#if 0
+            if (core->tile_num == ctx->tile_cnt - 1)
             {
                 ret = xevd_eco_cabac_zero_word(bs);
                 xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
             }
+#endif
             break;
         }
         core->x_lcu++;
