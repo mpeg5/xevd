@@ -137,10 +137,10 @@ void xevd_trace_line(char * pre);
 #define xevd_assert_gv(x,r,v,g) \
     {if(!(x)){assert(x); (r)=(v); goto g;}}
 
-#ifndef ARM
+#if defined(X86)
 #define X86_SSE                 1
 #define ARM_NEON                0
-#else
+#elif defined(ARM)
 #define X86_SSE                 0
 #define ARM_NEON                1
 #endif
