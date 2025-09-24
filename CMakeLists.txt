@@ -135,6 +135,18 @@ endif()
 message ("c Flags: " ${CMAKE_C_FLAGS})
 message ("linker Flags: " ${CMAKE_EXE_LINKER_FLAGS})
 
+# To build for arm provide in command line: -DARM=TRUE
+if(NOT ARM)
+  set(ARM "FALSE")
+else()
+  add_definitions(-DARM=1)
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flax-vector-conversions")
+  if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+  endif()
+endif()
+message("ARM=${ARM}")
+
 ########################################
 # Configuration
 ########################################

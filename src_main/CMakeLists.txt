@@ -27,16 +27,27 @@ file (GLOB LIB_MAIN_NEON_INC "./neon/xevdm_*.h" )
 include(GenerateExportHeader)
 include_directories("${CMAKE_BINARY_DIR}")
 
+set(ARM "FALSE")
+message("SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}")
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(arm|aarch)")
+  set(ARM "TRUE")
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86|ia64|i386|i686)")
+  set(X86 "TRUE")
+endif()
+
 if("${ARM}" STREQUAL "TRUE")
     add_library( ${LIB_NAME} STATIC ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC} 
                                     ${LIB_NEON_SRC} ${LIB_NEON_INC} ${LIB_MAIN_NEON_SRC} ${LIB_MAIN_NEON_INC} )
     add_library( ${LIB_NAME}_dynamic SHARED ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC} 
                                     ${LIB_NEON_SRC} ${LIB_NEON_INC} ${LIB_MAIN_NEON_SRC} ${LIB_MAIN_NEON_INC} )
-else()
+elseif(X86)
     add_library( ${LIB_NAME} STATIC ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC}
                                     ${LIB_SSE_SRC} ${LIB_SSE_INC} ${LIB_MAIN_SSE_SRC} ${LIB_MAIN_SSE_INC} ${LIB_AVX_SRC} ${LIB_AVX_INC} ${LIB_MAIN_AVX_SRC} ${LIB_MAIN_AVX_INC} )
     add_library( ${LIB_NAME}_dynamic SHARED ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC}
                                             ${LIB_SSE_SRC} ${LIB_SSE_INC} ${LIB_MAIN_SSE_SRC} ${LIB_MAIN_SSE_INC} ${LIB_AVX_SRC} ${LIB_AVX_INC} ${LIB_MAIN_AVX_SRC} ${LIB_MAIN_AVX_INC} )
+else()
+    add_library( ${LIB_NAME} STATIC ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC} )
+    add_library( ${LIB_NAME}_dynamic SHARED ${LIB_API_MAIN_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_MAIN_SRC} ${LIB_MAIN_INC} )
 endif()
 
 set_target_properties(${LIB_NAME}_dynamic PROPERTIES VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR} SOVERSION ${LIB_SOVERSION})
@@ -79,12 +90,15 @@ source_group("main\\neon\\source" FILES ${LIB_MAIN_NEON_SRC})
 
 if("${ARM}" STREQUAL "TRUE")
     include_directories( ${LIB_NAME} PUBLIC . .. ../inc ./neon ../src_base ../src_base/neon)
-else()
+elseif(X86)
     include_directories( ${LIB_NAME} PUBLIC . .. ../inc ./sse ./avx ../src_base ../src_base/sse ../src_base/avx)
+else()
+    include_directories( ${LIB_NAME} PUBLIC . .. ../inc ../src_base)
 endif()
 
 set( SSE ${BASE_INC_FILES} ${LIB_SSE_SRC} ${LIB_MAIN_SSE_SRC})
 set( AVX ${LIB_AVX_SRC} ${LIB_MAIN_AVX_SRC})
+set( NEON ${LIB_NEON_SRC} ${LIB_MAIN_NEON_SRC})
 
 set_target_properties(${LIB_NAME}_dynamic PROPERTIES OUTPUT_NAME ${LIB_NAME})
 
@@ -101,7 +115,11 @@ if( MSVC )
     set_target_properties(${LIB_NAME}_dynamic PROPERTIES FOLDER lib
                             ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/import/lib)
 elseif( UNIX OR MINGW )
-    if("${ARM}" STREQUAL "FALSE")
+    if(ARM)
+        add_definitions(-DARM=1)
+        set_property( SOURCE ${NEON} APPEND PROPERTY COMPILE_FLAGS "-flax-vector-conversions")
+    elseif(X86)
+        add_definitions(-DX86=1)
         set_property( SOURCE ${SSE} APPEND PROPERTY COMPILE_FLAGS "-msse4.1" )
         set_property( SOURCE ${AVX} APPEND PROPERTY COMPILE_FLAGS " -mavx2" )
     endif()
