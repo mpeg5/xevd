@@ -1992,6 +1992,7 @@ int xevdm_eco_sps(XEVD_BSR * bs, XEVD_SPS * sps)
     if (sps->vui_parameters_present_flag)
         xevd_eco_vui(bs, &(sps->vui_parameters));
     u32 t0;
+    xevd_bsr_read1(bs, &t0);
     while (!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
@@ -2069,6 +2070,7 @@ int xevdm_eco_pps(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps)
         pps->cu_qp_delta_area += 6;
     }
     u32 t0;
+    xevd_bsr_read1(bs, &t0);
     while(!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
@@ -2126,6 +2128,7 @@ int xevdm_eco_aps_gen(XEVD_BSR * bs, XEVD_APS_GEN * aps, int  bit_depth)
         }
     }
 
+    xevd_bsr_read1(bs, &t0);
     while (!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
