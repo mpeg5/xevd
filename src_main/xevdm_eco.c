@@ -2799,6 +2799,8 @@ int xevdm_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, XE
 
     /* byte align */
     u32 t0;
+    xevd_bsr_read1(bs, &t0);
+    xevd_assert_rv(1 == t0, XEVD_ERR_MALFORMED_BITSTREAM);
     while(!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
