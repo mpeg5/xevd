@@ -3102,7 +3102,7 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         }
         xevd_assert_rv(ret == XEVD_OK, ret);
 
-        if (ctx->num_ctb == ctx->f_lcu)
+        if (ctx->num_ctb == (u32)ctx->f_lcu)
         {
             /* get available frame buffer for decoded image */
             ctx->pic = xevdm_picman_get_empty_pic(&mctx->dpm, &ret, ctx->internal_codec_bit_depth);
