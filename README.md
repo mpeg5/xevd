@@ -48,6 +48,11 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
     You can change '-G' option with proper version of Visual Studio.
 
 ### ARM (64-bit)
+On an aarch64 host no special option is needed: the architecture is detected
+automatically, so the Linux instructions above apply as-is. Architectures
+without SIMD support build automatically with a plain C fallback.
+The instructions below are for cross-compiling on an x86 host.
+
 - Build Requirements
   - CMake 3.5 or later (download from [https://cmake.org/](https://cmake.org/))
   - gcc-aarch64-linux-gnu 
@@ -146,13 +151,58 @@ XEVD supports main and baseline profiles of EVC.
 |-----------------------|-----------|------------------------------------------------|
 | -i, --input           | -         | file name of input bitstream                   |
 | -o, --output          | -         | file name of output video                      |
-| -m, --threads         | 1         | mumber of threads to be created                |
+| -m, --threads         | 1         | number of threads to be created                |
 
 
 >More options can be found when type **xevd_app** only.
 
 ### Example
 	xevd_app -i input_bitstream.evc -o output_video.yuv
+
+## Programming Guide
+The following code is a pseudo code for understanding how to use the library
+```c
+#include <xevd.h>
+
+XEVD_CDSC cdsc;
+memset(&cdsc, 0, sizeof(XEVD_CDSC));
+cdsc.threads = 1;
+
+XEVD id = xevd_create(&cdsc, NULL);
+
+XEVD_BITB bitb; /* one nal unit per call */
+XEVD_STAT stat;
+XEVD_IMGB *imgb;
+
+while (read_nal_unit(&bitb))
+{
+    xevd_decode(id, &bitb, &stat);
+    if (stat.fnum >= 0 && xevd_pull(id, &imgb) == XEVD_OK)
+    {
+        write_image(imgb);
+        imgb->release(imgb);
+    }
+}
+/* flush remaining (reordered) pictures with xevd_pull(), then clean up */
+xevd_delete(id);
+```
+
+### Reading SEI payloads
+SEI payloads found in the access unit of a picture (e.g. HDR metadata) are
+exposed on the picture returned by `xevd_pull()`. The memory belongs to the
+library and is valid until the picture is released, so copy the payloads
+before calling `imgb->release()`.
+```c
+if (imgb->ndata[XEVD_IMGB_SEI_SLOT] == XEVD_SEI_MAGIC)
+{
+    XEVD_SEI *sei = (XEVD_SEI *)imgb->pdata[XEVD_IMGB_SEI_SLOT];
+    for (int i = 0; i < sei->num_payloads; i++)
+    {
+        XEVD_SEI_PAYLOAD *p = &sei->payloads[i];
+        /* p->payload_type, p->payload_size, p->payload */
+    }
+}
+```
 
 ## How to contribute
 Contributions are welcome through GitHub pull requests.

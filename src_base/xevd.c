@@ -63,6 +63,7 @@ static XEVD_CTX * ctx_alloc(void)
 
 static void ctx_free(XEVD_CTX * ctx)
 {
+    xevd_mfree(ctx->sei_pend);
     xevd_mfree_fast(ctx);
 }
 
@@ -1995,12 +1996,16 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
         ctx->pic->imgb->ts[XEVD_TS_PTS] = bitb->ts[XEVD_TS_DTS] + coding_delay * ctx->ts.frame_duration_time;
 
         for (int i=0; i<XEVD_NDATA_NUM; i++) {
+            if (i == XEVD_IMGB_SEI_SLOT) continue; /* reserved for SEI exposure */
             ctx->pic->imgb->ndata[i] = bitb->ndata[i];
         }
 
         for (int i=0; i<XEVD_PDATA_NUM; i++) {
+            if (i == XEVD_IMGB_SEI_SLOT) continue; /* reserved for SEI exposure */
             ctx->pic->imgb->pdata[i] = bitb->pdata[i];
         }
+
+        xevd_sei_attach(ctx, ctx->pic->imgb);
     }
     else if (nalu->nal_unit_type_plus1 - 1 == XEVD_NUT_SEI)
     {
