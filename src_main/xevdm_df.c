@@ -353,7 +353,8 @@ static const u8 compare_mvs(const int mv0[2], const int mv1[2])
     return (XEVD_ABS(mv0[0] - mv1[0]) < 4) && (XEVD_ABS(mv0[1] - mv1[1]) < 4);
 }
 
-static const u8 get_index(const u8 qp, const u8 offset)
+// ETM8.0 Reference Modification
+static const u8 get_index(const s8 qp, const s8 offset)
 {
     return XEVD_CLIP3(0, MAX_QP, qp + offset);
 }
