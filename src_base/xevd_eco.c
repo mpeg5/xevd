@@ -1579,6 +1579,41 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
     return XEVD_OK;
 }
 
+/* read a payload from the bitstream and append it to the pending SEI list */
+static int sei_pend_add(XEVD_CTX * ctx, u32 payload_type, u32 payload_size, XEVD_BSR * bs)
+{
+    int need = ctx->sei_pend_size + 8 + (int)payload_size;
+    u32 val;
+
+    if(need > ctx->sei_pend_cap)
+    {
+        int cap = ctx->sei_pend_cap == 0 ? 4096 : ctx->sei_pend_cap;
+        while(cap < need) cap *= 2;
+        u8 *buf = (u8 *)xevd_malloc(cap);
+        xevd_assert_rv(buf, XEVD_ERR_OUT_OF_MEMORY);
+        if(ctx->sei_pend)
+        {
+            xevd_mcpy(buf, ctx->sei_pend, ctx->sei_pend_size);
+            xevd_mfree(ctx->sei_pend);
+        }
+        ctx->sei_pend = buf;
+        ctx->sei_pend_cap = cap;
+    }
+
+    u8 *dst = ctx->sei_pend + ctx->sei_pend_size;
+    *((s32 *)dst) = (s32)payload_type;
+    *((s32 *)(dst + 4)) = (s32)payload_size;
+    dst += 8;
+    for(u32 i = 0; i < payload_size; i++)
+    {
+        xevd_bsr_read(bs, &val, 8);
+        dst[i] = (u8)val;
+    }
+    ctx->sei_pend_size = need;
+    ctx->sei_pend_num++;
+    return XEVD_OK;
+}
+
 int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
 {
 #if TRACE_HLS
@@ -1587,12 +1622,18 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
 #endif
     u32 payload_type, payload_size;
     u32 pic_sign[N_C][16];
+    u32 val;
+    int ret;
 
     /* should be aligned before adding user data */
     xevd_assert_rv(XEVD_BSR_IS_BYTE_ALIGN(bs), XEVD_ERR_UNKNOWN);
 
+    /* an SEI NAL unit may carry multiple sei_message()s; the last byte of the
+       rbsp is the trailing bits byte */
+    do
+    {
     payload_type = 0;
-    u32 val = 0;
+    val = 0;
 
     do
     {
@@ -1610,23 +1651,6 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
 
     switch (payload_type)
     {
-    case XEVD_USER_DATA_UNREGISTERED:
-        xevd_assert(payload_size >= ISO_IEC_11578_LEN);
-        u32 val;
-
-        for (u32 i = 0; i < ISO_IEC_11578_LEN; i++)
-        {
-            u8 uuid_iso_iec_11578_out[16];
-            xevd_bsr_read(bs, &val, 8);
-            uuid_iso_iec_11578_out[i] = val;
-        }
-
-        u32 sei_resize = payload_size - ISO_IEC_11578_LEN;
-        for (u32 i = 0; i < sei_resize; i++)
-        {
-            xevd_bsr_read(bs, &val, 8);
-        }
-        break;
     case XEVD_UD_PIC_SIGNATURE:
         /* read signature (HASH) from bitstream */
         for (int i = 0; i < ctx->pic[0].imgb->np; ++i)
@@ -1641,13 +1665,12 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
         break;
 
     default:
-        /* decoders shall ignore unsupported SEI payloads: skip the payload bytes */
-        for (u32 i = 0; i < payload_size; i++)
-        {
-            xevd_bsr_read(bs, &val, 8);
-        }
+        /* keep the payload for the caller; unsupported SEI must not fail the decode */
+        ret = sei_pend_add(ctx, payload_type, payload_size, bs);
+        xevd_assert_rv(ret == XEVD_OK, ret);
         break;
     }
+    } while (bs->size - XEVD_BSR_GET_READ_BYTE(bs) > 1);
 #if TRACE_HLS
     XEVD_TRACE_STR("************ SEI End   ************\n");
     XEVD_TRACE_STR("***********************************\n");

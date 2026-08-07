@@ -104,6 +104,13 @@ static void imgb_delete(XEVD_IMGB * imgb)
     int i;
     xevd_assert_r(imgb);
 
+    if(imgb->ndata[XEVD_IMGB_SEI_SLOT] == XEVD_SEI_MAGIC && imgb->pdata[XEVD_IMGB_SEI_SLOT])
+    {
+        xevd_mfree(imgb->pdata[XEVD_IMGB_SEI_SLOT]);
+        imgb->pdata[XEVD_IMGB_SEI_SLOT] = NULL;
+        imgb->ndata[XEVD_IMGB_SEI_SLOT] = 0;
+    }
+
     for(i=0; i<XEVD_IMGB_MAX_PLANE; i++)
     {
         if (imgb->baddr[i]) xevd_mfree(imgb->baddr[i]);
@@ -1490,6 +1497,61 @@ XEVD_PIC * xevd_picbuf_alloc(PICBUF_ALLOCATOR * pa, int * ret, int bit_depth)
 void xevd_picbuf_free(PICBUF_ALLOCATOR * pa, XEVD_PIC * pic)
 {
     xevd_picbuf_lc_free(pic);
+}
+
+/* move the pending SEI payloads of the current access unit onto the decoded
+   picture, replacing whatever a previous use of the (recycled) buffer left */
+void xevd_sei_attach(XEVD_CTX * ctx, XEVD_IMGB * imgb)
+{
+    if(imgb->ndata[XEVD_IMGB_SEI_SLOT] == XEVD_SEI_MAGIC && imgb->pdata[XEVD_IMGB_SEI_SLOT])
+    {
+        xevd_mfree(imgb->pdata[XEVD_IMGB_SEI_SLOT]);
+    }
+    imgb->pdata[XEVD_IMGB_SEI_SLOT] = NULL;
+    imgb->ndata[XEVD_IMGB_SEI_SLOT] = 0;
+
+    if(ctx->sei_pend_num <= 0)
+    {
+        return;
+    }
+
+    int bytes = ctx->sei_pend_size - ctx->sei_pend_num * 8;
+    int total = (int)sizeof(XEVD_SEI) + ctx->sei_pend_num * (int)sizeof(XEVD_SEI_PAYLOAD) + bytes;
+
+    XEVD_SEI *sei = (XEVD_SEI *)xevd_malloc(total);
+    if(sei == NULL) /* dropping SEI is not fatal for the decode */
+    {
+        ctx->sei_pend_size = 0;
+        ctx->sei_pend_num  = 0;
+        return;
+    }
+
+    XEVD_SEI_PAYLOAD *pls = (XEVD_SEI_PAYLOAD *)(sei + 1);
+    u8               *dst = (u8 *)(pls + ctx->sei_pend_num);
+    u8               *src = ctx->sei_pend;
+
+    sei->num_payloads = ctx->sei_pend_num;
+    sei->payloads     = pls;
+
+    for(int i = 0; i < ctx->sei_pend_num; i++)
+    {
+        s32 type = *((s32 *)src);
+        s32 size = *((s32 *)(src + 4));
+        src += 8;
+
+        pls[i].payload_type = (XEVD_SEI_PAYLOAD_TYPE)type;
+        pls[i].payload_size = size;
+        pls[i].payload      = dst;
+        xevd_mcpy(dst, src, size);
+        src += size;
+        dst += size;
+    }
+
+    imgb->pdata[XEVD_IMGB_SEI_SLOT] = sei;
+    imgb->ndata[XEVD_IMGB_SEI_SLOT] = XEVD_SEI_MAGIC;
+
+    ctx->sei_pend_size = 0;
+    ctx->sei_pend_num  = 0;
 }
 
 int xevd_picbuf_check_signature(XEVD_PIC * pic, u8 signature[N_C][16]

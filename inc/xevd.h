@@ -140,6 +140,41 @@ extern "C"
 #define XEVD_NUT_SEI                     (28)
 
 /*****************************************************************************
+ * SEI payloads (ISO/IEC 23094-1 Annex D)
+ *****************************************************************************/
+typedef enum _XEVD_SEI_PAYLOAD_TYPE {
+    XEVD_SEI_BUFFERING_PERIOD                = 0,
+    XEVD_SEI_PICTURE_TIMING                  = 1,
+    XEVD_SEI_USER_DATA_REGISTERED_ITU_T_T35  = 4,
+    XEVD_SEI_USER_DATA_UNREGISTERED          = 5,
+    XEVD_SEI_RECOVERY_POINT                  = 6,
+    XEVD_SEI_MASTERING_DISPLAY_INFO          = 137,
+    XEVD_SEI_CONTENT_LIGHT_LEVEL_INFO        = 144,
+    XEVD_SEI_AMBIENT_VIEWING_ENVIRONMENT     = 148,
+} XEVD_SEI_PAYLOAD_TYPE;
+
+typedef struct _XEVD_SEI_PAYLOAD {
+    int                     payload_size;
+    XEVD_SEI_PAYLOAD_TYPE   payload_type;
+    unsigned char         * payload;
+} XEVD_SEI_PAYLOAD;
+
+typedef struct _XEVD_SEI {
+    int                num_payloads;
+    XEVD_SEI_PAYLOAD * payloads;
+} XEVD_SEI;
+
+/* SEI payloads parsed from the access unit of an output picture are exposed
+   on the picture returned by xevd_pull(): when imgb->ndata[XEVD_IMGB_SEI_SLOT]
+   equals XEVD_SEI_MAGIC, imgb->pdata[XEVD_IMGB_SEI_SLOT] points to an XEVD_SEI.
+   The memory belongs to the library and stays valid until the imgb is
+   released, so copy the payloads before releasing the picture. Note that
+   ndata[XEVD_IMGB_SEI_SLOT]/pdata[XEVD_IMGB_SEI_SLOT] of the input bitstream
+   buffer are not propagated to output pictures. */
+#define XEVD_IMGB_SEI_SLOT               (3)
+#define XEVD_SEI_MAGIC                   (0x58534549) /* 'XSEI' */
+
+/*****************************************************************************
  * slice type
  *****************************************************************************/
 #define XEVD_ST_UNKNOWN                  (-1)

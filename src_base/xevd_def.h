@@ -1470,6 +1470,13 @@ struct _XEVD_CTX
     void                  * pf;
 
     XEVD_SCAN_TABLES      * scan_tables;
+
+    /* SEI payloads parsed for the current access unit, pending until the
+       picture is decoded. layout: [s32 type][s32 size][size bytes] repeated */
+    u8                    * sei_pend;
+    int                     sei_pend_size;
+    int                     sei_pend_cap;
+    int                     sei_pend_num;
 };
 
 
