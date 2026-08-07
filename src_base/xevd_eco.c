@@ -1641,7 +1641,12 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
         break;
 
     default:
-        xevd_assert_rv(0, XEVD_ERR_UNEXPECTED);
+        /* decoders shall ignore unsupported SEI payloads: skip the payload bytes */
+        for (u32 i = 0; i < payload_size; i++)
+        {
+            xevd_bsr_read(bs, &val, 8);
+        }
+        break;
     }
 #if TRACE_HLS
     XEVD_TRACE_STR("************ SEI End   ************\n");
