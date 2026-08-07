@@ -66,14 +66,14 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
             ret = xevd_info(nalu_len_buf, XEVD_NAL_UNIT_LENGTH_BYTE, 1, &info);
             if (XEVD_FAILED(ret)) {
                 logv0("Cannot get bitstream information\n");
-                return XEVD_ERR;
+                return -1;
             }
             bs_size = info.nalu_len;
 
             if(bs_size <= 0)
             {
                 logv0("Invalid bitstream size![%d]\n", bs_size);
-                return XEVD_ERR;
+                return -1;
             }
 
             while(bs_size)
@@ -82,7 +82,7 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
                 if (1 != fread(&b, 1, 1, fp))
                 {
                     logv0("Cannot read bitstream!\n");
-                    return XEVD_ERR;
+                    return -1;
                 }
                 bs_buf[read_size] = b;
                 read_size++;
@@ -94,13 +94,13 @@ static int read_bitstream(FILE * fp, int * pos, unsigned char * bs_buf)
             if(feof(fp)) {logv2("End of file\n");}
             else {logv0("Cannot read bitstream size!\n")};
 
-            return XEVD_ERR;
+            return -1;
         }
     }
     else
     {
         logv0("Cannot seek bitstream!\n");
-        return XEVD_ERR;
+        return -1;
     }
 
     return read_size;
@@ -182,7 +182,7 @@ static int set_extra_config(XEVD id)
         if(XEVD_FAILED(ret))
         {
             logv0("failed to set config for picture signature\n");
-            return XEVD_ERR;
+            return -1;
         }
     }
 
@@ -199,7 +199,7 @@ static int get_extra_config(XEVD id)
     if (XEVD_FAILED(ret))
     {
         logv2("failed to get width\n");
-        return XEVD_ERR;
+        return -1;
     }
     logv2("width = %d\n", width);
 
@@ -208,7 +208,7 @@ static int get_extra_config(XEVD id)
     if (XEVD_FAILED(ret))
     {
         logv2("failed to get height\n");
-        return XEVD_ERR;
+        return -1;
     }
     logv2("height = %d\n", height);
 
@@ -217,7 +217,7 @@ static int get_extra_config(XEVD id)
     if (XEVD_FAILED(ret))
     {
         logv2("failed to get coded_width\n");
-        return XEVD_ERR;
+        return -1;
     }
     logv2("coded_width = %d\n", coded_width);
 
@@ -226,7 +226,7 @@ static int get_extra_config(XEVD id)
     if (XEVD_FAILED(ret))
     {
         logv2("failed to get coded_height\n");
-        return XEVD_ERR;
+        return -1;
     }
     logv2("coded_height = %d\n", coded_height);
 
@@ -235,7 +235,7 @@ static int get_extra_config(XEVD id)
     if (XEVD_FAILED(ret))
     {
         logv2("failed to get color_space\n");
-        return XEVD_ERR;
+        return -1;
     }
     switch(color_space)
     {
@@ -259,7 +259,7 @@ static int get_extra_config(XEVD id)
     if (XEVD_FAILED(ret))
     {
         logv2("failed to get max_coding_delay\n");
-        return XEVD_ERR;
+        return -1;
     }
     logv2("max_coding_delay = %d\n", max_coding_delay);
     return 0;
@@ -300,7 +300,7 @@ static int write_y4m_header(char * fname, XEVD_IMGB * img)
     if (strlen(c_buf) == 0)
     {
         logv0("Color format is not suuported by y4m");
-        return XEVD_ERR;
+        return -1;
     }
 
     /*setting fps to 30 by default as there is no fps related parameter */
@@ -312,15 +312,15 @@ static int write_y4m_header(char * fname, XEVD_IMGB * img)
     if (fp == NULL)
     {
         logv0("cannot open file = %s\n", fname);
-        return XEVD_ERR;
+        return -1;
     }
     if (buff_len != fwrite(buf, 1, buff_len, fp))
     {
         fclose(fp);
-        return XEVD_ERR;
+        return -1;
     }
     fclose(fp);
-    return XEVD_OK;
+    return 0;
 
 }
 /* Frame level header or separator */
@@ -331,15 +331,15 @@ static int write_y4m_frame_header(char * fname)
     if (fp == NULL)
     {
         logv0("cannot open file = %s\n", fname);
-        return XEVD_ERR;
+        return -1;
     }
     if (6 != fwrite("FRAME\n", 1, 6, fp))
     {
         fclose(fp);
-        return XEVD_ERR;
+        return -1;
     }
     fclose(fp);
-    return XEVD_OK;
+    return 0;
 
 }
 
@@ -349,10 +349,10 @@ static int write_dec_img(XEVD id, char * fname, XEVD_IMGB * img, XEVD_IMGB * img
     imgb_cpy(imgb_t, img);
     if (flag_y4m)
     {
-        if(write_y4m_frame_header(op_fname_out)) return XEVD_ERR;
+        if(write_y4m_frame_header(op_fname_out)) return -1;
     }
-    if(imgb_write(op_fname_out, imgb_t)) return XEVD_ERR;
-    return XEVD_OK;
+    if(imgb_write(op_fname_out, imgb_t)) return -1;
+    return 0;
 }
 
 int main(int argc, const char **argv)
@@ -386,7 +386,7 @@ int main(int argc, const char **argv)
     {
         if(ret > 0) logv0("-%c argument should be set\n", ret);
         print_usage();
-        return XEVD_ERR;
+        return -1;
     }
 
     logv1("eXtra-fast Essential Video Decoder\n");
@@ -396,7 +396,7 @@ int main(int argc, const char **argv)
     {
         logv0("ERROR: cannot open bitstream file = %s\n", op_fname_inp);
         print_usage();
-        return XEVD_ERR;
+        return -1;
     }
 
     if(op_flag[OP_FLAG_FNAME_OUT])
@@ -406,7 +406,7 @@ int main(int argc, const char **argv)
         if(strlen(op_fname_out) < 5) /* x.yuv or x.y4m */
         {
             logv0("ERROR: invalide output file name\n");
-            return XEVD_ERR;
+            return -1;
         }
         strncpy(fext, op_fname_out + strlen(op_fname_out) - 4, 4);
         fext[1] = toupper(fext[1]);
@@ -424,7 +424,7 @@ int main(int argc, const char **argv)
         else
         {
             logv0("ERROR: unknown output format\n");
-            return XEVD_ERR;
+            return -1;
         }
         /* remove decoded file contents if exists */
         FILE * fp;
@@ -433,7 +433,7 @@ int main(int argc, const char **argv)
         {
             logv0("ERROR: cannot create a decoded file\n");
             print_usage();
-            return XEVD_ERR;
+            return -1;
         }
         fclose(fp);
     }
@@ -442,7 +442,7 @@ int main(int argc, const char **argv)
     if(bs_buf == NULL)
     {
         logv0("ERROR: cannot allocate bit buffer, size=%d\n", MAX_BS_BUF);
-        return XEVD_ERR;
+        return -1;
     }
     cdsc.threads = (int)op_threads;
 
@@ -450,12 +450,12 @@ int main(int argc, const char **argv)
     if(id == NULL)
     {
         logv0("ERROR: cannot create XEVD decoder\n");
-        return XEVD_ERR;
+        return -1;
     }
     if(set_extra_config(id))
     {
         logv0("ERROR: cannot set extra configurations\n");
-        return XEVD_ERR;
+        return -1;
     }
 
     pic_cnt = 0;
@@ -505,7 +505,7 @@ int main(int argc, const char **argv)
             if(XEVD_FAILED(ret))
             {
                 logv0("failed to decode bitstream\n");
-                proc_ret = XEVD_ERR;
+                proc_ret = -1;
                 goto END;
             }
 
@@ -526,13 +526,13 @@ int main(int argc, const char **argv)
             if(ret == XEVD_ERR_UNEXPECTED)
             {
                 logv2("bumping process completed\n");
-                proc_ret = XEVD_OK;
+                proc_ret = 0;
                 goto END;
             }
             else if(XEVD_FAILED(ret))
             {
                 logv0("failed to pull the decoded image\n");
-                proc_ret = XEVD_ERR;
+                proc_ret = -1;
                 goto END;
             }
         }
@@ -573,7 +573,7 @@ int main(int argc, const char **argv)
                     if(imgb_t == NULL)
                     {
                         logv0("failed to allocate temporay image buffer\n");
-                        proc_ret = XEVD_ERR;
+                        proc_ret = -1;
                         goto END;
                     }
                     //Copy the actual width and height of input image to temporary image.
@@ -591,7 +591,7 @@ int main(int argc, const char **argv)
                 {
                     if(write_y4m_header(op_fname_out, imgb))
                     {
-                        proc_ret = XEVD_ERR;
+                        proc_ret = -1;
                         goto END;
                     }
                 }
