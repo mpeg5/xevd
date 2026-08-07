@@ -1446,6 +1446,14 @@ int xevd_tile_eco(void * arg)
         {
             xevd_threadsafe_assign(&ctx->sync_row[core->y_lcu], THREAD_TERMINATED);
             xevd_assert_gv(xevd_eco_tile_end_flag(bs, sbac) == 1, ret, XEVD_ERR, ERR);
+            u32 t0;
+            xevd_bsr_read1(bs, &t0);
+            xevd_assert_gv(1 == t0, ret, XEVD_ERR_MALFORMED_BITSTREAM, ERR);
+            while (!XEVD_BSR_IS_BYTE_ALIGN(bs))
+            {
+                xevd_bsr_read1(bs, &t0);
+                xevd_assert_gv(0 == t0, ret, XEVD_ERR_MALFORMED_BITSTREAM, ERR);
+            }
             ret = xevd_eco_cabac_zero_word(bs);
             xevd_assert_g(XEVD_SUCCEEDED(ret), ERR);
             break;

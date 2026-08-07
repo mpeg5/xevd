@@ -1382,6 +1382,7 @@ int xevd_eco_sps(XEVD_BSR * bs, XEVD_SPS * sps)
     }
 
     u32 t0;
+    xevd_bsr_read1(bs, &t0);
     while (!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
@@ -1420,6 +1421,7 @@ int xevd_eco_pps(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps)
     }
 
     u32 t0;
+    xevd_bsr_read1(bs, &t0);
     while(!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
@@ -1567,6 +1569,8 @@ int xevd_eco_sh(XEVD_BSR * bs, XEVD_SPS * sps, XEVD_PPS * pps, XEVD_SH * sh, int
 
     /* byte align */
     u32 t0;
+    xevd_bsr_read1(bs, &t0);
+    xevd_assert_rv(1 == t0, XEVD_ERR_MALFORMED_BITSTREAM);
     while(!XEVD_BSR_IS_BYTE_ALIGN(bs))
     {
         xevd_bsr_read1(bs, &t0);
@@ -1643,6 +1647,14 @@ int xevd_eco_sei(XEVD_CTX * ctx, XEVD_BSR * bs)
     default:
         xevd_assert_rv(0, XEVD_ERR_UNEXPECTED);
     }
+
+    u32 t0;
+    xevd_bsr_read1(bs, &t0);
+    while (!XEVD_BSR_IS_BYTE_ALIGN(bs))
+    {
+        xevd_bsr_read1(bs, &t0);
+    }
+
 #if TRACE_HLS
     XEVD_TRACE_STR("************ SEI End   ************\n");
     XEVD_TRACE_STR("***********************************\n");
