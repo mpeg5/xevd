@@ -15,14 +15,18 @@ file (GLOB LIB_NEON_INC "neon/xevd_*.h" )
 
 include(GenerateExportHeader)
 include_directories("${CMAKE_BINARY_DIR}")
+
 if("${ARM}" STREQUAL "TRUE")
     add_library( ${LIB_NAME_BASE} STATIC ${LIB_API_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_NEON_SRC} ${LIB_NEON_INC} )
     add_library( ${LIB_NAME_BASE}_dynamic SHARED ${LIB_API_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_NEON_SRC} ${LIB_NEON_INC} )
-else()
+elseif(X86)
     add_library( ${LIB_NAME_BASE} STATIC ${LIB_API_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_SSE_SRC} ${LIB_SSE_INC}
                                        ${LIB_AVX_SRC} ${LIB_AVX_INC} )
     add_library( ${LIB_NAME_BASE}_dynamic SHARED ${LIB_API_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} ${LIB_SSE_SRC} ${LIB_SSE_INC}
                                                ${LIB_AVX_SRC} ${LIB_AVX_INC} )
+else()
+    add_library( ${LIB_NAME_BASE} STATIC ${LIB_API_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} )
+    add_library( ${LIB_NAME_BASE}_dynamic SHARED ${LIB_API_SRC} ${XEVD_INC} ${LIB_BASE_SRC} ${LIB_BASE_INC} )
 endif()
 
 set_target_properties(${LIB_NAME_BASE}_dynamic PROPERTIES VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR} SOVERSION ${LIB_SOVERSION})
@@ -56,8 +60,10 @@ source_group("base\\neon\\source" FILES ${LIB_NEON_SRC})
 
 if("${ARM}" STREQUAL "TRUE")
     include_directories( ${LIB_NAME_BASE} PUBLIC . .. ../inc ./neon)
-else()
+elseif(X86)
     include_directories( ${LIB_NAME_BASE} PUBLIC . .. ../inc ./sse ./avx)
+else()
+    include_directories( ${LIB_NAME_BASE} PUBLIC . .. ../inc)
 endif()
 
 
@@ -86,7 +92,9 @@ if( MSVC )
                             ARCHIVE_OUTPUT_DIRECTORY  ${CMAKE_CURRENT_BINARY_DIR}/import/lib)
 elseif( UNIX OR MINGW )
 
-    if("${ARM}" STREQUAL "FALSE")
+    if(ARM)
+        set_property( SOURCE ${NEON} APPEND PROPERTY COMPILE_FLAGS "-flax-vector-conversions")
+    elseif(X86)
         set_property( SOURCE ${SSE} APPEND PROPERTY COMPILE_FLAGS "-msse4.1" )
         set_property( SOURCE ${AVX} APPEND PROPERTY COMPILE_FLAGS " -mavx2" )
     endif()
