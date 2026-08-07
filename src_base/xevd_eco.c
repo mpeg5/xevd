@@ -179,7 +179,7 @@ static u32 sbac_read_unary_sym_ep(XEVD_BSR * bs, XEVD_SBAC * sbac, u32 max_val)
     symbol = 0;
     do
     {
-        if(counter == max_val) t32u = 0;
+        if(counter == (int)max_val) t32u = 0;
         else t32u = sbac_decode_bin_ep(bs, sbac);
         counter++;
         symbol++;
