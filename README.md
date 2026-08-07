@@ -48,6 +48,11 @@ The EVC defines two profiles, including "**Baseline Profile**" and "**Main Profi
     You can change '-G' option with proper version of Visual Studio.
 
 ### ARM (64-bit)
+On an aarch64 host no special option is needed: the architecture is detected
+automatically, so the Linux instructions above apply as-is. Architectures
+without SIMD support build automatically with a plain C fallback.
+The instructions below are for cross-compiling on an x86 host.
+
 - Build Requirements
   - CMake 3.5 or later (download from [https://cmake.org/](https://cmake.org/))
   - gcc-aarch64-linux-gnu 
@@ -146,7 +151,7 @@ XEVD supports main and baseline profiles of EVC.
 |-----------------------|-----------|------------------------------------------------|
 | -i, --input           | -         | file name of input bitstream                   |
 | -o, --output          | -         | file name of output video                      |
-| -m, --threads         | 1         | mumber of threads to be created                |
+| -m, --threads         | 1         | number of threads to be created                |
 
 
 >More options can be found when type **xevd_app** only.
