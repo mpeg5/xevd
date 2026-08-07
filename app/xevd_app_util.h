@@ -172,18 +172,18 @@ static int imgb_read(FILE * fp, XEVD_IMGB * img)
         size_l = f_w * f_h;
         if(fread(img->a[0], 1, size_l, fp) != (unsigned)size_l)
         {
-            return XEVD_ERR;
+            return -1;
         }
         size_cb = XEVDA_CRSHIFT(f_w, w_shift) * XEVDA_CRSHIFT(f_h, h_shift);
         if(chroma_format != XEVD_CF_YCBCR400)
         {
             if(fread(img->a[1], 1, size_cb, fp) != (unsigned)size_cb)
             {
-                return XEVD_ERR;
+                return -1;
             }
             if(fread(img->a[2], 1, size_cb, fp) != (unsigned)size_cb)
             {
-                return XEVD_ERR;
+                return -1;
             }
         }
     }
@@ -193,7 +193,7 @@ static int imgb_read(FILE * fp, XEVD_IMGB * img)
         size_l = f_w * f_h * sizeof(short);
         if(fread(img->a[0], 1, size_l, fp) != (unsigned)size_l)
         {
-            return XEVD_ERR;
+            return -1;
         }
         size_cb = XEVDA_CRSHIFT(f_w, w_shift) * XEVDA_CRSHIFT(f_h, h_shift) *
             sizeof(short);
@@ -201,21 +201,21 @@ static int imgb_read(FILE * fp, XEVD_IMGB * img)
         {
             if(fread(img->a[1], 1, size_cb, fp) != (unsigned)size_cb)
             {
-                return XEVD_ERR;
+                return -1;
             }
             if(fread(img->a[2], 1, size_cb, fp) != (unsigned)size_cb)
             {
-                return XEVD_ERR;
+                return -1;
             }
         }
     }
     else
     {
         logv0("not supported color space\n");
-        return XEVD_ERR;
+        return -1;
     }
 
-    return XEVD_OK;
+    return 0;
 }
 
 static int imgb_write(char * fname, XEVD_IMGB * img)
@@ -229,7 +229,7 @@ static int imgb_write(char * fname, XEVD_IMGB * img)
     if(fp == NULL)
     {
         logv0("cannot open file = %s\n", fname);
-        return XEVD_ERR;
+        return -1;
     }
     if ((img->cs & 0xff) != XEVD_CF_YCBCR400)
     {
@@ -249,7 +249,7 @@ static int imgb_write(char * fname, XEVD_IMGB * img)
     {
         logv0("cannot support the color space\n");
         fclose(fp);
-        return XEVD_ERR;
+        return -1;
     }
     for(i = 0; i < img->np; i++)
     {
@@ -317,7 +317,7 @@ static int write_data(char * fname, unsigned char * data, int size)
     if(fp == NULL)
     {
         logv0("cannot open an writing file=%s\n", fname);
-        return XEVD_ERR;
+        return -1;
     }
     fwrite(data, 1, size, fp);
     fclose(fp);
