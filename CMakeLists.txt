@@ -136,7 +136,11 @@ elseif( UNIX OR MINGW )
     endif()
 
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -${OPT_LV} ${OPT_DBG} -fomit-frame-pointer -pthread -std=c99")
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-pointer-sign -Wno-pointer-to-int-cast -Wno-maybe-uninitialized -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-unknown-pragmas -Wno-stringop-overflow")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-pointer-sign -Wno-pointer-to-int-cast -Wno-maybe-uninitialized -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-unknown-pragmas -Wno-stringop-overflow")
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-pointer-sign -Wno-pointer-to-int-cast -Wno-uninitialized -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable -Wno-attributes -Wno-unknown-pragmas -Wno-shift-overflow")
+    endif()
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 endif()
 
