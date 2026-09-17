@@ -1398,6 +1398,10 @@ struct _XEVD_CTX
     u32                     prev_doc_offset;
     /* the number of currently decoded pictures */
     u32                     pic_cnt;
+    /* POC of a Cra picture at which decoding started (random access), or -1.
+     * Leading pictures that follow such a CRA reference pictures preceding
+     * the CRA and cannot be decoded, so they are skipped. */
+    int                     cra_start_poc;
     /* flag whether current picture is refecened picture or not */
     u8                      slice_ref_flag;
     /* distance between ref pics in addition to closest ref ref pic in LD*/
