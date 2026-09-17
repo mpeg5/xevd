@@ -76,6 +76,7 @@ static XEVDM_CTX * xevdm_ctx_alloc(void)
 
     xevd_assert_rv(ctx != NULL, NULL);
     xevd_mset_x64a(ctx, 0, sizeof(XEVDM_CTX));
+    ctx->cra_start_poc = -1;
 
     ctx->aps_gen_array = (XEVD_APS_GEN *)xevd_malloc(2 * sizeof(XEVD_APS_GEN));
     //xevd_assert_rv(ctx->aps_gen_array != NULL, NULL);
@@ -3079,6 +3080,29 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             ctx->slice_ref_flag = 1;
         }
 
+        /* A CRA picture (a non-IDR picture with an I slice) as the first
+         * picture of the stream means decoding starts at a clean random
+         * access point. Leading pictures following it reference pictures
+         * preceding the CRA, which are not available, so skip them. */
+        if (ctx->nalu.nal_unit_type_plus1 - 1 != XEVD_NUT_IDR &&
+            sh->slice_type == SLICE_I && ctx->pic_cnt == 0)
+        {
+            mctx->cra_start_poc = ctx->poc.poc_val;
+        }
+        else if (ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR)
+        {
+            mctx->cra_start_poc = -1;
+        }
+        if (mctx->cra_start_poc >= 0 && ctx->poc.poc_val < mctx->cra_start_poc &&
+            ctx->nalu.nal_unit_type_plus1 - 1 != XEVD_NUT_IDR && sh->slice_type != SLICE_I)
+        {
+            /* leading picture after CRA random access - skip decoding */
+            stat->nalu_type = ctx->nalu.nal_unit_type_plus1 - 1;
+            stat->fnum = -1;
+            stat->read += XEVD_BSR_GET_READ_BYTE(&ctx->bs);
+            return XEVD_OK;
+        }
+
         s32 pic_delay = (ctx->poc.poc_val - (s32)ctx->poc.prev_pic_max_poc_val - 1);
         if (ctx->max_coding_delay < pic_delay)
         {
@@ -3220,8 +3244,16 @@ int xevd_dec_nalu(XEVD_CTX * ctx, XEVD_BITB * bitb, XEVD_STAT * stat)
             ctx->fn_picbuf_expand(ctx, ctx->pic);
 
             /* put decoded picture to DPB */
-            ret = xevdm_picman_put_pic(&mctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
+            ret = xevdm_picman_put_pic(&mctx->dpm, ctx->pic, ctx->nalu.nal_unit_type_plus1 - 1 == XEVD_NUT_IDR ||
+                                       mctx->cra_start_poc == ctx->poc.poc_val, ctx->poc.poc_val, ctx->nalu.nuh_temporal_id, 1, ctx->refp, ctx->slice_ref_flag, sps->tool_rpl, ctx->ref_pic_gap_length);
             xevd_assert_rv(XEVD_SUCCEEDED(ret), ret);
+
+            /* A CRA random access point resets output ordering like an IDR,
+             * but output starts from the CRA picture itself. */
+            if (mctx->cra_start_poc == ctx->poc.poc_val)
+            {
+                mctx->dpm.poc_next_output = ctx->poc.poc_val;
+            }
         }
 
         if(ctx->pic_cnt == 0) {

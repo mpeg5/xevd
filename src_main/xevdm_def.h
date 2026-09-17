@@ -588,6 +588,11 @@ struct _XEVDM_CTX
     /* ats_inter info map */
     u8                    * map_ats_inter;
 
+    /* POC of a CRA picture at which decoding started (random access), or -1.
+     * Leading pictures that follow such a CRA reference pictures preceding
+     * the CRA and cannot be decoded, so they are skipped. */
+    int                     cra_start_poc;
+
     /* function address of ALF */
     int(*fn_alf)(XEVD_CTX * ctx, XEVD_PIC * pic);
 };
